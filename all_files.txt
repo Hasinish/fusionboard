@@ -1,0 +1,743 @@
+
+===== FILE: all_files.txt =====
+
+
+===== FILE: backend\.env =====
+MONGO_URI=mongodb+srv://hasinishrak2015_db_user:MUb26jLpTSng8XtW@cluster0.qgo2q3t.mongodb.net/fusionboard_db?appName=Cluster0
+PORT=5001
+JWT_SECRET=abc123
+
+===== FILE: backend\.gitignore =====
+# Node modules
+node_modules/
+
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+
+.env
+
+===== FILE: backend\package.json =====
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.14.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
+
+
+===== FILE: frontend\.gitignore =====
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+
+===== FILE: frontend\eslint.config.js =====
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+
+
+===== FILE: frontend\index.html =====
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+
+===== FILE: frontend\package.json =====
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "lucide-react": "^0.556.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.10.1",
+    "react-router-dom": "^7.10.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "daisyui": "^4.12.24",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "vite": "^7.2.4"
+  }
+}
+
+
+===== FILE: frontend\postcss.config.js =====
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+
+===== FILE: frontend\README.md =====
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+===== FILE: frontend\tailwind.config.js =====
+import daisyui from 'daisyui';
+
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [daisyui],
+}
+
+===== FILE: frontend\vite.config.js =====
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+
+
+===== IMAGE FILE: frontend\public\vite.svg =====
+
+===== FILE: frontend\src\App.jsx =====
+import { Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+
+function App() {
+  return (
+    <div className="min-h-screen bg-base-200">
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
+    </div>
+  );
+}
+
+export default App;
+
+
+===== FILE: frontend\src\index.css =====
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+===== FILE: frontend\src\main.jsx =====
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.jsx";
+import { BrowserRouter } from "react-router-dom";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>
+);
+
+
+===== FILE: frontend\src\components\NavBar.jsx =====
+// frontend/src/components/NavBar.jsx
+import { getUser } from "../lib/auth";
+
+function NavBar() {
+  const user = getUser();
+  const initial = user?.name?.[0]?.toUpperCase() || "U";
+
+  return (
+    <div className="navbar bg-base-100 shadow-sm">
+      <div className="max-w-6xl mx-auto flex w-full items-center justify-between px-4">
+        {/* Left: Logo / Name */}
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-bold tracking-tight">
+            Fusion<span className="text-primary">Board</span>
+          </span>
+        </div>
+
+        {/* Right: Create workspace + profile icon */}
+        <div className="flex items-center gap-4">
+          <button className="btn btn-primary btn-sm">
+            Create workspace
+          </button>
+
+          {/* Round human icon (avatar placeholder) */}
+          <div className="avatar cursor-pointer">
+            <div className="w-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
+              <span className="text-lg font-semibold">
+                {initial}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default NavBar;
+
+
+===== FILE: frontend\src\lib\api.js =====
+import axios from "axios";
+
+export default axios.create({
+  baseURL: "http://localhost:5001/api"
+});
+
+
+===== FILE: frontend\src\lib\auth.js =====
+// Save token + user info
+export function saveAuth(token, user) {
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+}
+
+// Get current user object or null
+export function getUser() {
+  const raw = localStorage.getItem("user");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// Simple logged-in check
+export function isLoggedIn() {
+  return !!localStorage.getItem("token");
+}
+
+// Clear auth on logout
+export function clearAuth() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
+
+
+===== FILE: frontend\src\pages\DashboardPage.jsx =====
+// frontend/src/pages/DashboardPage.jsx
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getUser, isLoggedIn, clearAuth } from "../lib/auth";
+import NavBar from "../components/NavBar";
+
+function DashboardPage() {
+  const navigate = useNavigate();
+  const user = getUser();
+
+  // If not logged in, redirect to login
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login");
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      {/* Top Navbar */}
+      <NavBar />
+
+      {/* Main content */}
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* Welcome / user info */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">
+                Dashboard
+              </h1>
+              <p className="text-sm text-neutral-500">
+                {user
+                  ? `Logged in as ${user.name} (${user.email})`
+                  : "Loading user..."}
+              </p>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="btn btn-ghost btn-sm"
+            >
+              Logout
+            </button>
+          </div>
+
+          {/* My Workspaces section */}
+          <section>
+            <h2 className="text-lg font-semibold mb-3">
+              My Workspaces
+            </h2>
+
+            <div className="rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-neutral-500 bg-base-100">
+              No workspaces yet.
+              <br />
+              Use the <span className="font-semibold">Create workspace</span> button in the top
+              right to add one later.
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default DashboardPage;
+
+
+===== FILE: frontend\src\pages\LoginPage.jsx =====
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import api from "../lib/api";
+import { saveAuth, isLoggedIn } from "../lib/auth";
+
+function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  // If already logged in, go to dashboard
+  useEffect(() => {
+    if (isLoggedIn()) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const res = await api.post("/auth/login", { email, password });
+
+      // Save token + user in localStorage
+      saveAuth(res.data.token, res.data.user);
+
+      // Go to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Login failed. Check email or password.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title justify-center mb-4">Login</h2>
+
+          {error && (
+            <div className="alert alert-error py-1 text-sm mb-2">
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Email</span>
+              </label>
+              <input
+                type="email"
+                className="input input-bordered"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                className="input input-bordered"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary w-full mt-2">
+              Login
+            </button>
+          </form>
+
+          <p className="text-center text-sm mt-4">
+            New here?{" "}
+            <Link to="/register" className="link link-primary">
+              Register
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LoginPage;
+
+
+===== FILE: frontend\src\pages\RegisterPage.jsx =====
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import api from "../lib/api";
+
+function RegisterPage() {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      await api.post("/auth/register", { name, email, password });
+      // After register, go to login
+      navigate("/login");
+    } catch (err) {
+      setError("Registration failed. Try another email.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="card w-full max-w-sm bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title justify-center mb-4">Register</h2>
+
+          {error && (
+            <div className="alert alert-error py-1 text-sm mb-2">
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleRegister} className="space-y-3">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Name</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Your name"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Email</span>
+              </label>
+              <input
+                type="email"
+                className="input input-bordered"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                className="input input-bordered"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary w-full mt-2">
+              Register
+            </button>
+          </form>
+
+          <p className="text-center text-sm mt-4">
+            Already have an account?{" "}
+            <Link to="/login" className="link link-primary">
+              Back to Login
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default RegisterPage;
+
+
+===== FILE: backend\src\server.js =====
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv"
+
+import authRoutes from "./routes/authRoutes.js";
+import { connectDB } from "./config/db.js";
+
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+connectDB();
+
+//middleware
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+    })
+);
+app.use(express.json());
+
+
+//routes
+app.use("/api/auth", authRoutes);
+
+
+
+
+
+
+
+app.listen(PORT, () => {
+    console.log("Server started on PORT:", PORT);
+});
+
+===== FILE: backend\src\config\db.js =====
+import mongoose from "mongoose";
+
+export const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        
+        console.log("MONGODB CONNECTED SUCCESSFULLY!");
+    } catch (error) {
+        console.error("Error connecting to MONGODB", error);
+        process.exit(1); // exit with failure
+    }
+};
+
+===== FILE: backend\src\controllers\authController.js =====
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+export async function register(req, res) {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check existing user
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "Email already used" });
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    const user = await User.create({ name, email, password: hashed });
+
+    res.json({ message: "Registered successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Create token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+    // Send token + basic user info
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+===== FILE: backend\src\models\User.js =====
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+    
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, // hashed password
+
+});
+
+export default mongoose.model("User", userSchema);
+
+
+===== FILE: backend\src\routes\authRoutes.js =====
+import express from "express";
+import { register, login } from "../controllers/authController.js";
+
+const router = express.Router();
+
+router.post("/register", register);
+router.post("/login", login);
+
+export default router;
+
