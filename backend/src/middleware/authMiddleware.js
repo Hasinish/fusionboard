@@ -1,5 +1,6 @@
 // backend/src/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 export function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -18,6 +19,12 @@ export function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
+
+    // Update lastActive (fire and forget)
+    User.findByIdAndUpdate(decoded.id, { lastActive: new Date() }).catch(
+      () => {}
+    );
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });

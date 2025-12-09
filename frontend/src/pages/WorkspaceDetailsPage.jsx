@@ -3,44 +3,167 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import api from "../lib/api";
-import { isLoggedIn } from "../lib/auth";
+import { isLoggedIn, getUser } from "../lib/auth";
 
 function WorkspaceDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const currentUser = getUser();
+
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [inviteEmailsText, setInviteEmailsText] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteError, setInviteError] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+
+  const token = typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
+
+  const loadWorkspace = async () => {
+    if (!token) return;
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.get(`/workspaces/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setWorkspace(res.data);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to load workspace.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!isLoggedIn() || !token) {
       navigate("/login");
       return;
     }
-
-    const fetchWorkspace = async () => {
-      setError("");
-      setLoading(true);
-      try {
-        const res = await api.get(`/workspaces/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setWorkspace(res.data);
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message || "Failed to load workspace.";
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkspace();
+    loadWorkspace();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
+
+  const isOwner =
+    workspace &&
+    workspace.owner &&
+    currentUser &&
+    workspace.owner._id === currentUser.id;
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInviteError("");
+    setInviteMessage("");
+
+    if (!inviteEmailsText.trim()) {
+      setInviteError("Please enter at least one email.");
+      return;
+    }
+
+    const memberEmails = inviteEmailsText
+      .split(",")
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
+
+    if (memberEmails.length === 0) {
+      setInviteError("Please enter valid email(s).");
+      return;
+    }
+
+    if (!token) {
+      setInviteError("Not authenticated.");
+      return;
+    }
+
+    setInviteLoading(true);
+    try {
+      const res = await api.post(
+        `/workspaces/${id}/invite`,
+        { memberEmails },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setInviteMessage(res.data.message || "Invitations sent.");
+      setInviteEmailsText("");
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to send invitations.";
+      setInviteError(msg);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (memberId, newRole) => {
+    setActionError("");
+    setActionMessage("");
+
+    if (!token) {
+      setActionError("Not authenticated.");
+      return;
+    }
+
+    try {
+      await api.patch(
+        `/workspaces/${id}/members/${memberId}/role`,
+        { role: newRole },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setActionMessage("Member role updated.");
+      await loadWorkspace();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to update member role.";
+      setActionError(msg);
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    setActionError("");
+    setActionMessage("");
+
+    if (!window.confirm("Remove this member from the workspace?")) return;
+
+    if (!token) {
+      setActionError("Not authenticated.");
+      return;
+    }
+
+    try {
+      await api.delete(`/workspaces/${id}/members/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setActionMessage("Member removed from workspace.");
+      await loadWorkspace();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to remove member.";
+      setActionError(msg);
+    }
+  };
+
+  const renderStatusDot = (isOnline) => (
+    <span
+      className={`inline-block w-2 h-2 rounded-full mr-2 ${
+        isOnline ? "bg-green-500" : "bg-red-500"
+      }`}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
@@ -71,6 +194,21 @@ function WorkspaceDetailsPage() {
                 )}
               </div>
 
+              {(actionError || actionMessage) && (
+                <div className="mb-4 space-y-2">
+                  {actionError && (
+                    <div className="alert alert-error py-2 text-sm">
+                      <span>{actionError}</span>
+                    </div>
+                  )}
+                  {actionMessage && (
+                    <div className="alert alert-success py-2 text-sm">
+                      <span>{actionMessage}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid gap-6 md:grid-cols-2">
                 {/* Members */}
                 <div className="card bg-base-100 shadow-md">
@@ -78,19 +216,74 @@ function WorkspaceDetailsPage() {
                     <h2 className="card-title text-base mb-2">
                       Workspace Members
                     </h2>
-                    <ul className="space-y-2 text-sm">
+                    <ul className="space-y-3 text-sm">
                       {workspace.members && workspace.members.length > 0 ? (
-                        workspace.members.map((m) => (
-                          <li
-                            key={m._id}
-                            className="flex flex-col border-b border-base-200 pb-1 last:border-0"
-                          >
-                            <span className="font-medium">{m.name}</span>
-                            <span className="text-xs text-neutral-500">
-                              {m.email}
-                            </span>
-                          </li>
-                        ))
+                        workspace.members.map((m) => {
+                          const isCurrentUser =
+                            currentUser &&
+                            m._id === currentUser.id;
+
+                          return (
+                            <li
+                              key={m._id}
+                              className="flex flex-col border-b border-base-200 pb-2 last:border-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  {renderStatusDot(m.isOnline)}
+                                  <div>
+                                    <div className="font-medium">
+                                      {m.name}
+                                      {isCurrentUser && (
+                                        <span className="text-xs text-neutral-500 ml-1">
+                                          (you)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-neutral-500">
+                                      {m.email}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {/* Role display / dropdown */}
+                                  {isOwner ? (
+                                    <select
+                                      className="select select-xs select-bordered"
+                                      value={m.role}
+                                      disabled={isCurrentUser && m.role === "owner"}
+                                      onChange={(e) =>
+                                        handleRoleChange(m._id, e.target.value)
+                                      }
+                                    >
+                                      <option value="owner">Owner</option>
+                                      <option value="editor">Editor</option>
+                                      <option value="viewer">Viewer</option>
+                                    </select>
+                                  ) : (
+                                    <span className="badge badge-outline">
+                                      {m.role}
+                                    </span>
+                                  )}
+
+                                  {/* Remove button (owner only, cannot remove self owner) */}
+                                  {isOwner &&
+                                    !(m.role === "owner" && isCurrentUser) && (
+                                      <button
+                                        className="btn btn-xs btn-ghost"
+                                        onClick={() =>
+                                          handleRemoveMember(m._id)
+                                        }
+                                      >
+                                        Remove
+                                      </button>
+                                    )}
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })
                       ) : (
                         <li className="text-neutral-500 text-sm">
                           No members yet.
@@ -100,27 +293,83 @@ function WorkspaceDetailsPage() {
                   </div>
                 </div>
 
-                {/* Owner info */}
-                <div className="card bg-base-100 shadow-md">
-                  <div className="card-body">
-                    <h2 className="card-title text-base mb-2">
-                      Workspace Owner
-                    </h2>
-                    {workspace.owner ? (
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {workspace.owner.name}
+                {/* Owner info + Invite form */}
+                <div className="space-y-4">
+                  <div className="card bg-base-100 shadow-md">
+                    <div className="card-body">
+                      <h2 className="card-title text-base mb-2">
+                        Workspace Owner
+                      </h2>
+                      {workspace.owner ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          {renderStatusDot(workspace.owner.isOnline)}
+                          <div>
+                            <div className="font-medium">
+                              {workspace.owner.name}
+                              {currentUser &&
+                                workspace.owner._id === currentUser.id && (
+                                  <span className="text-xs text-neutral-500 ml-1">
+                                    (you)
+                                  </span>
+                                )}
+                            </div>
+                            <div className="text-xs text-neutral-500">
+                              {workspace.owner.email}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-neutral-500">
-                          {workspace.owner.email}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-neutral-500">
-                        Owner information not available.
-                      </p>
-                    )}
+                      ) : (
+                        <p className="text-sm text-neutral-500">
+                          Owner information not available.
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Invite members (owner only) */}
+                  {isOwner && (
+                    <div className="card bg-base-100 shadow-md">
+                      <div className="card-body">
+                        <h2 className="card-title text-base mb-2">
+                          Invite Members
+                        </h2>
+                        {inviteError && (
+                          <div className="alert alert-error py-2 text-xs mb-2">
+                            <span>{inviteError}</span>
+                          </div>
+                        )}
+                        {inviteMessage && (
+                          <div className="alert alert-success py-2 text-xs mb-2">
+                            <span>{inviteMessage}</span>
+                          </div>
+                        )}
+                        <form onSubmit={handleInvite} className="space-y-2">
+                          <textarea
+                            className="textarea textarea-bordered w-full text-sm"
+                            rows={3}
+                            value={inviteEmailsText}
+                            onChange={(e) =>
+                              setInviteEmailsText(e.target.value)
+                            }
+                            placeholder="example1@mail.com, example2@mail.com"
+                          />
+                          <p className="text-xs text-neutral-500">
+                            Separate emails with commas. Invitations are only
+                            sent to users who already registered.
+                          </p>
+                          <button
+                            type="submit"
+                            className={`btn btn-primary btn-sm ${
+                              inviteLoading ? "btn-disabled" : ""
+                            }`}
+                            disabled={inviteLoading}
+                          >
+                            {inviteLoading ? "Sending..." : "Invite members"}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
