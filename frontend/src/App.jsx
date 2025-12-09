@@ -3,6 +3,9 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import CreateWorkspacePage from "./pages/CreateWorkspacePage";
+import WorkspaceDetailsPage from "./pages/WorkspaceDetailsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 function App() {
   return (
@@ -13,6 +16,9 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/workspaces/create" element={<CreateWorkspacePage />} />
+        <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Routes>
     </div>
   );
