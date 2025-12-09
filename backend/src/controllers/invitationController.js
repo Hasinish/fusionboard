@@ -50,10 +50,11 @@ export async function acceptInvitation(req, res) {
     }
 
     const alreadyMember = workspace.members.some(
-      (m) => String(m) === String(userId)
+      (m) => String(m.user) === String(userId)
     );
     if (!alreadyMember) {
-      workspace.members.push(userId);
+      // Default role for new members is viewer
+      workspace.members.push({ user: userId, role: "viewer" });
       await workspace.save();
     }
 
@@ -91,3 +92,4 @@ export async function rejectInvitation(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
