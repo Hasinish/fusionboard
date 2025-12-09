@@ -51,6 +51,204 @@ pnpm-debug.log*
 }
 
 
+===== FILE: backend\src\server.js =====
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv"
+
+import authRoutes from "./routes/authRoutes.js";
+import { connectDB } from "./config/db.js";
+
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+connectDB();
+
+//middleware
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+    })
+);
+app.use(express.json());
+
+
+//routes
+app.use("/api/auth", authRoutes);
+
+
+
+
+
+
+
+app.listen(PORT, () => {
+    console.log("Server started on PORT:", PORT);
+});
+
+===== FILE: backend\src\config\db.js =====
+import mongoose from "mongoose";
+
+export const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        
+        console.log("MONGODB CONNECTED SUCCESSFULLY!");
+    } catch (error) {
+        console.error("Error connecting to MONGODB", error);
+        process.exit(1); // exit with failure
+    }
+};
+
+===== FILE: backend\src\controllers\authController.js =====
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+export async function register(req, res) {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check existing user
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "Email already used" });
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    await User.create({ name, email, password: hashed });
+
+    res.json({ message: "Registered successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Create token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+    // Send token + basic user info
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// UPDATE LOGGED-IN USER PROFILE
+export async function updateMe(req, res) {
+  try {
+    const userId = req.userId;
+    const { name, email } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // If email is changed, check uniqueness
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email });
+      if (exists) {
+        return res.status(400).json({ message: "Email already used" });
+      }
+      user.email = email;
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    await user.save();
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+===== FILE: backend\src\middleware\authMiddleware.js =====
+// backend/src/middleware/authMiddleware.js
+import jwt from "jsonwebtoken";
+
+export function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "Invalid authorization format" });
+  }
+
+  const token = parts[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+
+===== FILE: backend\src\models\User.js =====
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+    
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, // hashed password
+
+});
+
+export default mongoose.model("User", userSchema);
+
+
+===== FILE: backend\src\routes\authRoutes.js =====
+import express from "express";
+import { register, login, updateMe } from "../controllers/authController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.post("/register", register);
+router.post("/login", login);
+
+
+router.put("/me", authMiddleware, updateMe);
+
+export default router;
+
+
 ===== FILE: frontend\.gitignore =====
 # Logs
 logs
@@ -223,6 +421,7 @@ import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   return (
@@ -232,6 +431,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </div>
   );
@@ -266,17 +466,19 @@ createRoot(document.getElementById("root")).render(
 ===== FILE: frontend\src\components\NavBar.jsx =====
 // frontend/src/components/NavBar.jsx
 import { getUser } from "../lib/auth";
+import { useNavigate } from "react-router-dom";
 
 function NavBar() {
   const user = getUser();
   const initial = user?.name?.[0]?.toUpperCase() || "U";
+  const navigate = useNavigate();
 
   return (
     <div className="navbar bg-base-100 shadow-sm">
       <div className="max-w-6xl mx-auto flex w-full items-center justify-between px-4">
         {/* Left: Logo / Name */}
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold tracking-tight">
+          <span className="text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate("/dashboard")}>
             Fusion<span className="text-primary">Board</span>
           </span>
         </div>
@@ -288,7 +490,11 @@ function NavBar() {
           </button>
 
           {/* Round human icon (avatar placeholder) */}
-          <div className="avatar cursor-pointer">
+          <div
+            className="avatar cursor-pointer"
+            onClick={() => navigate("/profile")}
+            title="Profile"
+          >
             <div className="w-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
               <span className="text-lg font-semibold">
                 {initial}
@@ -513,6 +719,169 @@ function LoginPage() {
 export default LoginPage;
 
 
+===== FILE: frontend\src\pages\ProfilePage.jsx =====
+// frontend/src/pages/ProfilePage.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import api from "../lib/api";
+import { getUser, isLoggedIn, saveAuth, clearAuth } from "../lib/auth";
+
+function ProfilePage() {
+  const navigate = useNavigate();
+  const storedUser = getUser();
+
+  const [name, setName] = useState(storedUser?.name || "");
+  const [email, setEmail] = useState(storedUser?.email || "");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login");
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Not authenticated.");
+        return;
+      }
+
+      const res = await api.put(
+        "/auth/me",
+        { name, email },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Update localStorage user with new data
+      saveAuth(token, res.data.user);
+      setMessage("Profile updated successfully.");
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to update profile.";
+      setError(msg);
+    }
+  };
+
+  const idText = storedUser?.id || "N/A";
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Profile</h1>
+              <p className="text-sm text-neutral-500">
+                View and update your account details.
+              </p>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="btn btn-ghost btn-sm"
+            >
+              Logout
+            </button>
+          </div>
+
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              {/* Status messages */}
+              {error && (
+                <div className="alert alert-error py-2 text-sm mb-2">
+                  <span>{error}</span>
+                </div>
+              )}
+              {message && (
+                <div className="alert alert-success py-2 text-sm mb-2">
+                  <span>{message}</span>
+                </div>
+              )}
+
+              {/* Details */}
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      User ID
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={idText}
+                    disabled
+                    className="input input-bordered w-full bg-base-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Name
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Email
+                    </span>
+                  </label>
+                  <input
+                    type="email"
+                    className="input input-bordered w-full"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" className="btn btn-primary">
+                    Save changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default ProfilePage;
+
+
 ===== FILE: frontend\src\pages\RegisterPage.jsx =====
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -611,133 +980,4 @@ function RegisterPage() {
 }
 
 export default RegisterPage;
-
-
-===== FILE: backend\src\server.js =====
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv"
-
-import authRoutes from "./routes/authRoutes.js";
-import { connectDB } from "./config/db.js";
-
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 5001;
-connectDB();
-
-//middleware
-app.use(
-    cors({
-        origin: "http://localhost:5173",
-    })
-);
-app.use(express.json());
-
-
-//routes
-app.use("/api/auth", authRoutes);
-
-
-
-
-
-
-
-app.listen(PORT, () => {
-    console.log("Server started on PORT:", PORT);
-});
-
-===== FILE: backend\src\config\db.js =====
-import mongoose from "mongoose";
-
-export const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        
-        console.log("MONGODB CONNECTED SUCCESSFULLY!");
-    } catch (error) {
-        console.error("Error connecting to MONGODB", error);
-        process.exit(1); // exit with failure
-    }
-};
-
-===== FILE: backend\src\controllers\authController.js =====
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
-export async function register(req, res) {
-  try {
-    const { name, email, password } = req.body;
-
-    // Check existing user
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ message: "Email already used" });
-
-    // Hash password
-    const hashed = await bcrypt.hash(password, 10);
-
-    const user = await User.create({ name, email, password: hashed });
-
-    res.json({ message: "Registered successfully" });
-  } catch (e) {
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-export async function login(req, res) {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid credentials" });
-
-    // Create token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
-    // Send token + basic user info
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (e) {
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-
-===== FILE: backend\src\models\User.js =====
-import mongoose from "mongoose";
-
-const userSchema = new mongoose.Schema({
-    
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // hashed password
-
-});
-
-export default mongoose.model("User", userSchema);
-
-
-===== FILE: backend\src\routes\authRoutes.js =====
-import express from "express";
-import { register, login } from "../controllers/authController.js";
-
-const router = express.Router();
-
-router.post("/register", register);
-router.post("/login", login);
-
-export default router;
 
