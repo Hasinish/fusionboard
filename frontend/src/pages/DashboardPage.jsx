@@ -1,4 +1,3 @@
-// frontend/src/pages/DashboardPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUser, isLoggedIn, clearAuth } from "../lib/auth";
