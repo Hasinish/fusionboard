@@ -1,4 +1,3 @@
-// frontend/src/pages/WorkspaceDetailsPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
