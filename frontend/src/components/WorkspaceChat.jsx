@@ -1,4 +1,3 @@
-// frontend/src/components/WorkspaceChat.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import api from "../lib/api";
@@ -15,6 +14,8 @@ function formatTime(d) {
 export default function WorkspaceChat({ workspaceId }) {
   const me = getUser();
   const token = useMemo(() => localStorage.getItem("token"), []);
+  const socketRef = useRef(null);
+
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [status, setStatus] = useState("connecting...");
@@ -30,55 +31,62 @@ export default function WorkspaceChat({ workspaceId }) {
         });
         setMessages(Array.isArray(res.data) ? res.data : []);
       } catch {
-        // If not allowed / error, keep quiet
+        // keep silent
       }
     };
     load();
   }, [workspaceId, token]);
 
-  // Realtime socket
+  // Realtime socket (single connection)
   useEffect(() => {
     if (!token) return;
 
     const socket = io("http://localhost:5001", {
       auth: { token },
+      transports: ["websocket", "polling"],
     });
+
+    socketRef.current = socket;
 
     socket.on("connect", () => setStatus("connected"));
     socket.on("disconnect", () => setStatus("disconnected"));
 
     socket.emit("workspace:join", { workspaceId }, (ack) => {
-      if (!ack?.ok) {
-        setStatus(ack?.message || "join failed");
-      }
+      if (!ack?.ok) setStatus(ack?.message || "join failed");
     });
 
     socket.on("chat:new", (msg) => {
-      // Only accept messages for this workspace (extra safety)
       if (String(msg.workspace) !== String(workspaceId)) return;
       setMessages((prev) => [...prev, msg]);
     });
 
     return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("chat:new");
       socket.disconnect();
+      socketRef.current = null;
     };
   }, [workspaceId, token]);
 
-  // Auto-scroll to latest
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async (e) => {
+  const send = (e) => {
     e.preventDefault();
     const clean = text.trim();
     if (!clean) return;
 
-    // Send via socket (faster). If socket is down, we just do nothing here.
-    // (Simple version)
-    const socket = io("http://localhost:5001", { auth: { token } });
-    socket.emit("chat:send", { workspaceId, text: clean }, () => {
-      socket.disconnect();
+    const socket = socketRef.current;
+    if (!socket || !socket.connected) {
+      setStatus("disconnected");
+      return;
+    }
+
+    socket.emit("chat:send", { workspaceId, text: clean }, (ack) => {
+      if (!ack?.ok) setStatus(ack?.message || "Send failed");
     });
 
     setText("");
@@ -94,18 +102,13 @@ export default function WorkspaceChat({ workspaceId }) {
 
         <div className="border border-base-200 rounded-lg p-3 h-72 overflow-y-auto bg-base-200">
           {messages.length === 0 ? (
-            <div className="text-sm text-neutral-500">
-              No messages yet. Say hi 👋
-            </div>
+            <div className="text-sm text-neutral-500">No messages yet. Say hi 👋</div>
           ) : (
             <div className="space-y-2">
               {messages.map((m) => {
                 const mine = me?.id && m.sender?._id === me.id;
                 return (
-                  <div
-                    key={m._id}
-                    className={`chat ${mine ? "chat-end" : "chat-start"}`}
-                  >
+                  <div key={m._id} className={`chat ${mine ? "chat-end" : "chat-start"}`}>
                     <div className="chat-header text-xs opacity-70">
                       {m.sender?.name || "Unknown"} • {formatTime(m.createdAt)}
                     </div>

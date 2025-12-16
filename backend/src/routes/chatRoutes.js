@@ -1,4 +1,3 @@
-// backend/src/routes/chatRoutes.js
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { getWorkspaceMessages } from "../controllers/chatController.js";

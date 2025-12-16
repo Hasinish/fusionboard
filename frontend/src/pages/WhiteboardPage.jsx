@@ -10,6 +10,8 @@ function WhiteboardPage() {
   const { id, boardId } = useParams();
 
   const me = getUser(); // { id, name, email }
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -25,7 +27,6 @@ function WhiteboardPage() {
   const [width, setWidth] = useState(2);
   const [tool, setTool] = useState("pen"); // "pen" | "eraser"
 
-  // live cursors: { [userId]: { name, color, x, y, ts } }
   const [cursors, setCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
 
@@ -100,7 +101,6 @@ function WhiteboardPage() {
   };
 
   const loadBoard = async () => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     setStatusMsg("Loading board...");
@@ -123,18 +123,21 @@ function WhiteboardPage() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
+    // ✅ IMPORTANT: backend socket requires JWT auth
     const socket = io("http://localhost:5001", {
+      auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 300,
     });
+
     socketRef.current = socket;
 
     socket.on("connect", () => {
       socket.emit("joinBoard", {
         boardId,
-        user: { id: me?.id, name: me?.name || "User" },
+        user: { name: me?.name || "User" },
       });
     });
 
@@ -148,7 +151,6 @@ function WhiteboardPage() {
       setTimeout(() => setStatusMsg(""), 700);
     });
 
-    // clear from server
     socket.on("cleared", () => {
       segmentsRef.current = [];
       redrawAll();
@@ -156,7 +158,6 @@ function WhiteboardPage() {
       setTimeout(() => setStatusMsg(""), 700);
     });
 
-    // cursor events
     socket.on("cursorJoin", ({ userId, name, color }) => {
       setCursors((prev) => ({
         ...prev,
@@ -183,7 +184,7 @@ function WhiteboardPage() {
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
-      socket.emit("cursorLeave", { boardId });
+      socket.emit("cursorLeave");
       socket.off("connect");
       socket.off("draw");
       socket.off("saved");
@@ -202,8 +203,7 @@ function WhiteboardPage() {
     if (!socket || !socket.connected) return;
 
     const now = Date.now();
-    // throttle ~30ms
-    if (now - lastCursorEmitRef.current < 30) return;
+    if (now - lastCursorEmitRef.current < 30) return; // throttle
     lastCursorEmitRef.current = now;
 
     socket.emit("cursorMove", { boardId, x, y });
@@ -225,6 +225,7 @@ function WhiteboardPage() {
     if (!drawingRef.current) return;
 
     const prev = lastPointRef.current;
+
     const effectiveColor = tool === "eraser" ? "#ffffff" : color;
     const effectiveWidth = tool === "eraser" ? Math.max(10, width * 3) : width;
 
@@ -271,7 +272,6 @@ function WhiteboardPage() {
     socket.emit("clearBoard", { boardId });
   };
 
-  // (optional) hide stale cursors after 8s
   useEffect(() => {
     const t = setInterval(() => {
       const now = Date.now();
@@ -315,18 +315,14 @@ function WhiteboardPage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="join">
                   <button
-                    className={`btn btn-sm join-item ${
-                      tool === "pen" ? "btn-primary" : "btn-ghost"
-                    }`}
+                    className={`btn btn-sm join-item ${tool === "pen" ? "btn-primary" : "btn-ghost"}`}
                     onClick={() => setTool("pen")}
                     type="button"
                   >
                     Pen
                   </button>
                   <button
-                    className={`btn btn-sm join-item ${
-                      tool === "eraser" ? "btn-primary" : "btn-ghost"
-                    }`}
+                    className={`btn btn-sm join-item ${tool === "eraser" ? "btn-primary" : "btn-ghost"}`}
                     onClick={() => setTool("eraser")}
                     type="button"
                   >
@@ -366,16 +362,13 @@ function WhiteboardPage() {
                 <button className="btn btn-ghost btn-sm" onClick={handleClearBoard}>
                   Clear
                 </button>
-                {statusMsg && (
-                  <span className="text-sm text-neutral-500 ml-2">{statusMsg}</span>
-                )}
+                {statusMsg && <span className="text-sm text-neutral-500 ml-2">{statusMsg}</span>}
               </div>
             </div>
           </div>
 
           <div className="card bg-base-100 shadow-md">
             <div className="card-body">
-              {/* Canvas wrapper so we can overlay cursors */}
               <div className="w-full relative">
                 <canvas
                   ref={canvasRef}
@@ -389,7 +382,7 @@ function WhiteboardPage() {
                   onTouchEnd={onPointerUp}
                 />
 
-                {/* Live cursors overlay */}
+                {/* live cursors overlay */}
                 <div className="absolute inset-0 pointer-events-none">
                   {Object.entries(cursors).map(([userId, c]) => (
                     <div
@@ -432,7 +425,7 @@ function WhiteboardPage() {
               </div>
 
               <p className="text-xs text-neutral-500 mt-3">
-                Tip: cursors show only while users are moving their mouse on the board.
+                Tip: cursors show while users move on the board.
               </p>
             </div>
           </div>

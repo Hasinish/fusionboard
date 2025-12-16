@@ -1,4 +1,3 @@
-// backend/src/models/Message.js
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(
@@ -19,7 +18,6 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Helps quick recent-message queries per workspace
 messageSchema.index({ workspace: 1, createdAt: -1 });
 
 export default mongoose.model("Message", messageSchema);
