@@ -177,10 +177,26 @@ function WorkspaceDetailsPage() {
           ) : (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
-                {workspace.description && (
-                  <p className="text-sm text-neutral-600">{workspace.description}</p>
-                )}
+
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
+                    {workspace.description && (
+                      <p className="text-sm text-neutral-600">
+                        {workspace.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* NEW: Boards button */}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => navigate(`/workspaces/${id}/boards`)}
+                  >
+                    Boards
+                  </button>
+                </div>
+
               </div>
 
               {(actionError || actionMessage) && (
@@ -206,7 +222,9 @@ function WorkspaceDetailsPage() {
                     <ul className="space-y-3 text-sm">
                       {workspace.members && workspace.members.length > 0 ? (
                         workspace.members.map((m) => {
+
                           const isCurrentUser = currentUser && m._id === currentUser.id;
+
 
                           return (
                             <li
@@ -253,6 +271,7 @@ function WorkspaceDetailsPage() {
                                       Remove
                                     </button>
                                   )}
+
                                 </div>
                               </div>
                             </li>
