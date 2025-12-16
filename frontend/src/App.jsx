@@ -6,6 +6,8 @@ import ProfilePage from "./pages/ProfilePage";
 import CreateWorkspacePage from "./pages/CreateWorkspacePage";
 import WorkspaceDetailsPage from "./pages/WorkspaceDetailsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import WorkspaceBoardsPage from "./pages/WorkspaceBoardsPage";
+import WhiteboardPage from "./pages/WhiteboardPage";
 
 function App() {
   return (
@@ -18,6 +20,11 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/workspaces/create" element={<CreateWorkspacePage />} />
         <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
+        <Route path="/workspaces/:id/boards" element={<WorkspaceBoardsPage />} />
+        <Route
+          path="/workspaces/:id/boards/:boardId"
+          element={<WhiteboardPage />}
+        />
         <Route path="/notifications" element={<NotificationsPage />} />
       </Routes>
     </div>
