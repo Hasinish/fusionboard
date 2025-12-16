@@ -43,210 +43,13 @@ pnpm-debug.log*
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.14.3"
+    "mongoose": "^8.14.3",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
   }
 }
-
-
-===== FILE: backend\src\server.js =====
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv"
-
-import authRoutes from "./routes/authRoutes.js";
-import { connectDB } from "./config/db.js";
-
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 5001;
-connectDB();
-
-//middleware
-app.use(
-    cors({
-        origin: "http://localhost:5173",
-    })
-);
-app.use(express.json());
-
-
-//routes
-app.use("/api/auth", authRoutes);
-
-
-
-
-
-
-
-app.listen(PORT, () => {
-    console.log("Server started on PORT:", PORT);
-});
-
-===== FILE: backend\src\config\db.js =====
-import mongoose from "mongoose";
-
-export const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        
-        console.log("MONGODB CONNECTED SUCCESSFULLY!");
-    } catch (error) {
-        console.error("Error connecting to MONGODB", error);
-        process.exit(1); // exit with failure
-    }
-};
-
-===== FILE: backend\src\controllers\authController.js =====
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
-export async function register(req, res) {
-  try {
-    const { name, email, password } = req.body;
-
-    // Check existing user
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ message: "Email already used" });
-
-    // Hash password
-    const hashed = await bcrypt.hash(password, 10);
-
-    await User.create({ name, email, password: hashed });
-
-    res.json({ message: "Registered successfully" });
-  } catch (e) {
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-export async function login(req, res) {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid credentials" });
-
-    // Create token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
-    // Send token + basic user info
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (e) {
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-// UPDATE LOGGED-IN USER PROFILE
-export async function updateMe(req, res) {
-  try {
-    const userId = req.userId;
-    const { name, email } = req.body;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // If email is changed, check uniqueness
-    if (email && email !== user.email) {
-      const exists = await User.findOne({ email });
-      if (exists) {
-        return res.status(400).json({ message: "Email already used" });
-      }
-      user.email = email;
-    }
-
-    if (name) {
-      user.name = name;
-    }
-
-    await user.save();
-
-    return res.json({
-      message: "Profile updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (e) {
-    return res.status(500).json({ message: "Server error" });
-  }
-}
-
-
-===== FILE: backend\src\middleware\authMiddleware.js =====
-// backend/src/middleware/authMiddleware.js
-import jwt from "jsonwebtoken";
-
-export function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return res.status(401).json({ message: "Invalid authorization format" });
-  }
-
-  const token = parts[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.id;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
-  }
-}
-
-
-===== FILE: backend\src\models\User.js =====
-import mongoose from "mongoose";
-
-const userSchema = new mongoose.Schema({
-    
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // hashed password
-
-});
-
-export default mongoose.model("User", userSchema);
-
-
-===== FILE: backend\src\routes\authRoutes.js =====
-import express from "express";
-import { register, login, updateMe } from "../controllers/authController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-
-const router = express.Router();
-
-router.post("/register", register);
-router.post("/login", login);
-
-
-router.put("/me", authMiddleware, updateMe);
-
-export default router;
 
 
 ===== FILE: frontend\.gitignore =====
@@ -341,7 +144,8 @@ export default defineConfig([
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router": "^7.10.1",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -422,6 +226,11 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import CreateWorkspacePage from "./pages/CreateWorkspacePage";
+import WorkspaceDetailsPage from "./pages/WorkspaceDetailsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import WorkspaceBoardsPage from "./pages/WorkspaceBoardsPage";
+import WhiteboardPage from "./pages/WhiteboardPage";
 
 function App() {
   return (
@@ -432,6 +241,14 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/workspaces/create" element={<CreateWorkspacePage />} />
+        <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
+        <Route path="/workspaces/:id/boards" element={<WorkspaceBoardsPage />} />
+        <Route
+          path="/workspaces/:id/boards/:boardId"
+          element={<WhiteboardPage />}
+        />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Routes>
     </div>
   );
@@ -465,27 +282,68 @@ createRoot(document.getElementById("root")).render(
 
 ===== FILE: frontend\src\components\NavBar.jsx =====
 // frontend/src/components/NavBar.jsx
-import { getUser } from "../lib/auth";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getUser, isLoggedIn } from "../lib/auth";
+import api from "../lib/api";
 
 function NavBar() {
   const user = getUser();
   const initial = user?.name?.[0]?.toUpperCase() || "U";
   const navigate = useNavigate();
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchInvites = async () => {
+      if (!isLoggedIn()) return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await api.get("/invitations/my", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPendingCount(Array.isArray(res.data) ? res.data.length : 0);
+      } catch {
+        // keep silent for navbar
+      }
+    };
+
+    fetchInvites();
+  }, []);
+
   return (
     <div className="navbar bg-base-100 shadow-sm">
       <div className="max-w-6xl mx-auto flex w-full items-center justify-between px-4">
         {/* Left: Logo / Name */}
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate("/dashboard")}>
+          <span
+            className="text-xl font-bold tracking-tight cursor-pointer"
+            onClick={() => navigate("/dashboard")}
+          >
             Fusion<span className="text-primary">Board</span>
           </span>
         </div>
 
-        {/* Right: Create workspace + profile icon */}
+        {/* Right: Create workspace + notifications + profile icon */}
         <div className="flex items-center gap-4">
-          <button className="btn btn-primary btn-sm">
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate("/notifications")}
+          >
+            Notifications
+            {pendingCount > 0 && (
+              <span className="badge badge-secondary ml-1">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate("/workspaces/create")}
+          >
             Create workspace
           </button>
 
@@ -496,9 +354,7 @@ function NavBar() {
             title="Profile"
           >
             <div className="w-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
-              <span className="text-lg font-semibold">
-                {initial}
-              </span>
+              <span className="text-lg font-semibold">{initial}</span>
             </div>
           </div>
         </div>
@@ -548,16 +404,184 @@ export function clearAuth() {
 }
 
 
+===== FILE: frontend\src\pages\CreateWorkspacePage.jsx =====
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import api from "../lib/api";
+import { isLoggedIn } from "../lib/auth";
+
+function CreateWorkspacePage() {
+  const navigate = useNavigate();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [memberEmailsText, setMemberEmailsText] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Not authenticated.");
+      return;
+    }
+
+    const memberEmails = memberEmailsText
+      .split(",")
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+
+    setLoading(true);
+    try {
+      await api.post(
+        "/workspaces",
+        { name, description, memberEmails },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setMessage(
+        "Workspace created and invitations sent to registered users (by email)."
+      );
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 800);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to create workspace.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-xl mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold mb-2">Create Workspace</h1>
+          <p className="text-sm text-neutral-500 mb-4">
+            Enter a name, description, and the emails of members you want to
+            invite.
+          </p>
+
+          {error && (
+            <div className="alert alert-error py-2 text-sm mb-3">
+              <span>{error}</span>
+            </div>
+          )}
+          {message && (
+            <div className="alert alert-success py-2 text-sm mb-3">
+              <span>{message}</span>
+            </div>
+          )}
+
+          <div className="card bg-base-100 shadow-md">
+            <div className="card-body">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    placeholder="Team Design Board"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Description
+                    </span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered w-full"
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Short description of this workspace..."
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Member emails
+                    </span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered w-full"
+                    rows={3}
+                    value={memberEmailsText}
+                    onChange={(e) => setMemberEmailsText(e.target.value)}
+                    placeholder="example1@mail.com, example2@mail.com"
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Separate emails with commas. Invitations are only sent to
+                    users who already registered in the system.
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className={`btn btn-primary w-full ${
+                      loading ? "btn-disabled" : ""
+                    }`}
+                    disabled={loading}
+                  >
+                    {loading ? "Creating..." : "Create workspace"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default CreateWorkspacePage;
+
+
 ===== FILE: frontend\src\pages\DashboardPage.jsx =====
-// frontend/src/pages/DashboardPage.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUser, isLoggedIn, clearAuth } from "../lib/auth";
 import NavBar from "../components/NavBar";
+import api from "../lib/api";
 
 function DashboardPage() {
   const navigate = useNavigate();
   const user = getUser();
+
+  const [workspaces, setWorkspaces] = useState([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
+  const [error, setError] = useState("");
 
   // If not logged in, redirect to login
   useEffect(() => {
@@ -565,6 +589,31 @@ function DashboardPage() {
       navigate("/login");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoadingWorkspaces(false);
+        return;
+      }
+
+      setError("");
+      setLoadingWorkspaces(true);
+      try {
+        const res = await api.get("/workspaces/my", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setWorkspaces(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        setError("Failed to load workspaces.");
+      } finally {
+        setLoadingWorkspaces(false);
+      }
+    };
+
+    fetchWorkspaces();
+  }, []);
 
   const handleLogout = () => {
     clearAuth();
@@ -582,9 +631,7 @@ function DashboardPage() {
           {/* Welcome / user info */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold">
-                Dashboard
-              </h1>
+              <h1 className="text-2xl font-bold">Dashboard</h1>
               <p className="text-sm text-neutral-500">
                 {user
                   ? `Logged in as ${user.name} (${user.email})`
@@ -592,26 +639,54 @@ function DashboardPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="btn btn-ghost btn-sm"
-            >
+            <button onClick={handleLogout} className="btn btn-ghost btn-sm">
               Logout
             </button>
           </div>
 
+          {/* Error */}
+          {error && (
+            <div className="alert alert-error mb-4 py-2 text-sm">
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* My Workspaces section */}
           <section>
-            <h2 className="text-lg font-semibold mb-3">
-              My Workspaces
-            </h2>
+            <h2 className="text-lg font-semibold mb-3">My Workspaces</h2>
 
-            <div className="rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-neutral-500 bg-base-100">
-              No workspaces yet.
-              <br />
-              Use the <span className="font-semibold">Create workspace</span> button in the top
-              right to add one later.
-            </div>
+            {loadingWorkspaces ? (
+              <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+                Loading workspaces...
+              </div>
+            ) : workspaces.length === 0 ? (
+              <div className="rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-neutral-500 bg-base-100">
+                No workspaces yet.
+                <br />
+                Use the{" "}
+                <span className="font-semibold">Create workspace</span> button
+                in the top right to add one later.
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {workspaces.map((ws) => (
+                  <div
+                    key={ws._id}
+                    className="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition"
+                    onClick={() => navigate(`/workspaces/${ws._id}`)}
+                  >
+                    <div className="card-body">
+                      <h3 className="card-title text-base">{ws.name}</h3>
+                      {ws.description && (
+                        <p className="text-sm text-neutral-600 line-clamp-2">
+                          {ws.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -719,8 +794,164 @@ function LoginPage() {
 export default LoginPage;
 
 
+===== FILE: frontend\src\pages\NotificationsPage.jsx =====
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import api from "../lib/api";
+import { isLoggedIn } from "../lib/auth";
+
+function NotificationsPage() {
+  const navigate = useNavigate();
+
+  const [invitations, setInvitations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!isLoggedIn() || !token) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchInvites = async () => {
+      setError("");
+      setLoading(true);
+      try {
+        const res = await api.get("/invitations/my", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setInvitations(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        const msg =
+          err?.response?.data?.message || "Failed to load invitations.";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvites();
+  }, [navigate]);
+
+  const handleAction = async (id, action) => {
+    setError("");
+    setMessage("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Not authenticated.");
+      return;
+    }
+
+    try {
+      await api.post(
+        `/invitations/${id}/${action}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setMessage(
+        action === "accept"
+          ? "Invitation accepted."
+          : "Invitation rejected."
+      );
+
+      // Remove from list
+      setInvitations((prev) => prev.filter((inv) => inv._id !== id));
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to update invitation.";
+      setError(msg);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold mb-2">Notifications</h1>
+          <p className="text-sm text-neutral-500 mb-4">
+            Here you can accept or reject workspace invitations.
+          </p>
+
+          {error && (
+            <div className="alert alert-error py-2 text-sm mb-3">
+              <span>{error}</span>
+            </div>
+          )}
+          {message && (
+            <div className="alert alert-success py-2 text-sm mb-3">
+              <span>{message}</span>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+              Loading invitations...
+            </div>
+          ) : invitations.length === 0 ? (
+            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+              You have no pending invitations.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {invitations.map((inv) => (
+                <div
+                  key={inv._id}
+                  className="card bg-base-100 shadow-sm border border-base-200"
+                >
+                  <div className="card-body">
+                    <h2 className="card-title text-base mb-1">
+                      Workspace: {inv.workspace?.name || "Unknown"}
+                    </h2>
+                    <p className="text-sm text-neutral-600 mb-2">
+                      Invited by{" "}
+                      <span className="font-medium">
+                        {inv.invitedBy?.name || "Someone"}
+                      </span>{" "}
+                      ({inv.invitedBy?.email || "no email"})
+                    </p>
+
+                    <div className="flex gap-2">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => handleAction(inv._id, "accept")}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => handleAction(inv._id, "reject")}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default NotificationsPage;
+
+
 ===== FILE: frontend\src\pages\ProfilePage.jsx =====
-// frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
@@ -980,4 +1211,1875 @@ function RegisterPage() {
 }
 
 export default RegisterPage;
+
+
+===== FILE: frontend\src\pages\WhiteboardPage.jsx =====
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import { isLoggedIn } from "../lib/auth";
+import api from "../lib/api";
+import { io } from "socket.io-client";
+
+function WhiteboardPage() {
+  const navigate = useNavigate();
+  const { id, boardId } = useParams();
+
+  const canvasRef = useRef(null);
+  const ctxRef = useRef(null);
+  const socketRef = useRef(null);
+
+  const drawingRef = useRef(false);
+  const lastPointRef = useRef({ x: 0, y: 0 });
+
+  const segmentsRef = useRef([]);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  const [color, setColor] = useState("#000000");
+  const [width, setWidth] = useState(2);
+
+  const [tool, setTool] = useState("pen"); // "pen" | "eraser"
+
+  useEffect(() => {
+    if (!isLoggedIn()) navigate("/login");
+  }, [navigate]);
+
+  const fillWhiteBackground = () => {
+    const canvas = canvasRef.current;
+    const ctx = ctxRef.current;
+    if (!canvas || !ctx) return;
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  };
+
+  const drawSegment = (seg) => {
+    const ctx = ctxRef.current;
+    if (!ctx || !seg) return;
+
+    ctx.strokeStyle = seg.color || "#000000";
+    ctx.lineWidth = seg.width || 2;
+
+    ctx.beginPath();
+    ctx.moveTo(seg.x0, seg.y0);
+    ctx.lineTo(seg.x1, seg.y1);
+    ctx.stroke();
+  };
+
+  const redrawAll = () => {
+    const canvas = canvasRef.current;
+    const ctx = ctxRef.current;
+    if (!canvas || !ctx) return;
+
+    // white board
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    fillWhiteBackground();
+
+    for (const seg of segmentsRef.current) drawSegment(seg);
+  };
+
+  const resizeCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const parent = canvas.parentElement;
+    const w = parent ? parent.clientWidth : 900;
+    const h = 520;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext("2d");
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctxRef.current = ctx;
+
+    redrawAll();
+  };
+
+  const getCanvasPoint = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
+
+  const loadBoard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setStatusMsg("Loading board...");
+    try {
+      const res = await api.get(`/boards/${boardId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const segments = Array.isArray(res.data.segments) ? res.data.segments : [];
+      segmentsRef.current = segments;
+
+      redrawAll();
+      setStatusMsg("");
+    } catch (e) {
+      setStatusMsg(e?.response?.data?.message || "Failed to load board.");
+    }
+  };
+
+  useEffect(() => {
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    const socket = io("http://localhost:5001", {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 300,
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("joinBoard", { boardId });
+    });
+
+    socket.on("draw", (segment) => {
+      segmentsRef.current.push(segment);
+      drawSegment(segment);
+    });
+
+    // server confirms autosave
+    socket.on("saved", () => {
+      setStatusMsg("Autosaved ✅");
+      setTimeout(() => setStatusMsg(""), 900);
+    });
+
+    loadBoard();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      socket.off("connect");
+      socket.off("draw");
+      socket.off("saved");
+      socket.close();
+      socketRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId]);
+
+  const onPointerDown = (e) => {
+    e.preventDefault();
+    drawingRef.current = true;
+    lastPointRef.current = getCanvasPoint(e);
+  };
+
+  const onPointerMove = (e) => {
+    if (!drawingRef.current) return;
+    e.preventDefault();
+
+    const p = getCanvasPoint(e);
+    const prev = lastPointRef.current;
+
+    const effectiveColor = tool === "eraser" ? "#ffffff" : color;
+    const effectiveWidth = tool === "eraser" ? Math.max(10, width * 3) : width;
+
+    const segment = {
+      x0: prev.x,
+      y0: prev.y,
+      x1: p.x,
+      y1: p.y,
+      color: effectiveColor,
+      width: effectiveWidth,
+    };
+
+    // local draw
+    segmentsRef.current.push(segment);
+    drawSegment(segment);
+
+    // broadcast + autosave on server
+    const socket = socketRef.current;
+    if (socket && socket.connected) {
+      socket.emit("draw", { boardId, segment });
+    }
+
+    lastPointRef.current = p;
+  };
+
+  const onPointerUp = (e) => {
+    e.preventDefault();
+    drawingRef.current = false;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setStatusMsg("Link copied ✅");
+      setTimeout(() => setStatusMsg(""), 900);
+    } catch {
+      setStatusMsg("Could not copy link.");
+    }
+  };
+
+  const handleClearLocal = () => {
+    // local clear only (still simple)
+    segmentsRef.current = [];
+    redrawAll();
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h1 className="text-2xl font-bold">Whiteboard</h1>
+              <p className="text-sm text-neutral-500">
+                Drawings sync live + autosave automatically.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => navigate(`/workspaces/${id}/boards`)}
+              >
+                Back to boards
+              </button>
+            </div>
+          </div>
+
+          <div className="card bg-base-100 shadow-md mb-4">
+            <div className="card-body flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="join">
+                  <button
+                    className={`btn btn-sm join-item ${
+                      tool === "pen" ? "btn-primary" : "btn-ghost"
+                    }`}
+                    onClick={() => setTool("pen")}
+                    type="button"
+                  >
+                    Pen
+                  </button>
+                  <button
+                    className={`btn btn-sm join-item ${
+                      tool === "eraser" ? "btn-primary" : "btn-ghost"
+                    }`}
+                    onClick={() => setTool("eraser")}
+                    type="button"
+                  >
+                    Eraser
+                  </button>
+                </div>
+
+                <label className="text-sm">
+                  Color{" "}
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="ml-2 align-middle"
+                    disabled={tool === "eraser"}
+                    title={tool === "eraser" ? "Switch to Pen to pick color" : ""}
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Width{" "}
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={width}
+                    onChange={(e) => setWidth(Number(e.target.value))}
+                    className="ml-2 align-middle"
+                  />
+                  <span className="ml-2 text-xs text-neutral-500">{width}</span>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button className="btn btn-ghost btn-sm" onClick={handleCopyLink}>
+                  Copy link
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={handleClearLocal}>
+                  Clear (local)
+                </button>
+                {statusMsg && (
+                  <span className="text-sm text-neutral-500 ml-2">{statusMsg}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-base-100 shadow-md">
+            <div className="card-body">
+              <div className="w-full">
+                <canvas
+                  ref={canvasRef}
+                  // whiteboard look:
+                  className="w-full border border-base-300 rounded-md touch-none bg-white"
+                  onMouseDown={onPointerDown}
+                  onMouseMove={onPointerMove}
+                  onMouseUp={onPointerUp}
+                  onMouseLeave={onPointerUp}
+                  onTouchStart={onPointerDown}
+                  onTouchMove={onPointerMove}
+                  onTouchEnd={onPointerUp}
+                />
+              </div>
+
+              <p className="text-xs text-neutral-500 mt-3">
+                Autosave happens on every stroke (no button needed). Eraser draws white.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default WhiteboardPage;
+
+
+===== FILE: frontend\src\pages\WorkspaceBoardsPage.jsx =====
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import { isLoggedIn } from "../lib/auth";
+import api from "../lib/api";
+
+function WorkspaceBoardsPage() {
+  const navigate = useNavigate();
+  const { id } = useParams(); // workspaceId
+
+  const [boards, setBoards] = useState([]);
+  const [loadingBoards, setLoadingBoards] = useState(true);
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const fetchBoards = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setError("");
+    setLoadingBoards(true);
+    try {
+      const res = await api.get(`/boards/workspace/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setBoards(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      setError(e?.response?.data?.message || "Failed to load boards.");
+    } finally {
+      setLoadingBoards(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBoards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const handleCreateBoard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setCreating(true);
+    setError("");
+    try {
+      const res = await api.post(
+        "/boards",
+        { workspaceId: id, title: "New Board" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const board = res.data;
+      navigate(`/workspaces/${id}/boards/${board._id}`);
+    } catch (e) {
+      setError(e?.response?.data?.message || "Failed to create board.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Boards</h1>
+              <p className="text-sm text-neutral-500">
+                Create a new board, view previous boards, or choose a template.
+              </p>
+            </div>
+
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigate(`/workspaces/${id}`)}
+            >
+              Back to workspace
+            </button>
+          </div>
+
+          {error && (
+            <div className="alert alert-error py-2 text-sm mb-4">
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Create board */}
+          <div className="card bg-base-100 shadow-md mb-6">
+            <div className="card-body flex flex-row items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Create a new board</h2>
+                <p className="text-sm text-neutral-500">
+                  Opens a real-time whiteboard.
+                </p>
+              </div>
+              <button
+                className={`btn btn-primary ${creating ? "btn-disabled" : ""}`}
+                onClick={handleCreateBoard}
+                disabled={creating}
+              >
+                {creating ? "Creating..." : "Create board"}
+              </button>
+            </div>
+          </div>
+
+          {/* Previous boards */}
+          <div className="card bg-base-100 shadow-md mb-6">
+            <div className="card-body">
+              <h2 className="text-lg font-semibold mb-3">Previous boards</h2>
+
+              {loadingBoards ? (
+                <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+                  Loading boards...
+                </div>
+              ) : boards.length === 0 ? (
+                <div className="rounded-box border border-dashed border-base-300 p-6 text-sm text-neutral-500">
+                  No boards yet.
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {boards.map((b) => (
+                    <div
+                      key={b._id}
+                      className="card bg-base-200 cursor-pointer hover:shadow transition"
+                      onClick={() => navigate(`/workspaces/${id}/boards/${b._id}`)}
+                    >
+                      <div className="card-body py-4">
+                        <div className="font-semibold">{b.title}</div>
+                        <div className="text-xs text-neutral-500">
+                          Updated: {new Date(b.updatedAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Templates (placeholder) */}
+          <div className="card bg-base-100 shadow-md">
+            <div className="card-body">
+              <h2 className="text-lg font-semibold mb-2">Templates</h2>
+              <div className="rounded-box border border-dashed border-base-300 p-6 text-sm text-neutral-500">
+                Templates will appear here.
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default WorkspaceBoardsPage;
+
+
+===== FILE: frontend\src\pages\WorkspaceDetailsPage.jsx =====
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import NavBar from "../components/NavBar";
+import api from "../lib/api";
+import { isLoggedIn, getUser } from "../lib/auth";
+
+function WorkspaceDetailsPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const currentUser = getUser();
+
+  const [workspace, setWorkspace] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [inviteEmailsText, setInviteEmailsText] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteError, setInviteError] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const loadWorkspace = async () => {
+    if (!token) return;
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.get(`/workspaces/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setWorkspace(res.data);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to load workspace.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn() || !token) {
+      navigate("/login");
+      return;
+    }
+    loadWorkspace();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, navigate]);
+
+  const isOwner =
+    workspace &&
+    workspace.owner &&
+    currentUser &&
+    workspace.owner._id === currentUser.id;
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInviteError("");
+    setInviteMessage("");
+
+    if (!inviteEmailsText.trim()) {
+      setInviteError("Please enter at least one email.");
+      return;
+    }
+
+    const memberEmails = inviteEmailsText
+      .split(",")
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
+
+    if (memberEmails.length === 0) {
+      setInviteError("Please enter valid email(s).");
+      return;
+    }
+
+    if (!token) {
+      setInviteError("Not authenticated.");
+      return;
+    }
+
+    setInviteLoading(true);
+    try {
+      const res = await api.post(
+        `/workspaces/${id}/invite`,
+        { memberEmails },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setInviteMessage(res.data.message || "Invitations sent.");
+      setInviteEmailsText("");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to send invitations.";
+      setInviteError(msg);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (memberId, newRole) => {
+    setActionError("");
+    setActionMessage("");
+
+    if (!token) {
+      setActionError("Not authenticated.");
+      return;
+    }
+
+    try {
+      await api.patch(
+        `/workspaces/${id}/members/${memberId}/role`,
+        { role: newRole },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setActionMessage("Member role updated.");
+      await loadWorkspace();
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message || "Failed to update member role.";
+      setActionError(msg);
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    setActionError("");
+    setActionMessage("");
+
+    if (!window.confirm("Remove this member from the workspace?")) return;
+
+    if (!token) {
+      setActionError("Not authenticated.");
+      return;
+    }
+
+    try {
+      await api.delete(`/workspaces/${id}/members/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setActionMessage("Member removed from workspace.");
+      await loadWorkspace();
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to remove member.";
+      setActionError(msg);
+    }
+  };
+
+  const renderStatusDot = (isOnline) => (
+    <span
+      className={`inline-block w-2 h-2 rounded-full mr-2 ${
+        isOnline ? "bg-green-500" : "bg-red-500"
+      }`}
+    />
+  );
+
+  return (
+    <div className="min-h-screen bg-base-200 flex flex-col">
+      <NavBar />
+
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {loading ? (
+            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+              Loading workspace...
+            </div>
+          ) : error ? (
+            <div className="alert alert-error py-2 text-sm">
+              <span>{error}</span>
+            </div>
+          ) : !workspace ? (
+            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
+              Workspace not found.
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
+                    {workspace.description && (
+                      <p className="text-sm text-neutral-600">
+                        {workspace.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* NEW: Boards button */}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => navigate(`/workspaces/${id}/boards`)}
+                  >
+                    Boards
+                  </button>
+                </div>
+              </div>
+
+              {(actionError || actionMessage) && (
+                <div className="mb-4 space-y-2">
+                  {actionError && (
+                    <div className="alert alert-error py-2 text-sm">
+                      <span>{actionError}</span>
+                    </div>
+                  )}
+                  {actionMessage && (
+                    <div className="alert alert-success py-2 text-sm">
+                      <span>{actionMessage}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Members */}
+                <div className="card bg-base-100 shadow-md">
+                  <div className="card-body">
+                    <h2 className="card-title text-base mb-2">
+                      Workspace Members
+                    </h2>
+                    <ul className="space-y-3 text-sm">
+                      {workspace.members && workspace.members.length > 0 ? (
+                        workspace.members.map((m) => {
+                          const isCurrentUser =
+                            currentUser && m._id === currentUser.id;
+
+                          return (
+                            <li
+                              key={m._id}
+                              className="flex flex-col border-b border-base-200 pb-2 last:border-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  {renderStatusDot(m.isOnline)}
+                                  <div>
+                                    <div className="font-medium">
+                                      {m.name}
+                                      {isCurrentUser && (
+                                        <span className="text-xs text-neutral-500 ml-1">
+                                          (you)
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-neutral-500">
+                                      {m.email}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {/* Role display / dropdown */}
+                                  {isOwner ? (
+                                    <select
+                                      className="select select-xs select-bordered"
+                                      value={m.role}
+                                      disabled={isCurrentUser && m.role === "owner"}
+                                      onChange={(e) =>
+                                        handleRoleChange(m._id, e.target.value)
+                                      }
+                                    >
+                                      <option value="owner">Owner</option>
+                                      <option value="editor">Editor</option>
+                                      <option value="viewer">Viewer</option>
+                                    </select>
+                                  ) : (
+                                    <span className="badge badge-outline">
+                                      {m.role}
+                                    </span>
+                                  )}
+
+                                  {/* Remove button (owner only, cannot remove self owner) */}
+                                  {isOwner &&
+                                    !(m.role === "owner" && isCurrentUser) && (
+                                      <button
+                                        className="btn btn-xs btn-ghost"
+                                        onClick={() => handleRemoveMember(m._id)}
+                                      >
+                                        Remove
+                                      </button>
+                                    )}
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })
+                      ) : (
+                        <li className="text-neutral-500 text-sm">
+                          No members yet.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Owner info + Invite form */}
+                <div className="space-y-4">
+                  <div className="card bg-base-100 shadow-md">
+                    <div className="card-body">
+                      <h2 className="card-title text-base mb-2">
+                        Workspace Owner
+                      </h2>
+                      {workspace.owner ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          {renderStatusDot(workspace.owner.isOnline)}
+                          <div>
+                            <div className="font-medium">
+                              {workspace.owner.name}
+                              {currentUser &&
+                                workspace.owner._id === currentUser.id && (
+                                  <span className="text-xs text-neutral-500 ml-1">
+                                    (you)
+                                  </span>
+                                )}
+                            </div>
+                            <div className="text-xs text-neutral-500">
+                              {workspace.owner.email}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-neutral-500">
+                          Owner information not available.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Invite members (owner only) */}
+                  {isOwner && (
+                    <div className="card bg-base-100 shadow-md">
+                      <div className="card-body">
+                        <h2 className="card-title text-base mb-2">
+                          Invite Members
+                        </h2>
+                        {inviteError && (
+                          <div className="alert alert-error py-2 text-xs mb-2">
+                            <span>{inviteError}</span>
+                          </div>
+                        )}
+                        {inviteMessage && (
+                          <div className="alert alert-success py-2 text-xs mb-2">
+                            <span>{inviteMessage}</span>
+                          </div>
+                        )}
+                        <form onSubmit={handleInvite} className="space-y-2">
+                          <textarea
+                            className="textarea textarea-bordered w-full text-sm"
+                            rows={3}
+                            value={inviteEmailsText}
+                            onChange={(e) => setInviteEmailsText(e.target.value)}
+                            placeholder="example1@mail.com, example2@mail.com"
+                          />
+                          <p className="text-xs text-neutral-500">
+                            Separate emails with commas. Invitations are only
+                            sent to users who already registered.
+                          </p>
+                          <button
+                            type="submit"
+                            className={`btn btn-primary btn-sm ${
+                              inviteLoading ? "btn-disabled" : ""
+                            }`}
+                            disabled={inviteLoading}
+                          >
+                            {inviteLoading ? "Sending..." : "Invite members"}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default WorkspaceDetailsPage;
+
+
+===== FILE: backend\src\server.js =====
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import http from "http";
+import { Server } from "socket.io";
+
+import authRoutes from "./routes/authRoutes.js";
+import workspaceRoutes from "./routes/workspaceRoutes.js";
+import invitationRoutes from "./routes/invitationRoutes.js";
+import boardRoutes from "./routes/boardRoutes.js";
+import { connectDB } from "./config/db.js";
+import Board from "./models/Board.js";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+connectDB();
+
+// middleware
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+app.use(express.json());
+
+// routes
+app.use("/api/auth", authRoutes);
+app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/invitations", invitationRoutes);
+app.use("/api/boards", boardRoutes);
+
+// create server + socket.io
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  socket.on("joinBoard", ({ boardId }) => {
+    if (!boardId) return;
+    socket.join(boardId);
+  });
+
+  // draw is now AUTO-SAVED
+  socket.on("draw", async ({ boardId, segment }) => {
+    if (!boardId || !segment) return;
+
+    // 1) broadcast to others immediately
+    socket.to(boardId).emit("draw", segment);
+
+    // 2) persist immediately (autosave)
+    try {
+      const updated = await Board.findByIdAndUpdate(
+        boardId,
+        { $push: { segments: segment } },
+        { new: true }
+      ).select("updatedAt");
+
+      // optional: tell everyone it was saved
+      if (updated) {
+        io.to(boardId).emit("saved", { updatedAt: updated.updatedAt });
+      }
+    } catch (e) {
+      // don't crash socket if db write fails
+      console.error("Autosave error:", e?.message || e);
+    }
+  });
+});
+
+server.listen(PORT, () => {
+  console.log("Server started on PORT:", PORT);
+});
+
+
+===== FILE: backend\src\config\db.js =====
+import mongoose from "mongoose";
+
+export const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        
+        console.log("MONGODB CONNECTED SUCCESSFULLY!");
+    } catch (error) {
+        console.error("Error connecting to MONGODB", error);
+        process.exit(1); // exit with failure
+    }
+};
+
+===== FILE: backend\src\controllers\authController.js =====
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+export async function register(req, res) {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check existing user
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "Email already used" });
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    await User.create({ name, email, password: hashed });
+
+    res.json({ message: "Registered successfully" });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Create token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+    // Send token + basic user info
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// UPDATE LOGGED-IN USER PROFILE
+export async function updateMe(req, res) {
+  try {
+    const userId = req.userId;
+    const { name, email } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // If email is changed, check uniqueness
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email });
+      if (exists) {
+        return res.status(400).json({ message: "Email already used" });
+      }
+      user.email = email;
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    await user.save();
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+===== FILE: backend\src\controllers\boardController.js =====
+import Board from "../models/Board.js";
+import Workspace from "../models/Workspace.js";
+
+async function ensureMember(userId, workspaceId) {
+  const ws = await Workspace.findOne({
+    _id: workspaceId,
+    "members.user": userId,
+  }).lean();
+  return !!ws;
+}
+
+// POST /api/boards  { workspaceId, title? }
+export async function createBoard(req, res) {
+  try {
+    const userId = req.userId;
+    const { workspaceId, title } = req.body;
+
+    if (!workspaceId) {
+      return res.status(400).json({ message: "workspaceId is required" });
+    }
+
+    const ok = await ensureMember(userId, workspaceId);
+    if (!ok) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const board = await Board.create({
+      workspace: workspaceId,
+      title: title || "Untitled Board",
+      segments: [],
+    });
+
+    return res.status(201).json(board);
+  } catch (e) {
+    console.error("createBoard error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// GET /api/boards/workspace/:workspaceId
+export async function listBoards(req, res) {
+  try {
+    const userId = req.userId;
+    const { workspaceId } = req.params;
+
+    const ok = await ensureMember(userId, workspaceId);
+    if (!ok) return res.status(403).json({ message: "Not allowed" });
+
+    const boards = await Board.find({ workspace: workspaceId })
+      .sort({ updatedAt: -1 })
+      .select("_id title updatedAt createdAt")
+      .lean();
+
+    return res.json(boards);
+  } catch (e) {
+    console.error("listBoards error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// GET /api/boards/:boardId
+export async function getBoard(req, res) {
+  try {
+    const userId = req.userId;
+    const { boardId } = req.params;
+
+    const board = await Board.findById(boardId).lean();
+    if (!board) return res.status(404).json({ message: "Board not found" });
+
+    const ok = await ensureMember(userId, board.workspace);
+    if (!ok) return res.status(403).json({ message: "Not allowed" });
+
+    return res.json(board);
+  } catch (e) {
+    console.error("getBoard error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// PUT /api/boards/:boardId/save  { segments }
+export async function saveBoard(req, res) {
+  try {
+    const userId = req.userId;
+    const { boardId } = req.params;
+    const { segments } = req.body;
+
+    const board = await Board.findById(boardId);
+    if (!board) return res.status(404).json({ message: "Board not found" });
+
+    const ok = await ensureMember(userId, board.workspace);
+    if (!ok) return res.status(403).json({ message: "Not allowed" });
+
+    board.segments = Array.isArray(segments) ? segments : [];
+    await board.save();
+
+    return res.json({ message: "Board saved", updatedAt: board.updatedAt });
+  } catch (e) {
+    console.error("saveBoard error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+===== FILE: backend\src\controllers\invitationController.js =====
+// backend/src/controllers/invitationController.js
+import Invitation from "../models/Invitation.js";
+import Workspace from "../models/Workspace.js";
+
+// Get pending invitations for logged-in user
+export async function getMyInvitations(req, res) {
+  try {
+    const userId = req.userId;
+
+    const invitations = await Invitation.find({
+      invitedUser: userId,
+      status: "pending",
+    })
+      .sort({ createdAt: -1 })
+      .populate("workspace", "name")
+      .populate("invitedBy", "name email")
+      .lean();
+
+    return res.json(invitations);
+  } catch (e) {
+    console.error("Error fetching invitations:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function acceptInvitation(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+
+    const invitation = await Invitation.findOne({
+      _id: id,
+      invitedUser: userId,
+    });
+
+    if (!invitation) {
+      return res.status(404).json({ message: "Invitation not found" });
+    }
+
+    if (invitation.status !== "pending") {
+      return res.status(400).json({ message: "Invitation already processed" });
+    }
+
+    invitation.status = "accepted";
+    await invitation.save();
+
+    const workspace = await Workspace.findById(invitation.workspace);
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    const alreadyMember = workspace.members.some(
+      (m) => String(m.user) === String(userId)
+    );
+    if (!alreadyMember) {
+      // Default role for new members is viewer
+      workspace.members.push({ user: userId, role: "viewer" });
+      await workspace.save();
+    }
+
+    return res.json({ message: "Invitation accepted" });
+  } catch (e) {
+    console.error("Error accepting invitation:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function rejectInvitation(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+
+    const invitation = await Invitation.findOne({
+      _id: id,
+      invitedUser: userId,
+    });
+
+    if (!invitation) {
+      return res.status(404).json({ message: "Invitation not found" });
+    }
+
+    if (invitation.status !== "pending") {
+      return res.status(400).json({ message: "Invitation already processed" });
+    }
+
+    invitation.status = "rejected";
+    await invitation.save();
+
+    return res.json({ message: "Invitation rejected" });
+  } catch (e) {
+    console.error("Error rejecting invitation:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+
+===== FILE: backend\src\controllers\workspaceController.js =====
+// backend/src/controllers/workspaceController.js
+import Workspace from "../models/Workspace.js";
+import User from "../models/User.js";
+import Invitation from "../models/Invitation.js";
+
+const ONLINE_THRESHOLD_MS = 1000 * 60 * 5; // 5 minutes
+
+// Create a new workspace and send invitations
+export async function createWorkspace(req, res) {
+  try {
+    const userId = req.userId;
+    const { name, description, memberEmails } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Workspace name is required" });
+    }
+
+    const owner = await User.findById(userId);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner user not found" });
+    }
+
+    // Create workspace with owner as first member (role: owner)
+    const workspace = await Workspace.create({
+      name,
+      description: description || "",
+      owner: owner._id,
+      members: [
+        {
+          user: owner._id,
+          role: "owner",
+        },
+      ],
+    });
+
+    // memberEmails is expected as an array of strings
+    if (Array.isArray(memberEmails)) {
+      for (const rawEmail of memberEmails) {
+        const email = String(rawEmail).trim().toLowerCase();
+        if (!email) continue;
+        if (email === owner.email.toLowerCase()) continue; // skip self
+
+        const invitedUser = await User.findOne({ email });
+        if (!invitedUser) {
+          // If user not registered, skip silently for now
+          continue;
+        }
+
+        // Avoid duplicate invitation
+        const existingInvite = await Invitation.findOne({
+          workspace: workspace._id,
+          invitedUser: invitedUser._id,
+          status: "pending",
+        });
+
+        if (!existingInvite) {
+          await Invitation.create({
+            workspace: workspace._id,
+            invitedBy: owner._id,
+            invitedUser: invitedUser._id,
+          });
+        }
+      }
+    }
+
+    return res.status(201).json({
+      message: "Workspace created successfully",
+      workspace,
+    });
+  } catch (e) {
+    console.error("Error creating workspace:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Invite new members (by email) from an existing workspace (owner only)
+export async function inviteMembers(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const { memberEmails } = req.body;
+
+    if (!Array.isArray(memberEmails) || memberEmails.length === 0) {
+      return res.status(400).json({ message: "No emails provided" });
+    }
+
+    const workspace = await Workspace.findById(id)
+      .populate("owner", "email")
+      .populate("members.user", "email");
+
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    if (String(workspace.owner._id) !== String(userId)) {
+      return res.status(403).json({ message: "Only owner can invite members" });
+    }
+
+    const ownerEmail = workspace.owner.email.toLowerCase();
+
+    for (const rawEmail of memberEmails) {
+      const email = String(rawEmail).trim().toLowerCase();
+      if (!email) continue;
+      if (email === ownerEmail) continue;
+
+      const invitedUser = await User.findOne({ email });
+      if (!invitedUser) {
+        continue;
+      }
+
+      const alreadyMember = workspace.members.some(
+        (m) =>
+          String(m.user._id || m.user) === String(invitedUser._id)
+      );
+      if (alreadyMember) continue;
+
+      const existingInvite = await Invitation.findOne({
+        workspace: workspace._id,
+        invitedUser: invitedUser._id,
+        status: "pending",
+      });
+      if (existingInvite) continue;
+
+      await Invitation.create({
+        workspace: workspace._id,
+        invitedBy: workspace.owner._id,
+        invitedUser: invitedUser._id,
+      });
+    }
+
+    return res.json({ message: "Invitations sent (for registered users)." });
+  } catch (e) {
+    console.error("Error inviting members:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Get all workspaces where the user is a member
+export async function getMyWorkspaces(req, res) {
+  try {
+    const userId = req.userId;
+
+    const workspaces = await Workspace.find({
+      "members.user": userId,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json(workspaces);
+  } catch (e) {
+    console.error("Error fetching workspaces:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Get details of a single workspace (only if user is member/owner)
+export async function getWorkspaceById(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+
+    const workspace = await Workspace.findById(id)
+      .populate("owner", "name email lastActive")
+      .populate("members.user", "name email lastActive")
+      .lean();
+
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    const isMember = (workspace.members || []).some(
+      (m) => String(m.user?._id || m.user) === String(userId)
+    );
+
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ message: "Not allowed to view workspace" });
+    }
+
+    const now = Date.now();
+
+    let ownerData = null;
+    if (workspace.owner) {
+      const lastActive = workspace.owner.lastActive
+        ? new Date(workspace.owner.lastActive).getTime()
+        : 0;
+      const isOnline =
+        lastActive > 0 && now - lastActive < ONLINE_THRESHOLD_MS;
+
+      ownerData = {
+        _id: workspace.owner._id,
+        name: workspace.owner.name,
+        email: workspace.owner.email,
+        isOnline,
+      };
+    }
+
+    const members = (workspace.members || [])
+      .map((m) => {
+        const u = m.user;
+        if (!u) return null;
+        const lastActive = u.lastActive
+          ? new Date(u.lastActive).getTime()
+          : 0;
+        const isOnline =
+          lastActive > 0 && now - lastActive < ONLINE_THRESHOLD_MS;
+
+        return {
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          role: m.role,
+          isOnline,
+        };
+      })
+      .filter(Boolean);
+
+    return res.json({
+      _id: workspace._id,
+      name: workspace.name,
+      description: workspace.description,
+      owner: ownerData,
+      members,
+    });
+  } catch (e) {
+    console.error("Error fetching workspace:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Change a member's role (owner, editor, viewer) – only owner can do this
+export async function updateMemberRole(req, res) {
+  try {
+    const userId = req.userId;
+    const { id, memberId } = req.params;
+    const { role } = req.body;
+
+    const allowedRoles = ["owner", "editor", "viewer"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const workspace = await Workspace.findById(id).populate("owner", "_id");
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    if (String(workspace.owner._id) !== String(userId)) {
+      return res
+        .status(403)
+        .json({ message: "Only owner can change member roles" });
+    }
+
+    const member = workspace.members.find(
+      (m) => String(m.user) === String(memberId)
+    );
+    if (!member) {
+      return res.status(404).json({ message: "Member not found in workspace" });
+    }
+
+    // Do not allow owner to make themselves non-owner using this endpoint
+    if (
+      String(workspace.owner._id) === String(memberId) &&
+      role !== "owner"
+    ) {
+      return res.status(400).json({
+        message:
+          "To change owner, assign role 'owner' to another member first.",
+      });
+    }
+
+    if (role === "owner") {
+      // Transfer ownership: new owner gets owner role, old owner becomes editor
+      workspace.members.forEach((m) => {
+        if (String(m.user) === String(memberId)) {
+          m.role = "owner";
+        } else if (m.role === "owner") {
+          m.role = "editor"; // demote previous owner
+        }
+      });
+      workspace.owner = member.user;
+    } else {
+      member.role = role;
+    }
+
+    await workspace.save();
+
+    return res.json({ message: "Member role updated" });
+  } catch (e) {
+    console.error("Error updating member role:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// Remove a member from workspace – only owner, cannot remove owner
+export async function removeMember(req, res) {
+  try {
+    const userId = req.userId;
+    const { id, memberId } = req.params;
+
+    const workspace = await Workspace.findById(id).populate("owner", "_id");
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    if (String(workspace.owner._id) !== String(userId)) {
+      return res
+        .status(403)
+        .json({ message: "Only owner can remove members" });
+    }
+
+    if (String(workspace.owner._id) === String(memberId)) {
+      return res
+        .status(400)
+        .json({ message: "Owner cannot be removed from the workspace" });
+    }
+
+    const beforeCount = workspace.members.length;
+    workspace.members = workspace.members.filter(
+      (m) => String(m.user) !== String(memberId)
+    );
+
+    if (workspace.members.length === beforeCount) {
+      return res
+        .status(404)
+        .json({ message: "Member not found in workspace" });
+    }
+
+    await workspace.save();
+
+    return res.json({ message: "Member removed from workspace" });
+  } catch (e) {
+    console.error("Error removing member:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+
+===== FILE: backend\src\middleware\authMiddleware.js =====
+// backend/src/middleware/authMiddleware.js
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+export function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "Invalid authorization format" });
+  }
+
+  const token = parts[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.id;
+
+    // Update lastActive (fire and forget)
+    User.findByIdAndUpdate(decoded.id, { lastActive: new Date() }).catch(
+      () => {}
+    );
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+
+===== FILE: backend\src\models\Board.js =====
+import mongoose from "mongoose";
+
+const segmentSchema = new mongoose.Schema(
+  {
+    x0: Number,
+    y0: Number,
+    x1: Number,
+    y1: Number,
+    color: { type: String, default: "#000000" },
+    width: { type: Number, default: 2 },
+  },
+  { _id: false }
+);
+
+const boardSchema = new mongoose.Schema(
+  {
+    workspace: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+      required: true,
+    },
+    title: { type: String, default: "Untitled Board" },
+    segments: { type: [segmentSchema], default: [] }, // saved state
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("Board", boardSchema);
+
+
+===== FILE: backend\src\models\Invitation.js =====
+// backend/src/models/Invitation.js
+import mongoose from "mongoose";
+
+const invitationSchema = new mongoose.Schema(
+  {
+    workspace: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+      required: true,
+    },
+    invitedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    invitedUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("Invitation", invitationSchema);
+
+
+===== FILE: backend\src\models\User.js =====
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, // hashed password
+  lastActive: { type: Date, default: null },  // for online/offline status
+});
+
+export default mongoose.model("User", userSchema);
+
+
+===== FILE: backend\src\models\Workspace.js =====
+// backend/src/models/Workspace.js
+import mongoose from "mongoose";
+
+const memberSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ["owner", "editor", "viewer"],
+      default: "viewer",
+    },
+  },
+  { _id: false }
+);
+
+const workspaceSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    description: { type: String },
+
+    // Current owner (there can be only one)
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    // Members (including owner) with roles
+    members: [memberSchema],
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("Workspace", workspaceSchema);
+
+
+===== FILE: backend\src\routes\authRoutes.js =====
+import express from "express";
+import { register, login, updateMe } from "../controllers/authController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.post("/register", register);
+router.post("/login", login);
+
+
+router.put("/me", authMiddleware, updateMe);
+
+export default router;
+
+
+===== FILE: backend\src\routes\boardRoutes.js =====
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import {
+  createBoard,
+  listBoards,
+  getBoard,
+  saveBoard,
+} from "../controllers/boardController.js";
+
+const router = express.Router();
+
+router.post("/", authMiddleware, createBoard);
+router.get("/workspace/:workspaceId", authMiddleware, listBoards);
+router.get("/:boardId", authMiddleware, getBoard);
+router.put("/:boardId/save", authMiddleware, saveBoard);
+
+export default router;
+
+
+===== FILE: backend\src\routes\invitationRoutes.js =====
+// backend/src/routes/invitationRoutes.js
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import {
+  getMyInvitations,
+  acceptInvitation,
+  rejectInvitation,
+} from "../controllers/invitationController.js";
+
+const router = express.Router();
+
+// GET /api/invitations/my
+router.get("/my", authMiddleware, getMyInvitations);
+
+// POST /api/invitations/:id/accept
+router.post("/:id/accept", authMiddleware, acceptInvitation);
+
+// POST /api/invitations/:id/reject
+router.post("/:id/reject", authMiddleware, rejectInvitation);
+
+export default router;
+
+
+===== FILE: backend\src\routes\workspaceRoutes.js =====
+// backend/src/routes/workspaceRoutes.js
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import {
+  createWorkspace,
+  getMyWorkspaces,
+  getWorkspaceById,
+  inviteMembers,
+  updateMemberRole,
+  removeMember,
+} from "../controllers/workspaceController.js";
+
+const router = express.Router();
+
+// POST /api/workspaces
+router.post("/", authMiddleware, createWorkspace);
+
+// POST /api/workspaces/:id/invite
+router.post("/:id/invite", authMiddleware, inviteMembers);
+
+// GET /api/workspaces/my
+router.get("/my", authMiddleware, getMyWorkspaces);
+
+// GET /api/workspaces/:id
+router.get("/:id", authMiddleware, getWorkspaceById);
+
+// PATCH /api/workspaces/:id/members/:memberId/role
+router.patch(
+  "/:id/members/:memberId/role",
+  authMiddleware,
+  updateMemberRole
+);
+
+// DELETE /api/workspaces/:id/members/:memberId
+router.delete("/:id/members/:memberId", authMiddleware, removeMember);
+
+export default router;
 

@@ -22,9 +22,8 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const token = typeof window !== "undefined"
-    ? localStorage.getItem("token")
-    : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const loadWorkspace = async () => {
     if (!token) return;
@@ -38,8 +37,7 @@ function WorkspaceDetailsPage() {
       });
       setWorkspace(res.data);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to load workspace.";
+      const msg = err?.response?.data?.message || "Failed to load workspace.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -98,8 +96,7 @@ function WorkspaceDetailsPage() {
       setInviteMessage(res.data.message || "Invitations sent.");
       setInviteEmailsText("");
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to send invitations.";
+      const msg = err?.response?.data?.message || "Failed to send invitations.";
       setInviteError(msg);
     } finally {
       setInviteLoading(false);
@@ -150,8 +147,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member removed from workspace.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to remove member.";
+      const msg = err?.response?.data?.message || "Failed to remove member.";
       setActionError(msg);
     }
   };
@@ -185,12 +181,24 @@ function WorkspaceDetailsPage() {
           ) : (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
-                {workspace.description && (
-                  <p className="text-sm text-neutral-600">
-                    {workspace.description}
-                  </p>
-                )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
+                    {workspace.description && (
+                      <p className="text-sm text-neutral-600">
+                        {workspace.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* NEW: Boards button */}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => navigate(`/workspaces/${id}/boards`)}
+                  >
+                    Boards
+                  </button>
+                </div>
               </div>
 
               {(actionError || actionMessage) && (
@@ -219,8 +227,7 @@ function WorkspaceDetailsPage() {
                       {workspace.members && workspace.members.length > 0 ? (
                         workspace.members.map((m) => {
                           const isCurrentUser =
-                            currentUser &&
-                            m._id === currentUser.id;
+                            currentUser && m._id === currentUser.id;
 
                           return (
                             <li
@@ -271,9 +278,7 @@ function WorkspaceDetailsPage() {
                                     !(m.role === "owner" && isCurrentUser) && (
                                       <button
                                         className="btn btn-xs btn-ghost"
-                                        onClick={() =>
-                                          handleRemoveMember(m._id)
-                                        }
+                                        onClick={() => handleRemoveMember(m._id)}
                                       >
                                         Remove
                                       </button>
@@ -347,9 +352,7 @@ function WorkspaceDetailsPage() {
                             className="textarea textarea-bordered w-full text-sm"
                             rows={3}
                             value={inviteEmailsText}
-                            onChange={(e) =>
-                              setInviteEmailsText(e.target.value)
-                            }
+                            onChange={(e) => setInviteEmailsText(e.target.value)}
                             placeholder="example1@mail.com, example2@mail.com"
                           />
                           <p className="text-xs text-neutral-500">
