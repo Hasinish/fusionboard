@@ -8,13 +8,14 @@ import jwt from "jsonwebtoken";
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
-import chatRoutes from "./routes/chatRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 import { connectDB } from "./config/db.js";
-import Message from "./models/Message.js";
+
 import Board from "./models/Board.js";
 import { ensureMember } from "./controllers/chatController.js";
+import Message from "./models/Message.js";
 
 dotenv.config();
 
@@ -31,13 +32,14 @@ app.use(
 );
 app.use(express.json());
 
+// routes
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes); // adds /api/workspaces/:id/messages
+app.use("/api/workspaces", chatRoutes); // /api/workspaces/:id/messages
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 
-// --- Socket.io setup ---
+// socket server
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -48,50 +50,46 @@ const io = new Server(server, {
   },
 });
 
-// Authenticate sockets using JWT (used by chat + boards)
+// ✅ Socket JWT auth (needed for workspace chat)
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("No token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.id; // available in all socket handlers
+    socket.userId = String(decoded.id);
     return next();
-  } catch (e) {
+  } catch {
     return next(new Error("Invalid token"));
   }
 });
 
-// simple deterministic color assignment
+// ---------- LIVE CURSOR helpers ----------
 const CURSOR_COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#f59e0b", // amber
-  "#22c55e", // green
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#8b5cf6", // violet
-  "#ec4899", // pink
+  "#ef4444",
+  "#f97316",
+  "#f59e0b",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
 ];
 
 function pickColor(key) {
-  if (!key) return CURSOR_COLORS[0];
+  const s = String(key || "");
   let hash = 0;
-  for (let i = 0; i < String(key).length; i++) {
-    hash = (hash * 31 + String(key).charCodeAt(i)) >>> 0;
-  }
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
-// track socket -> { boardId, userId, name, color }
-const socketMeta = new Map();
+// socket.id -> { boardId, userId, name, color }
+const cursorState = new Map();
 
 io.on("connection", (socket) => {
-  // =========================
-  // Workspace Chat (textchat)
-  // =========================
-
-  // Join a workspace room
+  // -------------------------
+  // WORKSPACE CHAT
+  // -------------------------
   socket.on("workspace:join", async ({ workspaceId }, ack) => {
     try {
       const check = await ensureMember(workspaceId, socket.userId);
@@ -106,7 +104,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Send message to workspace
   socket.on("chat:send", async ({ workspaceId, text }, ack) => {
     try {
       const clean = String(text || "").trim();
@@ -132,7 +129,6 @@ io.on("connection", (socket) => {
         .lean();
 
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
-
       if (ack) ack({ ok: true });
     } catch (e) {
       console.error("chat:send error:", e);
@@ -140,29 +136,31 @@ io.on("connection", (socket) => {
     }
   });
 
-  // =========================
-  // Boards (main)
-  // =========================
-
+  // -------------------------
+  // WHITEBOARD JOIN
+  // -------------------------
   socket.on("joinBoard", ({ boardId, user }) => {
     if (!boardId) return;
 
-    // Prefer authenticated id from JWT; fallback to user payload/socket.id
-    const userId = socket.userId || user?.id || socket.id;
-    const name = user?.name || "User";
+    const name = user?.name ? String(user.name) : "User";
+    const userId = socket.userId; // stable per account (from JWT)
     const color = pickColor(userId);
 
-    socket.join(boardId);
-    socketMeta.set(socket.id, { boardId, userId, name, color });
+    cursorState.set(socket.id, { boardId, userId, name, color });
 
-    socket.to(boardId).emit("cursorJoin", { userId, name, color });
+    socket.join(`board:${boardId}`);
+
+    // tell others this user joined (cursor exists)
+    socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
-  // draw + autosave
+  // -------------------------
+  // WHITEBOARD DRAW + AUTOSAVE
+  // -------------------------
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
 
-    socket.to(boardId).emit("draw", segment);
+    socket.to(`board:${boardId}`).emit("draw", segment);
 
     try {
       const updated = await Board.findByIdAndUpdate(
@@ -172,21 +170,24 @@ io.on("connection", (socket) => {
       ).select("updatedAt");
 
       if (updated) {
-        io.to(boardId).emit("saved", { updatedAt: updated.updatedAt });
+        io.to(`board:${boardId}`).emit("saved", { updatedAt: updated.updatedAt });
       }
     } catch (e) {
       console.error("Autosave error:", e?.message || e);
     }
   });
 
-  // live cursor broadcast
+  // -------------------------
+  // ✅ LIVE CURSOR MOVE
+  // -------------------------
   socket.on("cursorMove", ({ boardId, x, y }) => {
     if (!boardId) return;
 
-    const meta = socketMeta.get(socket.id);
+    const meta = cursorState.get(socket.id);
     if (!meta) return;
+    if (meta.boardId !== boardId) return;
 
-    socket.to(boardId).emit("cursorMove", {
+    socket.to(`board:${boardId}`).emit("cursorMove", {
       userId: meta.userId,
       name: meta.name,
       color: meta.color,
@@ -195,32 +196,34 @@ io.on("connection", (socket) => {
     });
   });
 
-  // clear board for everyone + DB
+  // -------------------------
+  // CLEAR BOARD (everyone + DB)
+  // -------------------------
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
 
     try {
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
-      io.to(boardId).emit("cleared");
-      io.to(boardId).emit("saved", { updatedAt: new Date().toISOString() });
+      io.to(`board:${boardId}`).emit("cleared");
+      io.to(`board:${boardId}`).emit("saved", { updatedAt: new Date().toISOString() });
     } catch (e) {
       console.error("Clear board error:", e?.message || e);
     }
   });
 
-  socket.on("cursorLeave", ({ boardId }) => {
-    const meta = socketMeta.get(socket.id);
-    if (!meta || !boardId) return;
-    socket.to(boardId).emit("cursorLeave", { userId: meta.userId });
-  });
+  // -------------------------
+  // ✅ CURSOR LEAVE / DISCONNECT
+  // -------------------------
+  const leaveCursor = () => {
+    const meta = cursorState.get(socket.id);
+    if (!meta) return;
 
-  socket.on("disconnect", () => {
-    const meta = socketMeta.get(socket.id);
-    if (meta?.boardId) {
-      socket.to(meta.boardId).emit("cursorLeave", { userId: meta.userId });
-    }
-    socketMeta.delete(socket.id);
-  });
+    socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
+    cursorState.delete(socket.id);
+  };
+
+  socket.on("cursorLeave", leaveCursor);
+  socket.on("disconnect", leaveCursor);
 });
 
 server.listen(PORT, () => {
