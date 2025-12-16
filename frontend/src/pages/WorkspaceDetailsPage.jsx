@@ -23,9 +23,8 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const token = typeof window !== "undefined"
-    ? localStorage.getItem("token")
-    : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const loadWorkspace = async () => {
     if (!token) return;
@@ -39,8 +38,7 @@ function WorkspaceDetailsPage() {
       });
       setWorkspace(res.data);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to load workspace.";
+      const msg = err?.response?.data?.message || "Failed to load workspace.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -57,10 +55,7 @@ function WorkspaceDetailsPage() {
   }, [id, navigate]);
 
   const isOwner =
-    workspace &&
-    workspace.owner &&
-    currentUser &&
-    workspace.owner._id === currentUser.id;
+    workspace && workspace.owner && currentUser && workspace.owner._id === currentUser.id;
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -99,8 +94,7 @@ function WorkspaceDetailsPage() {
       setInviteMessage(res.data.message || "Invitations sent.");
       setInviteEmailsText("");
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to send invitations.";
+      const msg = err?.response?.data?.message || "Failed to send invitations.";
       setInviteError(msg);
     } finally {
       setInviteLoading(false);
@@ -127,8 +121,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member role updated.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to update member role.";
+      const msg = err?.response?.data?.message || "Failed to update member role.";
       setActionError(msg);
     }
   };
@@ -151,8 +144,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member removed from workspace.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to remove member.";
+      const msg = err?.response?.data?.message || "Failed to remove member.";
       setActionError(msg);
     }
   };
@@ -185,13 +177,23 @@ function WorkspaceDetailsPage() {
             </div>
           ) : (
             <>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
-                {workspace.description && (
-                  <p className="text-sm text-neutral-600">
-                    {workspace.description}
-                  </p>
-                )}
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
+                  {workspace.description && (
+                    <p className="text-sm text-neutral-600">
+                      {workspace.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* NEW: Voice room button */}
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => navigate(`/workspaces/${id}/voice`)}
+                >
+                  Join Voice Chat
+                </button>
               </div>
 
               {(actionError || actionMessage) && (
@@ -219,9 +221,7 @@ function WorkspaceDetailsPage() {
                     <ul className="space-y-3 text-sm">
                       {workspace.members && workspace.members.length > 0 ? (
                         workspace.members.map((m) => {
-                          const isCurrentUser =
-                            currentUser &&
-                            m._id === currentUser.id;
+                          const isCurrentUser = currentUser && m._id === currentUser.id;
 
                           return (
                             <li
@@ -247,7 +247,6 @@ function WorkspaceDetailsPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {/* Role display / dropdown */}
                                   {isOwner ? (
                                     <select
                                       className="select select-xs select-bordered"
@@ -262,32 +261,24 @@ function WorkspaceDetailsPage() {
                                       <option value="viewer">Viewer</option>
                                     </select>
                                   ) : (
-                                    <span className="badge badge-outline">
-                                      {m.role}
-                                    </span>
+                                    <span className="badge badge-outline">{m.role}</span>
                                   )}
 
-                                  {/* Remove button (owner only, cannot remove self owner) */}
-                                  {isOwner &&
-                                    !(m.role === "owner" && isCurrentUser) && (
-                                      <button
-                                        className="btn btn-xs btn-ghost"
-                                        onClick={() =>
-                                          handleRemoveMember(m._id)
-                                        }
-                                      >
-                                        Remove
-                                      </button>
-                                    )}
+                                  {isOwner && !(m.role === "owner" && isCurrentUser) && (
+                                    <button
+                                      className="btn btn-xs btn-ghost"
+                                      onClick={() => handleRemoveMember(m._id)}
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </li>
                           );
                         })
                       ) : (
-                        <li className="text-neutral-500 text-sm">
-                          No members yet.
-                        </li>
+                        <li className="text-neutral-500 text-sm">No members yet.</li>
                       )}
                     </ul>
                   </div>
@@ -297,21 +288,18 @@ function WorkspaceDetailsPage() {
                 <div className="space-y-4">
                   <div className="card bg-base-100 shadow-md">
                     <div className="card-body">
-                      <h2 className="card-title text-base mb-2">
-                        Workspace Owner
-                      </h2>
+                      <h2 className="card-title text-base mb-2">Workspace Owner</h2>
                       {workspace.owner ? (
                         <div className="flex items-center gap-2 text-sm">
                           {renderStatusDot(workspace.owner.isOnline)}
                           <div>
                             <div className="font-medium">
                               {workspace.owner.name}
-                              {currentUser &&
-                                workspace.owner._id === currentUser.id && (
-                                  <span className="text-xs text-neutral-500 ml-1">
-                                    (you)
-                                  </span>
-                                )}
+                              {currentUser && workspace.owner._id === currentUser.id && (
+                                <span className="text-xs text-neutral-500 ml-1">
+                                  (you)
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-neutral-500">
                               {workspace.owner.email}
@@ -326,13 +314,10 @@ function WorkspaceDetailsPage() {
                     </div>
                   </div>
 
-                  {/* Invite members (owner only) */}
                   {isOwner && (
                     <div className="card bg-base-100 shadow-md">
                       <div className="card-body">
-                        <h2 className="card-title text-base mb-2">
-                          Invite Members
-                        </h2>
+                        <h2 className="card-title text-base mb-2">Invite Members</h2>
                         {inviteError && (
                           <div className="alert alert-error py-2 text-xs mb-2">
                             <span>{inviteError}</span>
@@ -348,14 +333,12 @@ function WorkspaceDetailsPage() {
                             className="textarea textarea-bordered w-full text-sm"
                             rows={3}
                             value={inviteEmailsText}
-                            onChange={(e) =>
-                              setInviteEmailsText(e.target.value)
-                            }
+                            onChange={(e) => setInviteEmailsText(e.target.value)}
                             placeholder="example1@mail.com, example2@mail.com"
                           />
                           <p className="text-xs text-neutral-500">
-                            Separate emails with commas. Invitations are only
-                            sent to users who already registered.
+                            Separate emails with commas. Invitations are only sent to
+                            users who already registered.
                           </p>
                           <button
                             type="submit"
