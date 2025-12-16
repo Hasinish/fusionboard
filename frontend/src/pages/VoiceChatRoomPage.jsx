@@ -2,11 +2,10 @@ import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import NavBar from "../components/NavBar";
-import { isLoggedIn } from "../lib/auth";
+import { getUser, isLoggedIn } from "../lib/auth";
 
 const SIGNAL_URL = "http://localhost:5001";
 
-// STUN only (simple)
 const RTC_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -14,20 +13,36 @@ const RTC_CONFIG = {
 function VoiceChatRoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
+  const me = getUser();
 
-  const [status, setStatus] = useState("idle"); // idle | connecting | connected | error
+  const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
-  const [peerIds, setPeerIds] = useState([]);
+  const [participants, setParticipants] = useState([]); // [{ peerId, name }]
 
   const socket = useRef(null);
   const localStream = useRef(null);
   const pcs = useRef(new Map()); // peerId -> RTCPeerConnection
+  const pendingIce = useRef(new Map()); // peerId -> RTCIceCandidate[]
+  const makingOffer = useRef(new Map()); // peerId -> boolean
 
   const token = useMemo(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("token");
   }, []);
+
+  const ensurePendingIceList = (peerId) => {
+    if (!pendingIce.current.has(peerId)) pendingIce.current.set(peerId, []);
+    return pendingIce.current.get(peerId);
+  };
+
+  const setMakingOffer = (peerId, v) => {
+    makingOffer.current.set(peerId, v);
+  };
+
+  const getMakingOffer = (peerId) => {
+    return makingOffer.current.get(peerId) === true;
+  };
 
   const cleanupPeer = (peerId) => {
     const pc = pcs.current.get(peerId);
@@ -40,22 +55,20 @@ function VoiceChatRoomPage() {
       } catch {}
       pcs.current.delete(peerId);
     }
+    pendingIce.current.delete(peerId);
+    makingOffer.current.delete(peerId);
 
     const audioEl = document.getElementById(`audio-${peerId}`);
     if (audioEl) audioEl.remove();
-
-    setPeerIds((prev) => prev.filter((x) => x !== peerId));
   };
 
   const createPeerConnection = (peerId) => {
     const pc = new RTCPeerConnection(RTC_CONFIG);
 
-    // Send our audio to the peer
+    // Add local audio tracks
     const stream = localStream.current;
     if (stream) {
-      for (const track of stream.getTracks()) {
-        pc.addTrack(track, stream);
-      }
+      for (const track of stream.getTracks()) pc.addTrack(track, stream);
     }
 
     // Receive remote audio
@@ -71,17 +84,16 @@ function VoiceChatRoomPage() {
         audioEl.id = elId;
         audioEl.autoplay = true;
         audioEl.playsInline = true;
-        audioEl.controls = true; // show controls so user can hit play if autoplay blocked
+        audioEl.controls = true;
         audioEl.className = "w-full mt-2";
         document.getElementById("remote-audio-container")?.appendChild(audioEl);
       }
 
       audioEl.srcObject = remoteStream;
-
-      // Try to force playback (some browsers need this)
       audioEl.play().catch(() => {});
     };
 
+    // ICE out
     pc.onicecandidate = (event) => {
       if (event.candidate && socket.current) {
         socket.current.emit("voice:signal", {
@@ -99,21 +111,56 @@ function VoiceChatRoomPage() {
     };
 
     pcs.current.set(peerId, pc);
-    setPeerIds((prev) => (prev.includes(peerId) ? prev : [...prev, peerId]));
     return pc;
   };
 
   const ensurePC = (peerId) => pcs.current.get(peerId) || createPeerConnection(peerId);
 
+  const flushPendingIce = async (peerId) => {
+    const pc = pcs.current.get(peerId);
+    if (!pc || !pc.remoteDescription) return;
+
+    const list = pendingIce.current.get(peerId);
+    if (!list || list.length === 0) return;
+
+    while (list.length) {
+      const cand = list.shift();
+      try {
+        await pc.addIceCandidate(cand);
+      } catch {}
+    }
+  };
+
+  // Deterministic offerer: only one side offers (prevents "glare")
+  const iShouldOffer = (peerId) => {
+    const myId = socket.current?.id;
+    if (!myId) return false;
+    return myId < peerId; // stable ordering
+  };
+
   const makeOfferTo = async (peerId) => {
     const pc = ensurePC(peerId);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
 
-    socket.current.emit("voice:signal", {
-      to: peerId,
-      data: { type: "offer", sdp: pc.localDescription },
-    });
+    if (!iShouldOffer(peerId)) return;
+    if (pc.signalingState !== "stable") return;
+    if (pc.localDescription || pc.remoteDescription) return; // already negotiated once
+
+    try {
+      setMakingOffer(peerId, true);
+
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: false,
+      });
+      await pc.setLocalDescription(offer);
+
+      socket.current.emit("voice:signal", {
+        to: peerId,
+        data: { type: "offer", sdp: pc.localDescription },
+      });
+    } finally {
+      setMakingOffer(peerId, false);
+    }
   };
 
   const joinRoom = async () => {
@@ -127,13 +174,12 @@ function VoiceChatRoomPage() {
     setStatus("connecting");
 
     try {
-      // 1) Must be triggered by user click to avoid autoplay/mic blocks
+      // get mic
       localStream.current = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false,
       });
 
-      // 2) connect socket
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
@@ -148,17 +194,23 @@ function VoiceChatRoomPage() {
         socket.current.emit("voice:join", { roomId });
       });
 
-      // We joined; server sends list of existing peers -> we offer to them
-      socket.current.on("voice:peers", async ({ peers }) => {
-        setStatus("connected");
-        for (const peerId of peers || []) {
-          await makeOfferTo(peerId);
-        }
-      });
+      // Always update list (server sends full list)
+      socket.current.on("voice:participants:update", async ({ participants }) => {
+        const list = Array.isArray(participants) ? participants : [];
+        setParticipants(list);
 
-      // A peer joined after us -> they will offer to us
-      socket.current.on("voice:peer-joined", ({ peerId }) => {
-        ensurePC(peerId);
+        const myId = socket.current?.id;
+        const others = myId ? list.filter((p) => p.peerId !== myId) : list;
+
+        // Ensure PCs exist
+        for (const p of others) ensurePC(p.peerId);
+
+        setStatus("connected");
+
+        // Only the deterministic offerer makes offers
+        for (const p of others) {
+          await makeOfferTo(p.peerId);
+        }
       });
 
       socket.current.on("voice:peer-left", ({ peerId }) => {
@@ -166,11 +218,17 @@ function VoiceChatRoomPage() {
       });
 
       socket.current.on("voice:signal", async ({ from, data }) => {
-        try {
-          const pc = ensurePC(from);
+        const pc = ensurePC(from);
 
+        try {
           if (data?.type === "offer") {
+            // If we are currently making an offer, ignore glare by answering only if we are NOT the offerer
+            // With deterministic rule, only one side should offer anyway.
+            if (getMakingOffer(from) && iShouldOffer(from)) return;
+
             await pc.setRemoteDescription(data.sdp);
+            await flushPendingIce(from);
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
@@ -180,10 +238,17 @@ function VoiceChatRoomPage() {
             });
           } else if (data?.type === "answer") {
             await pc.setRemoteDescription(data.sdp);
+            await flushPendingIce(from);
           } else if (data?.type === "ice" && data?.candidate) {
-            await pc.addIceCandidate(data.candidate);
+            if (!pc.remoteDescription) {
+              ensurePendingIceList(from).push(data.candidate);
+            } else {
+              await pc.addIceCandidate(data.candidate);
+            }
           }
-        } catch {}
+        } catch {
+          // keep silent
+        }
       });
     } catch (e) {
       setStatus("error");
@@ -211,13 +276,16 @@ function VoiceChatRoomPage() {
       const audioEl = document.getElementById(`audio-${peerId}`);
       if (audioEl) audioEl.remove();
     }
-    setPeerIds([]);
+
+    pendingIce.current.clear();
+    makingOffer.current.clear();
 
     if (localStream.current) {
       for (const t of localStream.current.getTracks()) t.stop();
       localStream.current = null;
     }
 
+    setParticipants([]);
     setIsMuted(false);
     setStatus("idle");
   };
@@ -225,12 +293,17 @@ function VoiceChatRoomPage() {
   const toggleMute = () => {
     const stream = localStream.current;
     if (!stream) return;
-    const audioTrack = stream.getAudioTracks()[0];
-    if (!audioTrack) return;
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
 
     const next = !isMuted;
-    audioTrack.enabled = !next;
+    track.enabled = !next;
     setIsMuted(next);
+  };
+
+  const myLabel = (peerId) => {
+    if (!socket.current?.id) return "";
+    return peerId === socket.current.id ? " (you)" : "";
   };
 
   return (
@@ -244,6 +317,11 @@ function VoiceChatRoomPage() {
             <p className="text-sm text-neutral-500">
               Room ID: <span className="font-mono">{roomId}</span>
             </p>
+            {me?.name && (
+              <p className="text-xs text-neutral-500">
+                Logged in as: <span className="font-semibold">{me.name}</span>
+              </p>
+            )}
           </div>
 
           {error && (
@@ -259,7 +337,8 @@ function VoiceChatRoomPage() {
                   Status: <span className="font-semibold">{status}</span>
                 </div>
                 <div className="text-sm">
-                  Peers: <span className="font-semibold">{peerIds.length}</span>
+                  People in call:{" "}
+                  <span className="font-semibold">{participants.length}</span>
                 </div>
               </div>
 
@@ -293,17 +372,40 @@ function VoiceChatRoomPage() {
               <div className="divider" />
 
               <div>
+                <h2 className="font-semibold mb-2">Participants</h2>
+                {participants.length === 0 ? (
+                  <p className="text-sm text-neutral-500">No one in the call yet.</p>
+                ) : (
+                  <ul className="text-sm space-y-1">
+                    {participants.map((p) => (
+                      <li key={p.peerId} className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {p.name || "Unknown"}
+                          <span className="text-neutral-500">{myLabel(p.peerId)}</span>
+                        </span>
+                        <span className="text-xs font-mono text-neutral-500">
+                          {p.peerId.slice(0, 6)}...
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="divider" />
+
+              <div>
                 <h2 className="font-semibold mb-2">Remote Audio</h2>
                 <div id="remote-audio-container" className="space-y-2" />
                 <p className="text-xs text-neutral-500 mt-2">
-                  If you don’t hear anything, press Play on the audio controls above (autoplay may be blocked).
+                  If autoplay is blocked, click Play on the audio controls above.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="mt-3 text-xs text-neutral-500">
-            Tip: test with headphones to avoid echo on same computer.
+            Same PC tip: use headphones to avoid echo/feedback.
           </div>
         </div>
       </main>
