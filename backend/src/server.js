@@ -1,70 +1,71 @@
+// backend/src/server.js
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
-import invitationRoutes from "./routes/invitationRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
-import { connectDB } from "./config/db.js";
-
-import Board from "./models/Board.js";
-import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
+import Board from "./models/Board.js";
+import Workspace from "./models/Workspace.js";
+import User from "./models/User.js";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+app.use(cors());
+app.use(express.json());
 
 connectDB();
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
-app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("Backend is running ✅");
+});
 
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes); // /api/workspaces/:id/messages
+app.use("/api/workspaces", chatRoutes); // adds /api/workspaces/:id/messages
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 
-// socket server
+// --- Socket.io setup ---
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
-// ✅ Socket JWT auth (needed for workspace chat)
+// Authenticate sockets using JWT (used by chat + boards)
 io.use((socket, next) => {
   try {
-    const token = socket.handshake.auth?.token;
+    const token =
+      socket.handshake.auth?.token ||
+      socket.handshake.headers?.authorization?.replace("Bearer ", "");
+
     if (!token) return next(new Error("No token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = String(decoded.id);
+    socket.userId = decoded.id; // available in all socket handlers
     return next();
   } catch {
     return next(new Error("Invalid token"));
   }
 });
 
-// ---------- LIVE CURSOR helpers ----------
+// simple deterministic color assignment
 const CURSOR_COLORS = [
   "#ef4444",
   "#f97316",
@@ -83,8 +84,8 @@ function pickColor(key) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
-// socket.id -> { boardId, userId, name, color }
-const cursorState = new Map();
+// track socket -> { boardId, userId, name, color }
+const socketMeta = new Map();
 
 io.on("connection", (socket) => {
   // -------------------------
@@ -146,21 +147,17 @@ io.on("connection", (socket) => {
     const userId = socket.userId; // stable per account (from JWT)
     const color = pickColor(userId);
 
-    cursorState.set(socket.id, { boardId, userId, name, color });
+    socket.join(boardId);
+    socketMeta.set(socket.id, { boardId, userId, name, color });
 
-    socket.join(`board:${boardId}`);
-
-    // tell others this user joined (cursor exists)
-    socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
+    socket.to(boardId).emit("cursorJoin", { userId, name, color });
   });
 
-  // -------------------------
-  // WHITEBOARD DRAW + AUTOSAVE
-  // -------------------------
+  // draw + autosave
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
 
-    socket.to(`board:${boardId}`).emit("draw", segment);
+    socket.to(boardId).emit("draw", segment);
 
     try {
       const updated = await Board.findByIdAndUpdate(
@@ -170,24 +167,21 @@ io.on("connection", (socket) => {
       ).select("updatedAt");
 
       if (updated) {
-        io.to(`board:${boardId}`).emit("saved", { updatedAt: updated.updatedAt });
+        io.to(boardId).emit("saved", { updatedAt: updated.updatedAt });
       }
     } catch (e) {
-      console.error("Autosave error:", e?.message || e);
+      console.error("clearBoard error:", e);
     }
   });
 
-  // -------------------------
-  // ✅ LIVE CURSOR MOVE
-  // -------------------------
+  // live cursor broadcast
   socket.on("cursorMove", ({ boardId, x, y }) => {
     if (!boardId) return;
 
-    const meta = cursorState.get(socket.id);
+    const meta = socketMeta.get(socket.id);
     if (!meta) return;
-    if (meta.boardId !== boardId) return;
 
-    socket.to(`board:${boardId}`).emit("cursorMove", {
+    socket.to(boardId).emit("cursorMove", {
       userId: meta.userId,
       name: meta.name,
       color: meta.color,
@@ -196,36 +190,36 @@ io.on("connection", (socket) => {
     });
   });
 
-  // -------------------------
-  // CLEAR BOARD (everyone + DB)
-  // -------------------------
+  // clear board for everyone + DB
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
 
     try {
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
-      io.to(`board:${boardId}`).emit("cleared");
-      io.to(`board:${boardId}`).emit("saved", { updatedAt: new Date().toISOString() });
+      io.to(boardId).emit("cleared");
+      io.to(boardId).emit("saved", { updatedAt: new Date().toISOString() });
     } catch (e) {
-      console.error("Clear board error:", e?.message || e);
+      console.error("voice:leave error:", e);
+      if (ack) ack({ ok: false, message: "Voice leave failed" });
     }
   });
 
-  // -------------------------
-  // ✅ CURSOR LEAVE / DISCONNECT
-  // -------------------------
-  const leaveCursor = () => {
-    const meta = cursorState.get(socket.id);
-    if (!meta) return;
+  socket.on("cursorLeave", ({ boardId }) => {
+    const meta = socketMeta.get(socket.id);
+    if (!meta || !boardId) return;
+    socket.to(boardId).emit("cursorLeave", { userId: meta.userId });
+  });
 
-    socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
-    cursorState.delete(socket.id);
-  };
-
-  socket.on("cursorLeave", leaveCursor);
-  socket.on("disconnect", leaveCursor);
+  socket.on("disconnect", () => {
+    const meta = socketMeta.get(socket.id);
+    if (meta?.boardId) {
+      socket.to(meta.boardId).emit("cursorLeave", { userId: meta.userId });
+    }
+    socketMeta.delete(socket.id);
+  });
 });
 
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-  console.log("Server started on PORT:", PORT);
+  console.log(`Server running on port ${PORT}`);
 });
