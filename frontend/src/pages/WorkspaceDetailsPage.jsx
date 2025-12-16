@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import api from "../lib/api";
 import { isLoggedIn, getUser } from "../lib/auth";
+import WorkspaceChat from "../components/WorkspaceChat";
 
 function WorkspaceDetailsPage() {
   const { id } = useParams();
@@ -50,14 +51,10 @@ function WorkspaceDetailsPage() {
       return;
     }
     loadWorkspace();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const isOwner =
-    workspace &&
-    workspace.owner &&
-    currentUser &&
-    workspace.owner._id === currentUser.id;
+    workspace && workspace.owner && currentUser && workspace.owner._id === currentUser.id;
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -123,8 +120,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member role updated.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to update member role.";
+      const msg = err?.response?.data?.message || "Failed to update member role.";
       setActionError(msg);
     }
   };
@@ -165,7 +161,7 @@ function WorkspaceDetailsPage() {
       <NavBar />
 
       <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           {loading ? (
             <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
               Loading workspace...
@@ -181,6 +177,7 @@ function WorkspaceDetailsPage() {
           ) : (
             <>
               <div className="mb-6">
+
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <h1 className="text-2xl font-bold mb-1">{workspace.name}</h1>
@@ -199,6 +196,7 @@ function WorkspaceDetailsPage() {
                     Boards
                   </button>
                 </div>
+
               </div>
 
               {(actionError || actionMessage) && (
@@ -216,18 +214,17 @@ function WorkspaceDetailsPage() {
                 </div>
               )}
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-3">
                 {/* Members */}
-                <div className="card bg-base-100 shadow-md">
+                <div className="card bg-base-100 shadow-md lg:col-span-2">
                   <div className="card-body">
-                    <h2 className="card-title text-base mb-2">
-                      Workspace Members
-                    </h2>
+                    <h2 className="card-title text-base mb-2">Workspace Members</h2>
                     <ul className="space-y-3 text-sm">
                       {workspace.members && workspace.members.length > 0 ? (
                         workspace.members.map((m) => {
-                          const isCurrentUser =
-                            currentUser && m._id === currentUser.id;
+
+                          const isCurrentUser = currentUser && m._id === currentUser.id;
+
 
                           return (
                             <li
@@ -246,97 +243,75 @@ function WorkspaceDetailsPage() {
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-xs text-neutral-500">
-                                      {m.email}
-                                    </div>
+                                    <div className="text-xs text-neutral-500">{m.email}</div>
                                   </div>
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {/* Role display / dropdown */}
                                   {isOwner ? (
                                     <select
                                       className="select select-xs select-bordered"
                                       value={m.role}
                                       disabled={isCurrentUser && m.role === "owner"}
-                                      onChange={(e) =>
-                                        handleRoleChange(m._id, e.target.value)
-                                      }
+                                      onChange={(e) => handleRoleChange(m._id, e.target.value)}
                                     >
                                       <option value="owner">Owner</option>
                                       <option value="editor">Editor</option>
                                       <option value="viewer">Viewer</option>
                                     </select>
                                   ) : (
-                                    <span className="badge badge-outline">
-                                      {m.role}
-                                    </span>
+                                    <span className="badge badge-outline">{m.role}</span>
                                   )}
 
-                                  {/* Remove button (owner only, cannot remove self owner) */}
-                                  {isOwner &&
-                                    !(m.role === "owner" && isCurrentUser) && (
-                                      <button
-                                        className="btn btn-xs btn-ghost"
-                                        onClick={() => handleRemoveMember(m._id)}
-                                      >
-                                        Remove
-                                      </button>
-                                    )}
+                                  {isOwner && !(m.role === "owner" && isCurrentUser) && (
+                                    <button
+                                      className="btn btn-xs btn-ghost"
+                                      onClick={() => handleRemoveMember(m._id)}
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+
                                 </div>
                               </div>
                             </li>
                           );
                         })
                       ) : (
-                        <li className="text-neutral-500 text-sm">
-                          No members yet.
-                        </li>
+                        <li className="text-neutral-500 text-sm">No members yet.</li>
                       )}
                     </ul>
                   </div>
                 </div>
 
-                {/* Owner info + Invite form */}
+                {/* Right column: owner + invite */}
                 <div className="space-y-4">
                   <div className="card bg-base-100 shadow-md">
                     <div className="card-body">
-                      <h2 className="card-title text-base mb-2">
-                        Workspace Owner
-                      </h2>
+                      <h2 className="card-title text-base mb-2">Workspace Owner</h2>
                       {workspace.owner ? (
                         <div className="flex items-center gap-2 text-sm">
                           {renderStatusDot(workspace.owner.isOnline)}
                           <div>
                             <div className="font-medium">
                               {workspace.owner.name}
-                              {currentUser &&
-                                workspace.owner._id === currentUser.id && (
-                                  <span className="text-xs text-neutral-500 ml-1">
-                                    (you)
-                                  </span>
-                                )}
+                              {currentUser && workspace.owner._id === currentUser.id && (
+                                <span className="text-xs text-neutral-500 ml-1">(you)</span>
+                              )}
                             </div>
-                            <div className="text-xs text-neutral-500">
-                              {workspace.owner.email}
-                            </div>
+                            <div className="text-xs text-neutral-500">{workspace.owner.email}</div>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-neutral-500">
-                          Owner information not available.
-                        </p>
+                        <p className="text-sm text-neutral-500">Owner information not available.</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Invite members (owner only) */}
                   {isOwner && (
                     <div className="card bg-base-100 shadow-md">
                       <div className="card-body">
-                        <h2 className="card-title text-base mb-2">
-                          Invite Members
-                        </h2>
+                        <h2 className="card-title text-base mb-2">Invite Members</h2>
                         {inviteError && (
                           <div className="alert alert-error py-2 text-xs mb-2">
                             <span>{inviteError}</span>
@@ -356,14 +331,11 @@ function WorkspaceDetailsPage() {
                             placeholder="example1@mail.com, example2@mail.com"
                           />
                           <p className="text-xs text-neutral-500">
-                            Separate emails with commas. Invitations are only
-                            sent to users who already registered.
+                            Separate emails with commas. Invitations are only sent to users who already registered.
                           </p>
                           <button
                             type="submit"
-                            className={`btn btn-primary btn-sm ${
-                              inviteLoading ? "btn-disabled" : ""
-                            }`}
+                            className={`btn btn-primary btn-sm ${inviteLoading ? "btn-disabled" : ""}`}
                             disabled={inviteLoading}
                           >
                             {inviteLoading ? "Sending..." : "Invite members"}
@@ -373,6 +345,11 @@ function WorkspaceDetailsPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Chat */}
+              <div className="mt-6">
+                <WorkspaceChat workspaceId={id} />
               </div>
             </>
           )}

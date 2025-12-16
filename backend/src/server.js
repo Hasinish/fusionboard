@@ -3,18 +3,24 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
+
 import { connectDB } from "./config/db.js";
+import Message from "./models/Message.js";
 import Board from "./models/Board.js";
+import { ensureMember } from "./controllers/chatController.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
 connectDB();
 
 app.use(
@@ -27,9 +33,11 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/workspaces", chatRoutes); // adds /api/workspaces/:id/messages
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 
+// --- Socket.io setup ---
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -38,6 +46,20 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+});
+
+// Authenticate sockets using JWT (used by chat + boards)
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error("No token"));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id; // available in all socket handlers
+    return next();
+  } catch (e) {
+    return next(new Error("Invalid token"));
+  }
 });
 
 // simple deterministic color assignment
@@ -65,17 +87,74 @@ function pickColor(key) {
 const socketMeta = new Map();
 
 io.on("connection", (socket) => {
+  // =========================
+  // Workspace Chat (textchat)
+  // =========================
+
+  // Join a workspace room
+  socket.on("workspace:join", async ({ workspaceId }, ack) => {
+    try {
+      const check = await ensureMember(workspaceId, socket.userId);
+      if (!check.ok) {
+        if (ack) ack({ ok: false, message: check.message });
+        return;
+      }
+      socket.join(`ws:${workspaceId}`);
+      if (ack) ack({ ok: true });
+    } catch {
+      if (ack) ack({ ok: false, message: "Join failed" });
+    }
+  });
+
+  // Send message to workspace
+  socket.on("chat:send", async ({ workspaceId, text }, ack) => {
+    try {
+      const clean = String(text || "").trim();
+      if (!clean) {
+        if (ack) ack({ ok: false, message: "Empty message" });
+        return;
+      }
+
+      const check = await ensureMember(workspaceId, socket.userId);
+      if (!check.ok) {
+        if (ack) ack({ ok: false, message: check.message });
+        return;
+      }
+
+      const msg = await Message.create({
+        workspace: workspaceId,
+        sender: socket.userId,
+        text: clean,
+      });
+
+      const full = await Message.findById(msg._id)
+        .populate("sender", "name email")
+        .lean();
+
+      io.to(`ws:${workspaceId}`).emit("chat:new", full);
+
+      if (ack) ack({ ok: true });
+    } catch (e) {
+      console.error("chat:send error:", e);
+      if (ack) ack({ ok: false, message: "Send failed" });
+    }
+  });
+
+  // =========================
+  // Boards (main)
+  // =========================
+
   socket.on("joinBoard", ({ boardId, user }) => {
     if (!boardId) return;
 
-    const userId = user?.id || socket.id;
+    // Prefer authenticated id from JWT; fallback to user payload/socket.id
+    const userId = socket.userId || user?.id || socket.id;
     const name = user?.name || "User";
     const color = pickColor(userId);
 
     socket.join(boardId);
     socketMeta.set(socket.id, { boardId, userId, name, color });
 
-    // Let others know this cursor exists (optional)
     socket.to(boardId).emit("cursorJoin", { userId, name, color });
   });
 

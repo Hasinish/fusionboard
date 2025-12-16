@@ -14,7 +14,6 @@ function CreateWorkspacePage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate("/login");
