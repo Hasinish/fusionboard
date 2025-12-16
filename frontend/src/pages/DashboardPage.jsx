@@ -1,4 +1,3 @@
-// frontend/src/pages/DashboardPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUser, isLoggedIn, clearAuth } from "../lib/auth";
@@ -52,13 +51,10 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
-      {/* Top Navbar */}
       <NavBar />
 
-      {/* Main content */}
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* Welcome / user info */}
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -74,14 +70,12 @@ function DashboardPage() {
             </button>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="alert alert-error mb-4 py-2 text-sm">
               <span>{error}</span>
             </div>
           )}
 
-          {/* My Workspaces section */}
           <section>
             <h2 className="text-lg font-semibold mb-3">My Workspaces</h2>
 

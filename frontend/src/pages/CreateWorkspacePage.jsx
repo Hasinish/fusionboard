@@ -1,4 +1,3 @@
-// frontend/src/pages/CreateWorkspacePage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
@@ -15,7 +14,6 @@ function CreateWorkspacePage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate("/login");
