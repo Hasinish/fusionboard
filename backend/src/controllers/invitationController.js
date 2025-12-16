@@ -1,4 +1,3 @@
-// backend/src/controllers/invitationController.js
 import Invitation from "../models/Invitation.js";
 import Workspace from "../models/Workspace.js";
 

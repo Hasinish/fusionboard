@@ -1,4 +1,3 @@
-// frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
@@ -84,7 +83,6 @@ function ProfilePage() {
 
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
-              {/* Status messages */}
               {error && (
                 <div className="alert alert-error py-2 text-sm mb-2">
                   <span>{error}</span>
@@ -96,7 +94,6 @@ function ProfilePage() {
                 </div>
               )}
 
-              {/* Details */}
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div>
                   <label className="label">
