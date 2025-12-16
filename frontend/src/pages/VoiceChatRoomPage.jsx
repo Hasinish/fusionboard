@@ -143,7 +143,7 @@ function VoiceChatRoomPage() {
 
     if (!iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
-    if (pc.localDescription || pc.remoteDescription) return; // already negotiated once
+    if (pc.localDescription || pc.remoteDescription) return;
 
     try {
       setMakingOffer(peerId, true);
@@ -176,13 +176,22 @@ function VoiceChatRoomPage() {
     try {
       // get mic
       localStream.current = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
         video: false,
       });
 
+      // ✅ IMPORTANT FIX:
+      // Do NOT force websocket only. Allow polling fallback.
       socket.current = io(SIGNAL_URL, {
         auth: { token },
-        transports: ["websocket"],
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 300,
       });
 
       socket.current.on("connect_error", (e) => {
@@ -190,11 +199,19 @@ function VoiceChatRoomPage() {
         setError(e?.message || "Socket connection failed");
       });
 
+      socket.current.on("disconnect", (reason) => {
+        // show reason if it disconnects after connecting
+        if (status !== "idle") {
+          setStatus("error");
+          setError(reason ? `Disconnected: ${reason}` : "Disconnected");
+        }
+      });
+
       socket.current.on("connect", () => {
         socket.current.emit("voice:join", { roomId });
       });
 
-      // Always update list (server sends full list)
+      // Server sends full list
       socket.current.on("voice:participants:update", async ({ participants }) => {
         const list = Array.isArray(participants) ? participants : [];
         setParticipants(list);
@@ -202,12 +219,10 @@ function VoiceChatRoomPage() {
         const myId = socket.current?.id;
         const others = myId ? list.filter((p) => p.peerId !== myId) : list;
 
-        // Ensure PCs exist
         for (const p of others) ensurePC(p.peerId);
 
         setStatus("connected");
 
-        // Only the deterministic offerer makes offers
         for (const p of others) {
           await makeOfferTo(p.peerId);
         }
@@ -222,8 +237,6 @@ function VoiceChatRoomPage() {
 
         try {
           if (data?.type === "offer") {
-            // If we are currently making an offer, ignore glare by answering only if we are NOT the offerer
-            // With deterministic rule, only one side should offer anyway.
             if (getMakingOffer(from) && iShouldOffer(from)) return;
 
             await pc.setRemoteDescription(data.sdp);
@@ -337,8 +350,7 @@ function VoiceChatRoomPage() {
                   Status: <span className="font-semibold">{status}</span>
                 </div>
                 <div className="text-sm">
-                  People in call:{" "}
-                  <span className="font-semibold">{participants.length}</span>
+                  People in call: <span className="font-semibold">{participants.length}</span>
                 </div>
               </div>
 
