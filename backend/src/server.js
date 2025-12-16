@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import { connectDB } from "./config/db.js";
+import User from "./models/User.js";
 
 dotenv.config();
 
@@ -16,7 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 connectDB();
 
-// middleware
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -25,12 +25,10 @@ app.use(
 );
 app.use(express.json());
 
-// routes
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/invitations", invitationRoutes);
 
-// --- HTTP + Socket.IO setup ---
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -41,68 +39,93 @@ const io = new Server(server, {
   },
 });
 
-// Socket auth middleware (JWT)
-io.use((socket, next) => {
+// Socket auth middleware (JWT) + load user name
+io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error("No token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("name email").lean();
+    if (!user) return next(new Error("User not found"));
+
     socket.userId = decoded.id;
+    socket.userName = user.name;
+
     next();
-  } catch (err) {
+  } catch {
     next(new Error("Invalid token"));
   }
 });
 
-// --- Voice room signaling (WebRTC) ---
+// Helper: broadcast full participants list to everyone in a room
+function broadcastParticipants(roomId) {
+  const room = io.sockets.adapter.rooms.get(roomId);
+  const participantIds = room ? Array.from(room) : [];
+
+  const participants = participantIds
+    .map((sid) => {
+      const s = io.sockets.sockets.get(sid);
+      if (!s) return null;
+      return { peerId: sid, name: s.userName || "Unknown" };
+    })
+    .filter(Boolean);
+
+  io.to(roomId).emit("voice:participants:update", { participants });
+}
+
 io.on("connection", (socket) => {
-  // Join voice room
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
 
     socket.join(roomId);
 
-    // Get existing sockets in the room (excluding this socket)
-    const room = io.sockets.adapter.rooms.get(roomId);
-    const peers = room ? Array.from(room).filter((id) => id !== socket.id) : [];
+    // Send full list to the joiner immediately (initial)
+    broadcastParticipants(roomId);
 
-    // Send the new user the list of existing peers
-    socket.emit("voice:peers", { peers });
-
-    // Tell existing peers that someone joined
+    // Optional “toast” event
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
+      name: socket.userName || "Unknown",
     });
   });
 
-  // Relay signaling messages: offer/answer/ice
   socket.on("voice:signal", ({ to, data }) => {
     if (!to) return;
-    io.to(to).emit("voice:signal", {
-      from: socket.id,
-      data,
+    io.to(to).emit("voice:signal", { from: socket.id, data });
+  });
+
+  socket.on("voice:leave", ({ roomId }) => {
+    if (!roomId) return;
+
+    socket.leave(roomId);
+
+    // Update list for everyone after leaving
+    broadcastParticipants(roomId);
+
+    socket.to(roomId).emit("voice:peer-left", {
+      peerId: socket.id,
+      name: socket.userName || "Unknown",
     });
   });
 
-  // Leave explicitly (optional)
-  socket.on("voice:leave", ({ roomId }) => {
-    if (!roomId) return;
-    socket.leave(roomId);
-    socket.to(roomId).emit("voice:peer-left", { peerId: socket.id });
-  });
-
-  // On disconnect, notify all rooms the socket was in
   socket.on("disconnecting", () => {
     for (const roomId of socket.rooms) {
-      // socket.rooms includes socket.id itself; ignore that
       if (roomId === socket.id) continue;
-      socket.to(roomId).emit("voice:peer-left", { peerId: socket.id });
+
+      // After this socket disconnects, list will change — broadcast update
+      // But "disconnecting" fires before it actually leaves rooms; so do a tiny delay.
+      setTimeout(() => broadcastParticipants(roomId), 0);
+
+      socket.to(roomId).emit("voice:peer-left", {
+        peerId: socket.id,
+        name: socket.userName || "Unknown",
+      });
     }
   });
 });
 
-// start server
 server.listen(PORT, () => {
   console.log("Server started on PORT:", PORT);
 });
