@@ -23,7 +23,6 @@ function LoginPage() {
     try {
       const res = await api.post("/auth/login", { email, password });
 
-      // Save token + user in localStorage
       saveAuth(res.data.token, res.data.user);
 
       // Go to dashboard
