@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["message", "board"], // [UPDATED] Added "board"
+      enum: ["message", "board", "join"], // [UPDATED] Added join
       default: "message",
     },
     text: { type: String, required: true },
@@ -24,7 +24,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 // Ensure a user only has one notification entry per workspace per type
-// e.g. One "You have new messages" and One "New board created" max per workspace
 notificationSchema.index({ recipient: 1, workspace: 1, type: 1 }, { unique: true });
 
 export default mongoose.model("Notification", notificationSchema);
