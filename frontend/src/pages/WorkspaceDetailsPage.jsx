@@ -377,36 +377,6 @@ function WorkspaceDetailsPage() {
 
                 {/* Right column: owner + invite */}
                 <div className="space-y-4">
-                  <div className="card bg-base-100 shadow-md">
-                    <div className="card-body">
-                      <h2 className="card-title text-base mb-2">
-                        Workspace Owner
-                      </h2>
-                      {workspace.owner ? (
-                        <div className="flex items-center gap-2 text-sm">
-                          {renderStatusDot(workspace.owner.isOnline)}
-                          <div>
-                            <div className="font-medium">
-                              {workspace.owner.name}
-                              {currentUser &&
-                                workspace.owner._id === currentUser.id && (
-                                  <span className="text-xs text-neutral-500 ml-1">
-                                    (you)
-                                  </span>
-                                )}
-                            </div>
-                            <div className="text-xs text-neutral-500">
-                              {workspace.owner.email}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-neutral-500">
-                          Owner information not available.
-                        </p>
-                      )}
-                    </div>
-                  </div>
 
                   {isOwner && (
                     <>
