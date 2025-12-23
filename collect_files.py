@@ -3,7 +3,7 @@ from pathlib import Path
 
 def collect_files(root: Path, out_file: Path):
     SKIP_DIRS  = {"node_modules", ".git"}  
-    SKIP_FILES = {"package-lock.json", "collect_files.py", "data.json", ".git", "all_files.txt",".env"}  
+    SKIP_FILES = {"package-lock.json", "collect_files.py", "data.json", ".git", "all_files.txt",".env" ,".gitignore"}  
     SKIP_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
     
     with out_file.open("w", encoding="utf-8", errors="replace") as out:

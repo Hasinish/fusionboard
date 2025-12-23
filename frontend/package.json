@@ -10,17 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tiptap/pm": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
     "axios": "^1.13.2",
     "lucide-react": "^0.556.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router": "^7.10.1",
     "react-router-dom": "^7.10.1",
-
-
     "socket.io-client": "^4.8.1"
-
-
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

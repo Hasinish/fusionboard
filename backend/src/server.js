@@ -13,7 +13,7 @@ import invitationRoutes from "./routes/invitationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import userRoutes from "./routes/userRoutes.js"; // [NEW]
+import userRoutes from "./routes/userRoutes.js";
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
@@ -22,6 +22,7 @@ import User from "./models/User.js";
 import Workspace from "./models/Workspace.js";
 import Notification from "./models/Notification.js";
 import driveRoutes from "./routes/driveRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -60,6 +61,7 @@ app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
+app.use("/api/notes", noteRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/users", userRoutes); 
 app.use("/api/boards", boardRoutes);
