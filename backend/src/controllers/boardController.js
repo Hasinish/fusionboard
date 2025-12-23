@@ -1,5 +1,6 @@
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
+import Notification from "../models/Notification.js"; // [NEW]
 
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
@@ -30,6 +31,39 @@ export async function createBoard(req, res) {
       segments: [],
     });
 
+    // --- [NEW] NOTIFICATION LOGIC ---
+    // Notify all other members that a new board was created
+    const ws = await Workspace.findById(workspaceId).select("name members");
+    if (ws && ws.members) {
+      const recipients = ws.members
+        .filter((m) => String(m.user) !== String(userId))
+        .map((m) => m.user);
+
+      // Upsert notification: If they already have an unread "board" notification for this workspace,
+      // just update the text/timestamp. If not, create one.
+      const operations = recipients.map((recipientId) => ({
+        updateOne: {
+          filter: {
+            recipient: recipientId,
+            workspace: workspaceId,
+            type: "board",
+          },
+          update: {
+            $set: {
+              text: `New board created in ${ws.name}`,
+              isRead: false,
+            },
+          },
+          upsert: true,
+        },
+      }));
+
+      if (operations.length > 0) {
+        await Notification.bulkWrite(operations);
+      }
+    }
+    // --------------------------------
+
     return res.status(201).json(board);
   } catch (e) {
     console.error("createBoard error:", e);
@@ -50,7 +84,6 @@ export async function listBoards(req, res) {
       .sort({ updatedAt: -1 })
       .select("_id title updatedAt createdAt")
       .lean();
-
     return res.json(boards);
   } catch (e) {
     console.error("listBoards error:", e);

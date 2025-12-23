@@ -178,9 +178,7 @@ function NotificationsPage() {
                             </p>
                           </div>
                           
-                          <div className="text-neutral-400">
-                             👉
-                          </div>
+                          
                         </div>
                       </div>
                     ))}

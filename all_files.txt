@@ -305,25 +305,41 @@ function NavBar() {
   const initial = user?.name?.[0]?.toUpperCase() || "U";
   const navigate = useNavigate();
 
-  const [pendingCount, setPendingCount] = useState(0);
+  const [totalBadge, setTotalBadge] = useState(0);
 
   useEffect(() => {
-    const fetchInvites = async () => {
+    const fetchData = async () => {
       if (!isLoggedIn()) return;
       const token = localStorage.getItem("token");
       if (!token) return;
 
       try {
-        const res = await api.get("/invitations/my", {
+        // 1. Get Invitations
+        const resInvites = await api.get("/invitations/my", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setPendingCount(Array.isArray(res.data) ? res.data.length : 0);
+        const inviteCount = Array.isArray(resInvites.data)
+          ? resInvites.data.length
+          : 0;
+
+        // 2. Get Notifications (filtered by unread)
+        const resNotes = await api.get("/notifications", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const unreadNotesCount = Array.isArray(resNotes.data)
+          ? resNotes.data.filter((n) => !n.isRead).length
+          : 0;
+
+        setTotalBadge(inviteCount + unreadNotesCount);
       } catch {
-        // keep silent for navbar
+        // keep silent
       }
     };
 
-    fetchInvites();
+    fetchData();
+    // Poll every 10 seconds to keep badge updated
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -342,14 +358,12 @@ function NavBar() {
         {/* Right: Create workspace + notifications + profile icon */}
         <div className="flex items-center gap-4">
           <button
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm relative"
             onClick={() => navigate("/notifications")}
           >
             Notifications
-            {pendingCount > 0 && (
-              <span className="badge badge-secondary ml-1">
-                {pendingCount}
-              </span>
+            {totalBadge > 0 && (
+              <span className="badge badge-secondary ml-1">{totalBadge}</span>
             )}
           </button>
 
@@ -360,7 +374,7 @@ function NavBar() {
             Create workspace
           </button>
 
-          {/* Round human icon (avatar placeholder) */}
+          {/* Round human icon */}
           <div
             className="avatar cursor-pointer"
             onClick={() => navigate("/profile")}
@@ -377,7 +391,6 @@ function NavBar() {
 }
 
 export default NavBar;
-
 
 ===== FILE: frontend\src\components\WorkspaceChat.jsx =====
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -956,74 +969,75 @@ function NotificationsPage() {
   const navigate = useNavigate();
 
   const [invitations, setInvitations] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
+  const fetchAll = async () => {
     const token = localStorage.getItem("token");
     if (!isLoggedIn() || !token) {
       navigate("/login");
       return;
     }
 
-    const fetchInvites = async () => {
-      setError("");
-      setLoading(true);
-      try {
-        const res = await api.get("/invitations/my", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setInvitations(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message || "Failed to load invitations.";
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setError("");
+    setLoading(true);
 
-    fetchInvites();
+    try {
+      // Fetch Invitations
+      const resInvites = await api.get("/invitations/my", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setInvitations(Array.isArray(resInvites.data) ? resInvites.data : []);
+
+      // Fetch Message Notifications
+      const resNotes = await api.get("/notifications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications(Array.isArray(resNotes.data) ? resNotes.data : []);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to load notifications.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAll();
   }, [navigate]);
 
-  const handleAction = async (id, action) => {
+  const handleInviteAction = async (id, action) => {
     setError("");
     setMessage("");
-
     const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Not authenticated.");
-      return;
-    }
+    if (!token) return;
 
     try {
       await api.post(
         `/invitations/${id}/${action}`,
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setMessage(
-        action === "accept"
-          ? "Invitation accepted."
-          : "Invitation rejected."
+        action === "accept" ? "Invitation accepted." : "Invitation rejected."
       );
-
-      // Remove from list
+      // Remove from list locally
       setInvitations((prev) => prev.filter((inv) => inv._id !== id));
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to update invitation.";
-      setError(msg);
+      setError(err?.response?.data?.message || "Failed to update invitation.");
     }
   };
+
+  const handleNotificationClick = (note) => {
+    if (note.workspace) {
+      // Navigate to workspace. The WorkspaceDetailsPage will mark it as read on mount.
+      navigate(`/workspaces/${note.workspace._id}`);
+    }
+  };
+
+  const hasContent = invitations.length > 0 || notifications.length > 0;
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
@@ -1033,7 +1047,7 @@ function NotificationsPage() {
         <div className="max-w-3xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold mb-2">Notifications</h1>
           <p className="text-sm text-neutral-500 mb-4">
-            Here you can accept or reject workspace invitations.
+            Manage invitations and see new messages.
           </p>
 
           {error && (
@@ -1049,48 +1063,90 @@ function NotificationsPage() {
 
           {loading ? (
             <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
-              Loading invitations...
+              Loading...
             </div>
-          ) : invitations.length === 0 ? (
+          ) : !hasContent ? (
             <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
-              You have no pending invitations.
+              You have no notifications.
             </div>
           ) : (
-            <div className="space-y-3">
-              {invitations.map((inv) => (
-                <div
-                  key={inv._id}
-                  className="card bg-base-100 shadow-sm border border-base-200"
-                >
-                  <div className="card-body">
-                    <h2 className="card-title text-base mb-1">
-                      Workspace: {inv.workspace?.name || "Unknown"}
-                    </h2>
-                    <p className="text-sm text-neutral-600 mb-2">
-                      Invited by{" "}
-                      <span className="font-medium">
-                        {inv.invitedBy?.name || "Someone"}
-                      </span>{" "}
-                      ({inv.invitedBy?.email || "no email"})
-                    </p>
-
-                    <div className="flex gap-2">
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => handleAction(inv._id, "accept")}
+            <div className="space-y-4">
+              
+              {/* Invitations Section */}
+              {invitations.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Invitations</h2>
+                  <div className="space-y-3">
+                    {invitations.map((inv) => (
+                      <div
+                        key={inv._id}
+                        className="card bg-base-100 shadow-sm border border-base-200"
                       >
-                        Accept
-                      </button>
-                      <button
-                        className="btn btn-sm btn-ghost"
-                        onClick={() => handleAction(inv._id, "reject")}
-                      >
-                        Reject
-                      </button>
-                    </div>
+                        <div className="card-body py-4">
+                          <h3 className="font-semibold text-base">
+                            Join Workspace: {inv.workspace?.name || "Unknown"}
+                          </h3>
+                          <p className="text-sm text-neutral-600 mb-2">
+                            Invited by {inv.invitedBy?.name} ({inv.invitedBy?.email})
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleInviteAction(inv._id, "accept")}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className="btn btn-sm btn-ghost"
+                              onClick={() => handleInviteAction(inv._id, "reject")}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Message Notifications Section */}
+              {notifications.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Messages</h2>
+                  <div className="space-y-3">
+                    {notifications.map((note) => (
+                      <div
+                        key={note._id}
+                        className="card bg-base-100 shadow-sm border border-base-200 cursor-pointer hover:bg-base-50 transition"
+                        onClick={() => handleNotificationClick(note)}
+                      >
+                        <div className="card-body py-4 flex flex-row items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              {!note.isRead && (
+                                <div
+                                  className="w-2 h-2 rounded-full bg-blue-600"
+                                  title="Unread"
+                                ></div>
+                              )}
+                              <p className={`text-sm ${!note.isRead ? "font-bold text-black" : "text-neutral-600"}`}>
+                                {note.text}
+                              </p>
+                            </div>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              {new Date(note.updatedAt).toLocaleString()}
+                            </p>
+                          </div>
+                          
+                          
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
         </div>
@@ -1100,7 +1156,6 @@ function NotificationsPage() {
 }
 
 export default NotificationsPage;
-
 
 ===== FILE: frontend\src\pages\ProfilePage.jsx =====
 import { useEffect, useState } from "react";
@@ -2400,7 +2455,6 @@ function WorkspaceDetailsPage() {
   const navigate = useNavigate();
 
   const currentUser = getUser();
-
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -2413,8 +2467,19 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // 1. Mark notifications as read when entering this page
+  useEffect(() => {
+    if (!token || !id) return;
+    api.put(
+      `/notifications/read/workspace/${id}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch(() => {
+      // Silent fail (it's okay if background update fails)
+    });
+  }, [id, token]);
 
   const loadWorkspace = async () => {
     if (!token) return;
@@ -2514,8 +2579,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member role updated.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to update member role.";
+      const msg = err?.response?.data?.message || "Failed to update member role.";
       setActionError(msg);
     }
   };
@@ -2583,7 +2647,6 @@ function WorkspaceDetailsPage() {
                     )}
                   </div>
 
-                  {/* Keep ALL features: Boards + Voice */}
                   <div className="flex items-center gap-2">
                     <button
                       className="btn btn-primary btn-sm"
@@ -2673,7 +2736,6 @@ function WorkspaceDetailsPage() {
                                     </span>
                                   )}
 
-                                  {/* Owner only; cannot remove self as owner */}
                                   {isOwner &&
                                     !(m.role === "owner" && isCurrentUser) && (
                                       <button
@@ -2788,7 +2850,6 @@ function WorkspaceDetailsPage() {
 
 export default WorkspaceDetailsPage;
 
-
 ===== FILE: backend\src\server.js =====
 // backend/src/server.js
 import express from "express";
@@ -2799,24 +2860,25 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
 import * as dbModule from "./config/db.js";
-
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js"; // [NEW]
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
 import Board from "./models/Board.js";
 import User from "./models/User.js";
+import Workspace from "./models/Workspace.js"; // [NEW]
+import Notification from "./models/Notification.js"; // [NEW]
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// ---- DB connect (supports both export styles) ----
+// ---- DB connect ----
 const connect =
   typeof dbModule.default === "function"
     ? dbModule.default
@@ -2826,7 +2888,7 @@ const connect =
 
 if (!connect) {
   throw new Error(
-    "DB connect function not found. Export either default connectDB or named { connectDB } from ./config/db.js"
+    "DB connect function not found."
   );
 }
 connect();
@@ -2839,7 +2901,6 @@ app.use(
   })
 );
 app.use(express.json());
-
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
@@ -2847,13 +2908,13 @@ app.get("/", (req, res) => {
 // ---- routes ----
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes); // /api/workspaces/:id/messages
+app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
+app.use("/api/notifications", notificationRoutes); // [NEW]
 
 // ---- socket server ----
 const server = http.createServer(app);
-
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -2862,7 +2923,7 @@ const io = new Server(server, {
   },
 });
 
-// Socket auth middleware (JWT) + load user name (chat/boards/voice)
+// Socket auth middleware
 io.use(async (socket, next) => {
   try {
     const token =
@@ -2874,7 +2935,6 @@ io.use(async (socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = String(decoded.id);
 
-    // Load user name for voice participants (and anywhere else)
     const user = await User.findById(userId).select("name email").lean();
     if (!user) return next(new Error("User not found"));
 
@@ -2887,20 +2947,11 @@ io.use(async (socket, next) => {
   }
 });
 
-// -------------------------
 // WHITEBOARD cursor colors
-// -------------------------
 const CURSOR_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
+  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
 ];
-
 function pickColor(key) {
   const s = String(key || "");
   let hash = 0;
@@ -2908,16 +2959,11 @@ function pickColor(key) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
-// socket.id -> { boardId, userId, name, color }
 const socketMeta = new Map();
 
-// -------------------------
-// VOICE helpers
-// -------------------------
 function broadcastParticipants(roomId) {
   const room = io.sockets.adapter.rooms.get(roomId);
   const socketIds = room ? Array.from(room) : [];
-
   const participants = socketIds
     .map((sid) => {
       const s = io.sockets.sockets.get(sid);
@@ -2925,23 +2971,17 @@ function broadcastParticipants(roomId) {
       return { peerId: sid, name: s.userName || "Unknown" };
     })
     .filter(Boolean);
-
   io.to(roomId).emit("voice:participants:update", { participants });
 }
 
 io.on("connection", (socket) => {
   // =========================
-  // VOICE ROOMS (WebRTC)
+  // VOICE ROOMS
   // =========================
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
-
     socket.join(roomId);
-
-    // send full list to everyone (including joiner)
     broadcastParticipants(roomId);
-
-    // optional toast
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
       name: socket.userName || "Unknown",
@@ -2955,11 +2995,8 @@ io.on("connection", (socket) => {
 
   socket.on("voice:leave", ({ roomId }) => {
     if (!roomId) return;
-
     socket.leave(roomId);
-
     broadcastParticipants(roomId);
-
     socket.to(roomId).emit("voice:peer-left", {
       peerId: socket.id,
       name: socket.userName || "Unknown",
@@ -2969,9 +3006,7 @@ io.on("connection", (socket) => {
   socket.on("disconnecting", () => {
     for (const roomId of socket.rooms) {
       if (roomId === socket.id) continue;
-
       setTimeout(() => broadcastParticipants(roomId), 0);
-
       socket.to(roomId).emit("voice:peer-left", {
         peerId: socket.id,
         name: socket.userName || "Unknown",
@@ -3010,6 +3045,7 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // 1. Save Message
       const msg = await Message.create({
         workspace: workspaceId,
         sender: socket.userId,
@@ -3020,7 +3056,40 @@ io.on("connection", (socket) => {
         .populate("sender", "name email")
         .lean();
 
+      // 2. Broadcast to room
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
+
+      // 3. Create Notifications for ALL members (except sender)
+      //    We need the workspace name and members list
+      const ws = await Workspace.findById(workspaceId).select("name members");
+      if (ws && ws.members) {
+        const recipients = ws.members
+          .filter((m) => String(m.user) !== String(socket.userId))
+          .map((m) => m.user);
+
+        // Upsert notification for each recipient
+        const operations = recipients.map((recipientId) => ({
+          updateOne: {
+            filter: {
+              recipient: recipientId,
+              workspace: workspaceId,
+              type: "message",
+            },
+            update: {
+              $set: {
+                text: `You have new messages in ${ws.name}`,
+                isRead: false,
+              },
+            },
+            upsert: true,
+          },
+        }));
+
+        if (operations.length > 0) {
+          await Notification.bulkWrite(operations);
+        }
+      }
+
       if (ack) ack({ ok: true });
     } catch (e) {
       console.error("chat:send error:", e);
@@ -3033,29 +3102,23 @@ io.on("connection", (socket) => {
   // =========================
   socket.on("joinBoard", ({ boardId, user }) => {
     if (!boardId) return;
-
     const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
     const color = pickColor(userId);
-
     socket.join(`board:${boardId}`);
     socketMeta.set(socket.id, { boardId, userId, name, color });
-
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
-
     socket.to(`board:${boardId}`).emit("draw", segment);
-
     try {
       const updated = await Board.findByIdAndUpdate(
         boardId,
         { $push: { segments: segment } },
         { new: true }
       ).select("updatedAt");
-
       if (updated) {
         io.to(`board:${boardId}`).emit("saved", { updatedAt: updated.updatedAt });
       }
@@ -3066,11 +3129,9 @@ io.on("connection", (socket) => {
 
   socket.on("cursorMove", ({ boardId, x, y }) => {
     if (!boardId) return;
-
     const meta = socketMeta.get(socket.id);
     if (!meta) return;
     if (String(meta.boardId) !== String(boardId)) return;
-
     socket.to(`board:${boardId}`).emit("cursorMove", {
       userId: meta.userId,
       name: meta.name,
@@ -3082,7 +3143,6 @@ io.on("connection", (socket) => {
 
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
-
     try {
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
       io.to(`board:${boardId}`).emit("cleared");
@@ -3094,11 +3154,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  // frontend emits cursorLeave with NO args, so handle via socketMeta
   const leaveCursor = () => {
     const meta = socketMeta.get(socket.id);
     if (!meta?.boardId) return;
-
     socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
     socketMeta.delete(socket.id);
   };
@@ -3110,7 +3168,6 @@ io.on("connection", (socket) => {
 server.listen(PORT, () => {
   console.log(`Server started on PORT: ${PORT}`);
 });
-
 
 ===== FILE: backend\src\config\db.js =====
 // backend/src/config/db.js
@@ -3219,6 +3276,7 @@ export async function updateMe(req, res) {
 ===== FILE: backend\src\controllers\boardController.js =====
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
+import Notification from "../models/Notification.js"; // [NEW]
 
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
@@ -3249,6 +3307,39 @@ export async function createBoard(req, res) {
       segments: [],
     });
 
+    // --- [NEW] NOTIFICATION LOGIC ---
+    // Notify all other members that a new board was created
+    const ws = await Workspace.findById(workspaceId).select("name members");
+    if (ws && ws.members) {
+      const recipients = ws.members
+        .filter((m) => String(m.user) !== String(userId))
+        .map((m) => m.user);
+
+      // Upsert notification: If they already have an unread "board" notification for this workspace,
+      // just update the text/timestamp. If not, create one.
+      const operations = recipients.map((recipientId) => ({
+        updateOne: {
+          filter: {
+            recipient: recipientId,
+            workspace: workspaceId,
+            type: "board",
+          },
+          update: {
+            $set: {
+              text: `New board created in ${ws.name}`,
+              isRead: false,
+            },
+          },
+          upsert: true,
+        },
+      }));
+
+      if (operations.length > 0) {
+        await Notification.bulkWrite(operations);
+      }
+    }
+    // --------------------------------
+
     return res.status(201).json(board);
   } catch (e) {
     console.error("createBoard error:", e);
@@ -3269,7 +3360,6 @@ export async function listBoards(req, res) {
       .sort({ updatedAt: -1 })
       .select("_id title updatedAt createdAt")
       .lean();
-
     return res.json(boards);
   } catch (e) {
     console.error("listBoards error:", e);
@@ -3318,7 +3408,6 @@ export async function saveBoard(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
-
 
 ===== FILE: backend\src\controllers\chatController.js =====
 import Workspace from "../models/Workspace.js";
@@ -3461,6 +3550,43 @@ export async function rejectInvitation(req, res) {
 }
 
 
+
+===== FILE: backend\src\controllers\notificationController.js =====
+import Notification from "../models/Notification.js";
+
+// GET /api/notifications
+export async function getMyNotifications(req, res) {
+  try {
+    const userId = req.userId;
+    const notifications = await Notification.find({ recipient: userId })
+      .populate("workspace", "name")
+      .sort({ updatedAt: -1 }) // Newest first
+      .lean();
+    return res.json(notifications);
+  } catch (e) {
+    console.error("Error fetching notifications:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// PUT /api/notifications/read/workspace/:workspaceId
+export async function markWorkspaceRead(req, res) {
+  try {
+    const userId = req.userId;
+    const { workspaceId } = req.params;
+
+    // [UPDATED] Removed 'type' filter so this clears BOTH messages and board notifications
+    await Notification.updateMany(
+      { recipient: userId, workspace: workspaceId },
+      { $set: { isRead: true } }
+    );
+
+    return res.json({ message: "Marked as read" });
+  } catch (e) {
+    console.error("Error marking read:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
 
 ===== FILE: backend\src\controllers\workspaceController.js =====
 // backend/src/controllers/workspaceController.js
@@ -3926,6 +4052,38 @@ messageSchema.index({ workspace: 1, createdAt: -1 });
 export default mongoose.model("Message", messageSchema);
 
 
+===== FILE: backend\src\models\Notification.js =====
+import mongoose from "mongoose";
+
+const notificationSchema = new mongoose.Schema(
+  {
+    recipient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    workspace: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["message", "board"], // [UPDATED] Added "board"
+      default: "message",
+    },
+    text: { type: String, required: true },
+    isRead: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+// Ensure a user only has one notification entry per workspace per type
+// e.g. One "You have new messages" and One "New board created" max per workspace
+notificationSchema.index({ recipient: 1, workspace: 1, type: 1 }, { unique: true });
+
+export default mongoose.model("Notification", notificationSchema);
+
 ===== FILE: backend\src\models\User.js =====
 import mongoose from "mongoose";
 
@@ -4052,6 +4210,24 @@ router.post("/:id/reject", authMiddleware, rejectInvitation);
 
 export default router;
 
+
+===== FILE: backend\src\routes\notificationRoutes.js =====
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import {
+  getMyNotifications,
+  markWorkspaceRead,
+} from "../controllers/notificationController.js";
+
+const router = express.Router();
+
+// Get all notifications for the user
+router.get("/", authMiddleware, getMyNotifications);
+
+// Mark messages from a specific workspace as read
+router.put("/read/workspace/:workspaceId", authMiddleware, markWorkspaceRead);
+
+export default router;
 
 ===== FILE: backend\src\routes\workspaceRoutes.js =====
 // backend/src/routes/workspaceRoutes.js

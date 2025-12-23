@@ -21,8 +21,9 @@ export async function markWorkspaceRead(req, res) {
     const userId = req.userId;
     const { workspaceId } = req.params;
 
+    // [UPDATED] Removed 'type' filter so this clears BOTH messages and board notifications
     await Notification.updateMany(
-      { recipient: userId, workspace: workspaceId, type: "message" },
+      { recipient: userId, workspace: workspaceId },
       { $set: { isRead: true } }
     );
 
