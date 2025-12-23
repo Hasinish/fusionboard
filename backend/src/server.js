@@ -7,24 +7,25 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
 import * as dbModule from "./config/db.js";
-
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js"; // [NEW]
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
 import Board from "./models/Board.js";
 import User from "./models/User.js";
+import Workspace from "./models/Workspace.js"; // [NEW]
+import Notification from "./models/Notification.js"; // [NEW]
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// ---- DB connect (supports both export styles) ----
+// ---- DB connect ----
 const connect =
   typeof dbModule.default === "function"
     ? dbModule.default
@@ -34,7 +35,7 @@ const connect =
 
 if (!connect) {
   throw new Error(
-    "DB connect function not found. Export either default connectDB or named { connectDB } from ./config/db.js"
+    "DB connect function not found."
   );
 }
 connect();
@@ -47,7 +48,6 @@ app.use(
   })
 );
 app.use(express.json());
-
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
@@ -55,13 +55,13 @@ app.get("/", (req, res) => {
 // ---- routes ----
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes); // /api/workspaces/:id/messages
+app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
+app.use("/api/notifications", notificationRoutes); // [NEW]
 
 // ---- socket server ----
 const server = http.createServer(app);
-
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -70,7 +70,7 @@ const io = new Server(server, {
   },
 });
 
-// Socket auth middleware (JWT) + load user name (chat/boards/voice)
+// Socket auth middleware
 io.use(async (socket, next) => {
   try {
     const token =
@@ -82,7 +82,6 @@ io.use(async (socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = String(decoded.id);
 
-    // Load user name for voice participants (and anywhere else)
     const user = await User.findById(userId).select("name email").lean();
     if (!user) return next(new Error("User not found"));
 
@@ -95,20 +94,11 @@ io.use(async (socket, next) => {
   }
 });
 
-// -------------------------
 // WHITEBOARD cursor colors
-// -------------------------
 const CURSOR_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
+  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
 ];
-
 function pickColor(key) {
   const s = String(key || "");
   let hash = 0;
@@ -116,16 +106,11 @@ function pickColor(key) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
-// socket.id -> { boardId, userId, name, color }
 const socketMeta = new Map();
 
-// -------------------------
-// VOICE helpers
-// -------------------------
 function broadcastParticipants(roomId) {
   const room = io.sockets.adapter.rooms.get(roomId);
   const socketIds = room ? Array.from(room) : [];
-
   const participants = socketIds
     .map((sid) => {
       const s = io.sockets.sockets.get(sid);
@@ -133,23 +118,17 @@ function broadcastParticipants(roomId) {
       return { peerId: sid, name: s.userName || "Unknown" };
     })
     .filter(Boolean);
-
   io.to(roomId).emit("voice:participants:update", { participants });
 }
 
 io.on("connection", (socket) => {
   // =========================
-  // VOICE ROOMS (WebRTC)
+  // VOICE ROOMS
   // =========================
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
-
     socket.join(roomId);
-
-    // send full list to everyone (including joiner)
     broadcastParticipants(roomId);
-
-    // optional toast
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
       name: socket.userName || "Unknown",
@@ -163,11 +142,8 @@ io.on("connection", (socket) => {
 
   socket.on("voice:leave", ({ roomId }) => {
     if (!roomId) return;
-
     socket.leave(roomId);
-
     broadcastParticipants(roomId);
-
     socket.to(roomId).emit("voice:peer-left", {
       peerId: socket.id,
       name: socket.userName || "Unknown",
@@ -177,9 +153,7 @@ io.on("connection", (socket) => {
   socket.on("disconnecting", () => {
     for (const roomId of socket.rooms) {
       if (roomId === socket.id) continue;
-
       setTimeout(() => broadcastParticipants(roomId), 0);
-
       socket.to(roomId).emit("voice:peer-left", {
         peerId: socket.id,
         name: socket.userName || "Unknown",
@@ -218,6 +192,7 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // 1. Save Message
       const msg = await Message.create({
         workspace: workspaceId,
         sender: socket.userId,
@@ -228,7 +203,40 @@ io.on("connection", (socket) => {
         .populate("sender", "name email")
         .lean();
 
+      // 2. Broadcast to room
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
+
+      // 3. Create Notifications for ALL members (except sender)
+      //    We need the workspace name and members list
+      const ws = await Workspace.findById(workspaceId).select("name members");
+      if (ws && ws.members) {
+        const recipients = ws.members
+          .filter((m) => String(m.user) !== String(socket.userId))
+          .map((m) => m.user);
+
+        // Upsert notification for each recipient
+        const operations = recipients.map((recipientId) => ({
+          updateOne: {
+            filter: {
+              recipient: recipientId,
+              workspace: workspaceId,
+              type: "message",
+            },
+            update: {
+              $set: {
+                text: `You have new messages in ${ws.name}`,
+                isRead: false,
+              },
+            },
+            upsert: true,
+          },
+        }));
+
+        if (operations.length > 0) {
+          await Notification.bulkWrite(operations);
+        }
+      }
+
       if (ack) ack({ ok: true });
     } catch (e) {
       console.error("chat:send error:", e);
@@ -241,29 +249,23 @@ io.on("connection", (socket) => {
   // =========================
   socket.on("joinBoard", ({ boardId, user }) => {
     if (!boardId) return;
-
     const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
     const color = pickColor(userId);
-
     socket.join(`board:${boardId}`);
     socketMeta.set(socket.id, { boardId, userId, name, color });
-
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
-
     socket.to(`board:${boardId}`).emit("draw", segment);
-
     try {
       const updated = await Board.findByIdAndUpdate(
         boardId,
         { $push: { segments: segment } },
         { new: true }
       ).select("updatedAt");
-
       if (updated) {
         io.to(`board:${boardId}`).emit("saved", { updatedAt: updated.updatedAt });
       }
@@ -274,11 +276,9 @@ io.on("connection", (socket) => {
 
   socket.on("cursorMove", ({ boardId, x, y }) => {
     if (!boardId) return;
-
     const meta = socketMeta.get(socket.id);
     if (!meta) return;
     if (String(meta.boardId) !== String(boardId)) return;
-
     socket.to(`board:${boardId}`).emit("cursorMove", {
       userId: meta.userId,
       name: meta.name,
@@ -290,7 +290,6 @@ io.on("connection", (socket) => {
 
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
-
     try {
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
       io.to(`board:${boardId}`).emit("cleared");
@@ -302,11 +301,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  // frontend emits cursorLeave with NO args, so handle via socketMeta
   const leaveCursor = () => {
     const meta = socketMeta.get(socket.id);
     if (!meta?.boardId) return;
-
     socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
     socketMeta.delete(socket.id);
   };
