@@ -1508,7 +1508,7 @@ function VoiceChatRoomPage() {
 
     if (!iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
-    if (pc.localDescription || pc.remoteDescription) return;
+    if (pc.localDescription || pc.remoteDescription) return; // already negotiated once
 
     try {
       setMakingOffer(peerId, true);
@@ -1541,22 +1541,13 @@ function VoiceChatRoomPage() {
     try {
       // get mic
       localStream.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false,
       });
 
-      // ✅ IMPORTANT FIX:
-      // Do NOT force websocket only. Allow polling fallback.
       socket.current = io(SIGNAL_URL, {
         auth: { token },
-        transports: ["websocket", "polling"],
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 300,
+        transports: ["websocket"],
       });
 
       socket.current.on("connect_error", (e) => {
@@ -1564,19 +1555,11 @@ function VoiceChatRoomPage() {
         setError(e?.message || "Socket connection failed");
       });
 
-      socket.current.on("disconnect", (reason) => {
-        // show reason if it disconnects after connecting
-        if (status !== "idle") {
-          setStatus("error");
-          setError(reason ? `Disconnected: ${reason}` : "Disconnected");
-        }
-      });
-
       socket.current.on("connect", () => {
         socket.current.emit("voice:join", { roomId });
       });
 
-      // Server sends full list
+      // Always update list (server sends full list)
       socket.current.on("voice:participants:update", async ({ participants }) => {
         const list = Array.isArray(participants) ? participants : [];
         setParticipants(list);
@@ -1584,10 +1567,12 @@ function VoiceChatRoomPage() {
         const myId = socket.current?.id;
         const others = myId ? list.filter((p) => p.peerId !== myId) : list;
 
+        // Ensure PCs exist
         for (const p of others) ensurePC(p.peerId);
 
         setStatus("connected");
 
+        // Only the deterministic offerer makes offers
         for (const p of others) {
           await makeOfferTo(p.peerId);
         }
@@ -1602,6 +1587,8 @@ function VoiceChatRoomPage() {
 
         try {
           if (data?.type === "offer") {
+            // If we are currently making an offer, ignore glare by answering only if we are NOT the offerer
+            // With deterministic rule, only one side should offer anyway.
             if (getMakingOffer(from) && iShouldOffer(from)) return;
 
             await pc.setRemoteDescription(data.sdp);
@@ -1715,7 +1702,8 @@ function VoiceChatRoomPage() {
                   Status: <span className="font-semibold">{status}</span>
                 </div>
                 <div className="text-sm">
-                  People in call: <span className="font-semibold">{participants.length}</span>
+                  People in call:{" "}
+                  <span className="font-semibold">{participants.length}</span>
                 </div>
               </div>
 
@@ -1791,7 +1779,6 @@ function VoiceChatRoomPage() {
 }
 
 export default VoiceChatRoomPage;
-
 
 ===== FILE: frontend\src\pages\WhiteboardPage.jsx =====
 import { useEffect, useRef, useState } from "react";
@@ -2806,12 +2793,12 @@ export default WorkspaceDetailsPage;
 // backend/src/server.js
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 
-import connectDB from "./config/db.js";
+import * as dbModule from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
@@ -2822,11 +2809,29 @@ import chatRoutes from "./routes/chatRoutes.js";
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
 import Board from "./models/Board.js";
+import User from "./models/User.js";
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5001;
 
+// ---- DB connect (supports both export styles) ----
+const connect =
+  typeof dbModule.default === "function"
+    ? dbModule.default
+    : typeof dbModule.connectDB === "function"
+      ? dbModule.connectDB
+      : null;
+
+if (!connect) {
+  throw new Error(
+    "DB connect function not found. Export either default connectDB or named { connectDB } from ./config/db.js"
+  );
+}
+connect();
+
+// ---- middleware ----
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -2835,20 +2840,18 @@ app.use(
 );
 app.use(express.json());
 
-connectDB();
-
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
-// routes
+// ---- routes ----
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", chatRoutes); // /api/workspaces/:id/messages
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 
-// --- Socket.io setup ---
+// ---- socket server ----
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -2859,8 +2862,8 @@ const io = new Server(server, {
   },
 });
 
-// Authenticate sockets using JWT (used by chat + boards)
-io.use((socket, next) => {
+// Socket auth middleware (JWT) + load user name (chat/boards/voice)
+io.use(async (socket, next) => {
   try {
     const token =
       socket.handshake.auth?.token ||
@@ -2869,14 +2872,24 @@ io.use((socket, next) => {
     if (!token) return next(new Error("No token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = String(decoded.id);
+    const userId = String(decoded.id);
+
+    // Load user name for voice participants (and anywhere else)
+    const user = await User.findById(userId).select("name email").lean();
+    if (!user) return next(new Error("User not found"));
+
+    socket.userId = userId;
+    socket.userName = user.name || "Unknown";
+
     return next();
   } catch {
     return next(new Error("Invalid token"));
   }
 });
 
-// deterministic color assignment
+// -------------------------
+// WHITEBOARD cursor colors
+// -------------------------
 const CURSOR_COLORS = [
   "#ef4444",
   "#f97316",
@@ -2898,10 +2911,77 @@ function pickColor(key) {
 // socket.id -> { boardId, userId, name, color }
 const socketMeta = new Map();
 
+// -------------------------
+// VOICE helpers
+// -------------------------
+function broadcastParticipants(roomId) {
+  const room = io.sockets.adapter.rooms.get(roomId);
+  const socketIds = room ? Array.from(room) : [];
+
+  const participants = socketIds
+    .map((sid) => {
+      const s = io.sockets.sockets.get(sid);
+      if (!s) return null;
+      return { peerId: sid, name: s.userName || "Unknown" };
+    })
+    .filter(Boolean);
+
+  io.to(roomId).emit("voice:participants:update", { participants });
+}
+
 io.on("connection", (socket) => {
-  // -------------------------
+  // =========================
+  // VOICE ROOMS (WebRTC)
+  // =========================
+  socket.on("voice:join", ({ roomId }) => {
+    if (!roomId) return;
+
+    socket.join(roomId);
+
+    // send full list to everyone (including joiner)
+    broadcastParticipants(roomId);
+
+    // optional toast
+    socket.to(roomId).emit("voice:peer-joined", {
+      peerId: socket.id,
+      name: socket.userName || "Unknown",
+    });
+  });
+
+  socket.on("voice:signal", ({ to, data }) => {
+    if (!to) return;
+    io.to(to).emit("voice:signal", { from: socket.id, data });
+  });
+
+  socket.on("voice:leave", ({ roomId }) => {
+    if (!roomId) return;
+
+    socket.leave(roomId);
+
+    broadcastParticipants(roomId);
+
+    socket.to(roomId).emit("voice:peer-left", {
+      peerId: socket.id,
+      name: socket.userName || "Unknown",
+    });
+  });
+
+  socket.on("disconnecting", () => {
+    for (const roomId of socket.rooms) {
+      if (roomId === socket.id) continue;
+
+      setTimeout(() => broadcastParticipants(roomId), 0);
+
+      socket.to(roomId).emit("voice:peer-left", {
+        peerId: socket.id,
+        name: socket.userName || "Unknown",
+      });
+    }
+  });
+
+  // =========================
   // WORKSPACE CHAT
-  // -------------------------
+  // =========================
   socket.on("workspace:join", async ({ workspaceId }, ack) => {
     try {
       const check = await ensureMember(workspaceId, socket.userId);
@@ -2948,13 +3028,13 @@ io.on("connection", (socket) => {
     }
   });
 
-  // -------------------------
-  // WHITEBOARD JOIN
-  // -------------------------
+  // =========================
+  // WHITEBOARD
+  // =========================
   socket.on("joinBoard", ({ boardId, user }) => {
     if (!boardId) return;
 
-    const name = user?.name ? String(user.name) : "User";
+    const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
     const color = pickColor(userId);
 
@@ -2964,7 +3044,6 @@ io.on("connection", (socket) => {
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
-  // draw + autosave
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
 
@@ -2985,7 +3064,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // live cursor broadcast
   socket.on("cursorMove", ({ boardId, x, y }) => {
     if (!boardId) return;
 
@@ -3002,21 +3080,21 @@ io.on("connection", (socket) => {
     });
   });
 
-  // clear board for everyone + DB
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
 
     try {
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
       io.to(`board:${boardId}`).emit("cleared");
-      io.to(`board:${boardId}`).emit("saved", { updatedAt: new Date().toISOString() });
+      io.to(`board:${boardId}`).emit("saved", {
+        updatedAt: new Date().toISOString(),
+      });
     } catch (e) {
       console.error("clearBoard error:", e);
     }
   });
 
-  // ✅ IMPORTANT: frontend emits `socket.emit("cursorLeave")` with NO args
-  // so this must work without boardId param.
+  // frontend emits cursorLeave with NO args, so handle via socketMeta
   const leaveCursor = () => {
     const meta = socketMeta.get(socket.id);
     if (!meta?.boardId) return;
@@ -3029,9 +3107,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", leaveCursor);
 });
 
-const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server started on PORT: ${PORT}`);
 });
 
 

@@ -10,7 +10,6 @@ function WorkspaceDetailsPage() {
   const navigate = useNavigate();
 
   const currentUser = getUser();
-
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,8 +22,19 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  // 1. Mark notifications as read when entering this page
+  useEffect(() => {
+    if (!token || !id) return;
+    api.put(
+      `/notifications/read/workspace/${id}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch(() => {
+      // Silent fail (it's okay if background update fails)
+    });
+  }, [id, token]);
 
   const loadWorkspace = async () => {
     if (!token) return;
@@ -124,8 +134,7 @@ function WorkspaceDetailsPage() {
       setActionMessage("Member role updated.");
       await loadWorkspace();
     } catch (err) {
-      const msg =
-        err?.response?.data?.message || "Failed to update member role.";
+      const msg = err?.response?.data?.message || "Failed to update member role.";
       setActionError(msg);
     }
   };
@@ -193,7 +202,6 @@ function WorkspaceDetailsPage() {
                     )}
                   </div>
 
-                  {/* Keep ALL features: Boards + Voice */}
                   <div className="flex items-center gap-2">
                     <button
                       className="btn btn-primary btn-sm"
@@ -283,7 +291,6 @@ function WorkspaceDetailsPage() {
                                     </span>
                                   )}
 
-                                  {/* Owner only; cannot remove self as owner */}
                                   {isOwner &&
                                     !(m.role === "owner" && isCurrentUser) && (
                                       <button
