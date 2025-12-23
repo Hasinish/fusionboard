@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["message"], // can expand later
+      enum: ["message", "board"], // [UPDATED] Added "board"
       default: "message",
     },
     text: { type: String, required: true },
@@ -23,7 +23,8 @@ const notificationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Ensure a user only has one notification entry per workspace for messages
+// Ensure a user only has one notification entry per workspace per type
+// e.g. One "You have new messages" and One "New board created" max per workspace
 notificationSchema.index({ recipient: 1, workspace: 1, type: 1 }, { unique: true });
 
 export default mongoose.model("Notification", notificationSchema);
