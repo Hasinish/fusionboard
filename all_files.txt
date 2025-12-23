@@ -2467,6 +2467,13 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
+  // All Users List State
+  const [allUsers, setAllUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // [NEW] Pending Invites State (Array of User IDs)
+  const [pendingInvites, setPendingInvites] = useState([]);
+
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   // 1. Mark notifications as read when entering this page
@@ -2476,20 +2483,17 @@ function WorkspaceDetailsPage() {
       `/notifications/read/workspace/${id}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch(() => {
-      // Silent fail (it's okay if background update fails)
-    });
+    ).catch(() => {});
   }, [id, token]);
 
+  // 2. Load Workspace
   const loadWorkspace = async () => {
     if (!token) return;
     setError("");
     setLoading(true);
     try {
       const res = await api.get(`/workspaces/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setWorkspace(res.data);
     } catch (err) {
@@ -2500,12 +2504,44 @@ function WorkspaceDetailsPage() {
     }
   };
 
+  // 3. Load All Users (for directory list)
+  const loadAllUsers = async () => {
+    if (!token) return;
+    setLoadingUsers(true);
+    try {
+      const res = await api.get("/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAllUsers(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // [NEW] 4. Load Pending Invites
+  const loadPendingInvites = async () => {
+    if (!token || !id) return;
+    try {
+      const res = await api.get(`/invitations/workspace/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Expecting array of user IDs
+      setPendingInvites(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Failed to load pending invites", e);
+    }
+  };
+
   useEffect(() => {
     if (!isLoggedIn() || !token) {
       navigate("/login");
       return;
     }
     loadWorkspace();
+    loadAllUsers();
+    loadPendingInvites(); // [NEW]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
@@ -2515,6 +2551,18 @@ function WorkspaceDetailsPage() {
     currentUser &&
     workspace.owner._id === currentUser.id;
 
+  // Helper to check if user is already in workspace
+  const isMember = (userId) => {
+    if (!workspace?.members) return false;
+    return workspace.members.some((m) => m._id === userId);
+  };
+
+  // [NEW] Helper to check if user is already invited
+  const isInvited = (userId) => {
+    return pendingInvites.includes(userId);
+  };
+
+  // Handle Manual Email Invite
   const handleInvite = async (e) => {
     e.preventDefault();
     setInviteError("");
@@ -2535,12 +2583,25 @@ function WorkspaceDetailsPage() {
       return;
     }
 
-    if (!token) {
-      setInviteError("Not authenticated.");
-      return;
-    }
+    await sendInviteRequest(memberEmails);
+    // Refresh invites list to update UI if registered users were invited
+    loadPendingInvites();
+  };
 
+  // Handle Button Click Invite
+  const handleButtonInvite = async (user) => {
+    setInviteEmailsText("");
+    await sendInviteRequest([user.email]);
+    
+    // [NEW] Optimistically update pending invites
+    setPendingInvites((prev) => [...prev, user._id]);
+  };
+
+  const sendInviteRequest = async (memberEmails) => {
+    if (!token) return;
     setInviteLoading(true);
+    setInviteError("");
+    setInviteMessage("");
     try {
       const res = await api.post(
         `/workspaces/${id}/invite`,
@@ -2550,7 +2611,7 @@ function WorkspaceDetailsPage() {
         }
       );
       setInviteMessage(res.data.message || "Invitations sent.");
-      setInviteEmailsText("");
+      if (inviteEmailsText) setInviteEmailsText("");
     } catch (err) {
       const msg = err?.response?.data?.message || "Failed to send invitations.";
       setInviteError(msg);
@@ -2793,45 +2854,107 @@ function WorkspaceDetailsPage() {
                   </div>
 
                   {isOwner && (
-                    <div className="card bg-base-100 shadow-md">
-                      <div className="card-body">
-                        <h2 className="card-title text-base mb-2">
-                          Invite Members
-                        </h2>
-                        {inviteError && (
-                          <div className="alert alert-error py-2 text-xs mb-2">
-                            <span>{inviteError}</span>
-                          </div>
-                        )}
-                        {inviteMessage && (
-                          <div className="alert alert-success py-2 text-xs mb-2">
-                            <span>{inviteMessage}</span>
-                          </div>
-                        )}
-                        <form onSubmit={handleInvite} className="space-y-2">
-                          <textarea
-                            className="textarea textarea-bordered w-full text-sm"
-                            rows={3}
-                            value={inviteEmailsText}
-                            onChange={(e) => setInviteEmailsText(e.target.value)}
-                            placeholder="example1@mail.com, example2@mail.com"
-                          />
-                          <p className="text-xs text-neutral-500">
-                            Separate emails with commas. Invitations are only
-                            sent to users who already registered.
-                          </p>
-                          <button
-                            type="submit"
-                            className={`btn btn-primary btn-sm ${
-                              inviteLoading ? "btn-disabled" : ""
-                            }`}
-                            disabled={inviteLoading}
-                          >
-                            {inviteLoading ? "Sending..." : "Invite members"}
-                          </button>
-                        </form>
+                    <>
+                      {/* Invite By Email Manual Input */}
+                      <div className="card bg-base-100 shadow-md">
+                        <div className="card-body">
+                          <h2 className="card-title text-base mb-2">
+                            Invite By Email
+                          </h2>
+                          {inviteError && (
+                            <div className="alert alert-error py-2 text-xs mb-2">
+                              <span>{inviteError}</span>
+                            </div>
+                          )}
+                          {inviteMessage && (
+                            <div className="alert alert-success py-2 text-xs mb-2">
+                              <span>{inviteMessage}</span>
+                            </div>
+                          )}
+                          <form onSubmit={handleInvite} className="space-y-2">
+                            <textarea
+                              className="textarea textarea-bordered w-full text-sm"
+                              rows={2}
+                              value={inviteEmailsText}
+                              onChange={(e) =>
+                                setInviteEmailsText(e.target.value)
+                              }
+                              placeholder="example1@mail.com, example2@mail.com"
+                            />
+                            <p className="text-xs text-neutral-500">
+                              Separate multiple emails with commas.
+                            </p>
+                            <button
+                              type="submit"
+                              className={`btn btn-primary btn-sm w-full ${
+                                inviteLoading ? "btn-disabled" : ""
+                              }`}
+                              disabled={inviteLoading}
+                            >
+                              {inviteLoading ? "Sending..." : "Invite"}
+                            </button>
+                          </form>
+                        </div>
                       </div>
-                    </div>
+
+                      {/* All Users Directory List */}
+                      <div className="card bg-base-100 shadow-md">
+                        <div className="card-body p-4">
+                          <h2 className="card-title text-base mb-2">
+                            All Users Directory
+                          </h2>
+                          {loadingUsers ? (
+                            <p className="text-xs text-neutral-500">Loading...</p>
+                          ) : (
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                              {allUsers
+                                .filter((u) => u._id !== currentUser.id) // Don't show self
+                                .map((u) => {
+                                  const alreadyIn = isMember(u._id);
+                                  const alreadyInvited = isInvited(u._id); // [NEW] Check
+                                  
+                                  return (
+                                    <div
+                                      key={u._id}
+                                      className="flex items-center justify-between border-b border-base-200 pb-2 last:border-0"
+                                    >
+                                      <div className="text-sm truncate mr-2">
+                                        <div className="font-semibold">{u.name}</div>
+                                        <div className="text-xs text-neutral-500">
+                                          {u.email}
+                                        </div>
+                                      </div>
+                                      {alreadyIn ? (
+                                        <span className="badge badge-ghost badge-xs">
+                                          Member
+                                        </span>
+                                      ) : alreadyInvited ? (
+                                        // [NEW] Badge for invited users
+                                        <span className="badge badge-neutral badge-xs opacity-60">
+                                          Invited
+                                        </span>
+                                      ) : (
+                                        <button
+                                          className="btn btn-xs btn-outline"
+                                          onClick={() => handleButtonInvite(u)}
+                                          disabled={inviteLoading}
+                                        >
+                                          Invite
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              {allUsers.length < 2 && (
+                                <p className="text-xs text-neutral-400">
+                                  No other users found.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -2865,14 +2988,15 @@ import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js"; // [NEW]
+import notificationRoutes from "./routes/notificationRoutes.js";
+import userRoutes from "./routes/userRoutes.js"; // [NEW]
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
 import Board from "./models/Board.js";
 import User from "./models/User.js";
-import Workspace from "./models/Workspace.js"; // [NEW]
-import Notification from "./models/Notification.js"; // [NEW]
+import Workspace from "./models/Workspace.js";
+import Notification from "./models/Notification.js";
 
 dotenv.config();
 const app = express();
@@ -2888,7 +3012,7 @@ const connect =
 
 if (!connect) {
   throw new Error(
-    "DB connect function not found."
+    "DB connect function not found. Check src/config/db.js export."
   );
 }
 connect();
@@ -2911,7 +3035,8 @@ app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
-app.use("/api/notifications", notificationRoutes); // [NEW]
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/users", userRoutes); // [NEW]
 
 // ---- socket server ----
 const server = http.createServer(app);
@@ -3060,14 +3185,12 @@ io.on("connection", (socket) => {
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
 
       // 3. Create Notifications for ALL members (except sender)
-      //    We need the workspace name and members list
       const ws = await Workspace.findById(workspaceId).select("name members");
       if (ws && ws.members) {
         const recipients = ws.members
           .filter((m) => String(m.user) !== String(socket.userId))
           .map((m) => m.user);
 
-        // Upsert notification for each recipient
         const operations = recipients.map((recipientId) => ({
           updateOne: {
             filter: {
@@ -3457,12 +3580,12 @@ export { ensureMember };
 ===== FILE: backend\src\controllers\invitationController.js =====
 import Invitation from "../models/Invitation.js";
 import Workspace from "../models/Workspace.js";
+import Notification from "../models/Notification.js";
 
 // Get pending invitations for logged-in user
 export async function getMyInvitations(req, res) {
   try {
     const userId = req.userId;
-
     const invitations = await Invitation.find({
       invitedUser: userId,
       status: "pending",
@@ -3479,6 +3602,40 @@ export async function getMyInvitations(req, res) {
   }
 }
 
+// [NEW] Get pending invitations for a specific workspace (returns list of user IDs)
+export async function getWorkspacePendingInvitations(req, res) {
+  try {
+    const userId = req.userId;
+    const { workspaceId } = req.params;
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    // Check if requester is a member/owner
+    const isMember = workspace.members.some(
+      (m) => String(m.user) === String(userId)
+    );
+    if (!isMember) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    // Find all pending invitations for this workspace
+    const invitations = await Invitation.find({
+      workspace: workspaceId,
+      status: "pending",
+    }).select("invitedUser");
+
+    // Return just the array of user IDs
+    const invitedUserIds = invitations.map((i) => i.invitedUser);
+    return res.json(invitedUserIds);
+  } catch (e) {
+    console.error("Error fetching workspace invitations:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
 export async function acceptInvitation(req, res) {
   try {
     const userId = req.userId;
@@ -3487,7 +3644,7 @@ export async function acceptInvitation(req, res) {
     const invitation = await Invitation.findOne({
       _id: id,
       invitedUser: userId,
-    });
+    }).populate("invitedUser", "name");
 
     if (!invitation) {
       return res.status(404).json({ message: "Invitation not found" });
@@ -3501,6 +3658,7 @@ export async function acceptInvitation(req, res) {
     await invitation.save();
 
     const workspace = await Workspace.findById(invitation.workspace);
+
     if (!workspace) {
       return res.status(404).json({ message: "Workspace not found" });
     }
@@ -3508,10 +3666,30 @@ export async function acceptInvitation(req, res) {
     const alreadyMember = workspace.members.some(
       (m) => String(m.user) === String(userId)
     );
+
     if (!alreadyMember) {
-      // Default role for new members is viewer
       workspace.members.push({ user: userId, role: "viewer" });
       await workspace.save();
+
+      try {
+        const joinerName = invitation.invitedUser?.name || "A user";
+        await Notification.updateOne(
+          {
+            recipient: workspace.owner,
+            workspace: workspace._id,
+            type: "join",
+          },
+          {
+            $set: {
+              text: `${joinerName} joined ${workspace.name}`,
+              isRead: false,
+            },
+          },
+          { upsert: true }
+        );
+      } catch (noteError) {
+        console.error("Failed to create join notification:", noteError);
+      }
     }
 
     return res.json({ message: "Invitation accepted" });
@@ -3549,8 +3727,6 @@ export async function rejectInvitation(req, res) {
   }
 }
 
-
-
 ===== FILE: backend\src\controllers\notificationController.js =====
 import Notification from "../models/Notification.js";
 
@@ -3584,6 +3760,20 @@ export async function markWorkspaceRead(req, res) {
     return res.json({ message: "Marked as read" });
   } catch (e) {
     console.error("Error marking read:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+===== FILE: backend\src\controllers\userController.js =====
+import User from "../models/User.js";
+
+export async function getAllUsers(req, res) {
+  try {
+    // Return id, name, email for listing
+    const users = await User.find({}, "name email").lean();
+    return res.json(users);
+  } catch (e) {
+    console.error("getAllUsers error:", e);
     return res.status(500).json({ message: "Server error" });
   }
 }
@@ -4069,7 +4259,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["message", "board"], // [UPDATED] Added "board"
+      enum: ["message", "board", "join"], // [UPDATED] Added join
       default: "message",
     },
     text: { type: String, required: true },
@@ -4079,7 +4269,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 // Ensure a user only has one notification entry per workspace per type
-// e.g. One "You have new messages" and One "New board created" max per workspace
 notificationSchema.index({ recipient: 1, workspace: 1, type: 1 }, { unique: true });
 
 export default mongoose.model("Notification", notificationSchema);
@@ -4188,19 +4377,22 @@ export default router;
 
 
 ===== FILE: backend\src\routes\invitationRoutes.js =====
-// backend/src/routes/invitationRoutes.js
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import {
   getMyInvitations,
   acceptInvitation,
   rejectInvitation,
+  getWorkspacePendingInvitations, // [NEW]
 } from "../controllers/invitationController.js";
 
 const router = express.Router();
 
 // GET /api/invitations/my
 router.get("/my", authMiddleware, getMyInvitations);
+
+// [NEW] GET /api/invitations/workspace/:workspaceId (Get pending invite UserIDs)
+router.get("/workspace/:workspaceId", authMiddleware, getWorkspacePendingInvitations);
 
 // POST /api/invitations/:id/accept
 router.post("/:id/accept", authMiddleware, acceptInvitation);
@@ -4209,7 +4401,6 @@ router.post("/:id/accept", authMiddleware, acceptInvitation);
 router.post("/:id/reject", authMiddleware, rejectInvitation);
 
 export default router;
-
 
 ===== FILE: backend\src\routes\notificationRoutes.js =====
 import express from "express";
@@ -4226,6 +4417,18 @@ router.get("/", authMiddleware, getMyNotifications);
 
 // Mark messages from a specific workspace as read
 router.put("/read/workspace/:workspaceId", authMiddleware, markWorkspaceRead);
+
+export default router;
+
+===== FILE: backend\src\routes\userRoutes.js =====
+import express from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { getAllUsers } from "../controllers/userController.js";
+
+const router = express.Router();
+
+// GET /api/users
+router.get("/", authMiddleware, getAllUsers);
 
 export default router;
 

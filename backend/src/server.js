@@ -12,14 +12,15 @@ import workspaceRoutes from "./routes/workspaceRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js"; // [NEW]
+import notificationRoutes from "./routes/notificationRoutes.js";
+import userRoutes from "./routes/userRoutes.js"; // [NEW]
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
 import Board from "./models/Board.js";
 import User from "./models/User.js";
-import Workspace from "./models/Workspace.js"; // [NEW]
-import Notification from "./models/Notification.js"; // [NEW]
+import Workspace from "./models/Workspace.js";
+import Notification from "./models/Notification.js";
 
 dotenv.config();
 const app = express();
@@ -35,7 +36,7 @@ const connect =
 
 if (!connect) {
   throw new Error(
-    "DB connect function not found."
+    "DB connect function not found. Check src/config/db.js export."
   );
 }
 connect();
@@ -58,7 +59,8 @@ app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
-app.use("/api/notifications", notificationRoutes); // [NEW]
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/users", userRoutes); // [NEW]
 
 // ---- socket server ----
 const server = http.createServer(app);
@@ -207,14 +209,12 @@ io.on("connection", (socket) => {
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
 
       // 3. Create Notifications for ALL members (except sender)
-      //    We need the workspace name and members list
       const ws = await Workspace.findById(workspaceId).select("name members");
       if (ws && ws.members) {
         const recipients = ws.members
           .filter((m) => String(m.user) !== String(socket.userId))
           .map((m) => m.user);
 
-        // Upsert notification for each recipient
         const operations = recipients.map((recipientId) => ({
           updateOne: {
             filter: {

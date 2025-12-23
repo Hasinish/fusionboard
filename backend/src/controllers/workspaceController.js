@@ -3,7 +3,7 @@ import Workspace from "../models/Workspace.js";
 import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
 
-const ONLINE_THRESHOLD_MS = 1000 * 60 * 5; // 5 minutes
+const ONLINE_THRESHOLD_MS = 1000 * 5; // 5 secs ative threshold
 
 // Create a new workspace and send invitations
 export async function createWorkspace(req, res) {
