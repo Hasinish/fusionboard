@@ -11,7 +11,7 @@ import VoiceChatRoomPage from "./pages/VoiceChatRoomPage";
 
 import WorkspaceBoardsPage from "./pages/WorkspaceBoardsPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
-
+import WorkspaceFilesPage from "./pages/WorkspaceFilesPage";
 
 function App() {
   return (
@@ -26,10 +26,8 @@ function App() {
         <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
         <Route path="/workspaces/:id/voice" element={<VoiceChatRoomPage />} />
         <Route path="/workspaces/:id/boards" element={<WorkspaceBoardsPage />} />
-        <Route
-          path="/workspaces/:id/boards/:boardId"
-          element={<WhiteboardPage />}
-        />
+        <Route path="/workspaces/:id/files" element={<WorkspaceFilesPage />} />
+        <Route path="/workspaces/:id/boards/:boardId" element={<WhiteboardPage />}/>
         <Route path="/notifications" element={<NotificationsPage />} />
       </Routes>
     </div>
