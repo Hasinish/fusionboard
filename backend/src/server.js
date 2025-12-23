@@ -21,6 +21,7 @@ import Board from "./models/Board.js";
 import User from "./models/User.js";
 import Workspace from "./models/Workspace.js";
 import Notification from "./models/Notification.js";
+import driveRoutes from "./routes/driveRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -60,7 +61,11 @@ app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/users", userRoutes); // [NEW]
+app.use("/api/users", userRoutes); 
+app.use("/api/boards", boardRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/users", userRoutes); 
+app.use("/api/drive", driveRoutes);
 
 // ---- socket server ----
 const server = http.createServer(app);

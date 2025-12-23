@@ -265,6 +265,12 @@ function WorkspaceDetailsPage() {
 
                   <div className="flex items-center gap-2">
                     <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => navigate(`/workspaces/${id}/files`)}
+                    >
+                    Files
+                    </button>
+                    <button
                       className="btn btn-primary btn-sm"
                       onClick={() => navigate(`/workspaces/${id}/boards`)}
                     >
