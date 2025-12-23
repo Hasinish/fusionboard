@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { isLoggedIn } from "../lib/auth";
 import api from "../lib/api";
+import { Search } from "lucide-react"; // Make sure to install lucide-react if needed or use svg
 
 function WorkspaceBoardsPage() {
   const navigate = useNavigate();
@@ -12,6 +13,9 @@ function WorkspaceBoardsPage() {
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  
+  // [NEW] Search State
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -54,7 +58,6 @@ function WorkspaceBoardsPage() {
         { workspaceId: id, title: "New Board" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       const board = res.data;
       navigate(`/workspaces/${id}/boards/${board._id}`);
     } catch (e) {
@@ -63,6 +66,11 @@ function WorkspaceBoardsPage() {
       setCreating(false);
     }
   };
+
+  // [NEW] Filter logic
+  const filteredBoards = boards.filter((b) => 
+    b.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
@@ -74,7 +82,7 @@ function WorkspaceBoardsPage() {
             <div>
               <h1 className="text-2xl font-bold">Boards</h1>
               <p className="text-sm text-neutral-500">
-                Create a new board, view previous boards, or choose a template.
+                Create a new board, view previous boards, or search.
               </p>
             </div>
 
@@ -111,6 +119,20 @@ function WorkspaceBoardsPage() {
             </div>
           </div>
 
+          {/* [NEW] Search Bar */}
+          <div className="mb-4 relative">
+             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-neutral-400" />
+             </div>
+             <input
+               type="text"
+               className="input input-bordered w-full pl-10"
+               placeholder="Search boards by name..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+          </div>
+
           {/* Previous boards */}
           <div className="card bg-base-100 shadow-md mb-6">
             <div className="card-body">
@@ -120,13 +142,13 @@ function WorkspaceBoardsPage() {
                 <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
                   Loading boards...
                 </div>
-              ) : boards.length === 0 ? (
+              ) : filteredBoards.length === 0 ? (
                 <div className="rounded-box border border-dashed border-base-300 p-6 text-sm text-neutral-500">
-                  No boards yet.
+                  {searchTerm ? `No boards found matching "${searchTerm}".` : "No boards yet."}
                 </div>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
-                  {boards.map((b) => (
+                  {filteredBoards.map((b) => (
                     <div
                       key={b._id}
                       className="card bg-base-200 cursor-pointer hover:shadow transition"
@@ -142,16 +164,6 @@ function WorkspaceBoardsPage() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Templates (placeholder) */}
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="text-lg font-semibold mb-2">Templates</h2>
-              <div className="rounded-box border border-dashed border-base-300 p-6 text-sm text-neutral-500">
-                Templates will appear here.
-              </div>
             </div>
           </div>
         </div>

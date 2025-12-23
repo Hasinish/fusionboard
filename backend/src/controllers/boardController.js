@@ -1,6 +1,6 @@
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
-import Notification from "../models/Notification.js"; // [NEW]
+import Notification from "../models/Notification.js";
 
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
@@ -31,16 +31,13 @@ export async function createBoard(req, res) {
       segments: [],
     });
 
-    // --- [NEW] NOTIFICATION LOGIC ---
-    // Notify all other members that a new board was created
+    // Notify all other members
     const ws = await Workspace.findById(workspaceId).select("name members");
     if (ws && ws.members) {
       const recipients = ws.members
         .filter((m) => String(m.user) !== String(userId))
         .map((m) => m.user);
 
-      // Upsert notification: If they already have an unread "board" notification for this workspace,
-      // just update the text/timestamp. If not, create one.
       const operations = recipients.map((recipientId) => ({
         updateOne: {
           filter: {
@@ -62,7 +59,6 @@ export async function createBoard(req, res) {
         await Notification.bulkWrite(operations);
       }
     }
-    // --------------------------------
 
     return res.status(201).json(board);
   } catch (e) {
@@ -84,6 +80,7 @@ export async function listBoards(req, res) {
       .sort({ updatedAt: -1 })
       .select("_id title updatedAt createdAt")
       .lean();
+
     return res.json(boards);
   } catch (e) {
     console.error("listBoards error:", e);
@@ -129,6 +126,30 @@ export async function saveBoard(req, res) {
     return res.json({ message: "Board saved", updatedAt: board.updatedAt });
   } catch (e) {
     console.error("saveBoard error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// [NEW] PATCH /api/boards/:boardId { title }
+export async function updateBoard(req, res) {
+  try {
+    const userId = req.userId;
+    const { boardId } = req.params;
+    const { title } = req.body;
+
+    const board = await Board.findById(boardId);
+    if (!board) return res.status(404).json({ message: "Board not found" });
+
+    const ok = await ensureMember(userId, board.workspace);
+    if (!ok) return res.status(403).json({ message: "Not allowed" });
+
+    if (title) board.title = title;
+    
+    await board.save();
+
+    return res.json({ message: "Board updated", board });
+  } catch (e) {
+    console.error("updateBoard error:", e);
     return res.status(500).json({ message: "Server error" });
   }
 }
