@@ -4,14 +4,14 @@ import NavBar from "../components/NavBar";
 import { getUser, isLoggedIn } from "../lib/auth";
 import api from "../lib/api";
 import { io } from "socket.io-client";
+import { Edit2, Check } from "lucide-react"; // Import icons
 
 function WhiteboardPage() {
   const navigate = useNavigate();
   const { id, boardId } = useParams();
 
-  const me = getUser(); // { id, name, email }
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const me = getUser();
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -22,13 +22,17 @@ function WhiteboardPage() {
 
   const segmentsRef = useRef([]);
   const [statusMsg, setStatusMsg] = useState("");
-
   const [color, setColor] = useState("#000000");
   const [width, setWidth] = useState(2);
   const [tool, setTool] = useState("pen"); // "pen" | "eraser"
 
   const [cursors, setCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
+
+  // [NEW] Board Title State
+  const [boardTitle, setBoardTitle] = useState("Loading...");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState("");
 
   useEffect(() => {
     if (!isLoggedIn()) navigate("/login");
@@ -47,7 +51,6 @@ function WhiteboardPage() {
   const drawSegment = (seg) => {
     const ctx = ctxRef.current;
     if (!ctx || !seg) return;
-
     ctx.strokeStyle = seg.color || "#000000";
     ctx.lineWidth = seg.width || 2;
 
@@ -78,7 +81,6 @@ function WhiteboardPage() {
 
     canvas.width = w;
     canvas.height = h;
-
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -90,10 +92,8 @@ function WhiteboardPage() {
   const getCanvasPoint = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
     return {
       x: clientX - rect.left,
       y: clientY - rect.top,
@@ -108,7 +108,10 @@ function WhiteboardPage() {
       const res = await api.get(`/boards/${boardId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+      
+      // [NEW] Set Title
+      setBoardTitle(res.data.title || "Untitled Board");
+      
       const segments = Array.isArray(res.data.segments) ? res.data.segments : [];
       segmentsRef.current = segments;
 
@@ -119,11 +122,35 @@ function WhiteboardPage() {
     }
   };
 
+  // [NEW] Handle Title Save
+  const handleTitleSave = async () => {
+    if (!tempTitle.trim()) {
+       setIsEditingTitle(false);
+       return;
+    }
+    
+    // Optimistic update
+    setBoardTitle(tempTitle);
+    setIsEditingTitle(false);
+
+    try {
+       await api.patch(`/boards/${boardId}`, 
+          { title: tempTitle },
+          { headers: { Authorization: `Bearer ${token}` } }
+       );
+       setStatusMsg("Title updated ✅");
+       setTimeout(() => setStatusMsg(""), 1500);
+    } catch (e) {
+       setStatusMsg("Failed to update title");
+       // Revert on failure (optional, but good UX)
+       loadBoard(); 
+    }
+  };
+
   useEffect(() => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // ✅ IMPORTANT: backend socket requires JWT auth
     const socket = io("http://localhost:5001", {
       auth: { token },
       transports: ["websocket", "polling"],
@@ -164,14 +191,12 @@ function WhiteboardPage() {
         [userId]: prev[userId] || { name, color, x: 0, y: 0, ts: Date.now() },
       }));
     });
-
     socket.on("cursorMove", ({ userId, name, color, x, y }) => {
       setCursors((prev) => ({
         ...prev,
         [userId]: { name, color, x, y, ts: Date.now() },
       }));
     });
-
     socket.on("cursorLeave", ({ userId }) => {
       setCursors((prev) => {
         const copy = { ...prev };
@@ -179,7 +204,6 @@ function WhiteboardPage() {
         return copy;
       });
     });
-
     loadBoard();
 
     return () => {
@@ -201,11 +225,9 @@ function WhiteboardPage() {
   const emitCursorMove = (x, y) => {
     const socket = socketRef.current;
     if (!socket || !socket.connected) return;
-
     const now = Date.now();
     if (now - lastCursorEmitRef.current < 30) return; // throttle
     lastCursorEmitRef.current = now;
-
     socket.emit("cursorMove", { boardId, x, y });
   };
 
@@ -216,19 +238,16 @@ function WhiteboardPage() {
     lastPointRef.current = p;
     emitCursorMove(p.x, p.y);
   };
-
   const onPointerMove = (e) => {
     e.preventDefault();
     const p = getCanvasPoint(e);
     emitCursorMove(p.x, p.y);
 
     if (!drawingRef.current) return;
-
     const prev = lastPointRef.current;
 
     const effectiveColor = tool === "eraser" ? "#ffffff" : color;
     const effectiveWidth = tool === "eraser" ? Math.max(10, width * 3) : width;
-
     const segment = {
       x0: prev.x,
       y0: prev.y,
@@ -237,7 +256,6 @@ function WhiteboardPage() {
       color: effectiveColor,
       width: effectiveWidth,
     };
-
     segmentsRef.current.push(segment);
     drawSegment(segment);
 
@@ -293,11 +311,37 @@ function WhiteboardPage() {
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl font-bold">Whiteboard</h1>
-              <p className="text-sm text-neutral-500">
-                Live drawing + autosave + live cursors.
-              </p>
+            
+            {/* [NEW] Editable Title Section */}
+            <div className="flex items-center gap-2">
+              {isEditingTitle ? (
+                 <div className="flex items-center gap-2">
+                    <input 
+                       className="input input-sm input-bordered text-lg font-bold"
+                       value={tempTitle}
+                       onChange={(e) => setTempTitle(e.target.value)}
+                       autoFocus
+                       onKeyDown={(e) => {
+                          if (e.key === "Enter") handleTitleSave();
+                          if (e.key === "Escape") setIsEditingTitle(false);
+                       }}
+                    />
+                    <button className="btn btn-sm btn-success btn-square" onClick={handleTitleSave}>
+                       <Check size={16} />
+                    </button>
+                 </div>
+              ) : (
+                 <div 
+                   className="flex items-center gap-2 cursor-pointer group p-1 rounded hover:bg-base-300 transition"
+                   onClick={() => {
+                      setTempTitle(boardTitle);
+                      setIsEditingTitle(true);
+                   }}
+                 >
+                    <h1 className="text-2xl font-bold">{boardTitle}</h1>
+                    <Edit2 size={16} className="text-neutral-400 opacity-0 group-hover:opacity-100 transition" />
+                 </div>
+              )}
             </div>
 
             <div className="flex gap-2">
