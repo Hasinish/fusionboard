@@ -22,16 +22,13 @@ function WorkspaceDetailsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  // All Users List State
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   
-  // [NEW] Pending Invites State (Array of User IDs)
   const [pendingInvites, setPendingInvites] = useState([]);
-
+  
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  // 1. Mark notifications as read when entering this page
   useEffect(() => {
     if (!token || !id) return;
     api.put(
@@ -41,7 +38,6 @@ function WorkspaceDetailsPage() {
     ).catch(() => {});
   }, [id, token]);
 
-  // 2. Load Workspace
   const loadWorkspace = async () => {
     if (!token) return;
     setError("");
@@ -59,7 +55,6 @@ function WorkspaceDetailsPage() {
     }
   };
 
-  // 3. Load All Users (for directory list)
   const loadAllUsers = async () => {
     if (!token) return;
     setLoadingUsers(true);
@@ -75,14 +70,12 @@ function WorkspaceDetailsPage() {
     }
   };
 
-  // [NEW] 4. Load Pending Invites
   const loadPendingInvites = async () => {
     if (!token || !id) return;
     try {
       const res = await api.get(`/invitations/workspace/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Expecting array of user IDs
       setPendingInvites(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Failed to load pending invites", e);
@@ -96,7 +89,7 @@ function WorkspaceDetailsPage() {
     }
     loadWorkspace();
     loadAllUsers();
-    loadPendingInvites(); // [NEW]
+    loadPendingInvites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
@@ -106,23 +99,19 @@ function WorkspaceDetailsPage() {
     currentUser &&
     workspace.owner._id === currentUser.id;
 
-  // Helper to check if user is already in workspace
   const isMember = (userId) => {
     if (!workspace?.members) return false;
     return workspace.members.some((m) => m._id === userId);
   };
 
-  // [NEW] Helper to check if user is already invited
   const isInvited = (userId) => {
     return pendingInvites.includes(userId);
   };
 
-  // Handle Manual Email Invite
   const handleInvite = async (e) => {
     e.preventDefault();
     setInviteError("");
     setInviteMessage("");
-
     if (!inviteEmailsText.trim()) {
       setInviteError("Please enter at least one email.");
       return;
@@ -139,16 +128,12 @@ function WorkspaceDetailsPage() {
     }
 
     await sendInviteRequest(memberEmails);
-    // Refresh invites list to update UI if registered users were invited
     loadPendingInvites();
   };
 
-  // Handle Button Click Invite
   const handleButtonInvite = async (user) => {
     setInviteEmailsText("");
     await sendInviteRequest([user.email]);
-    
-    // [NEW] Optimistically update pending invites
     setPendingInvites((prev) => [...prev, user._id]);
   };
 
@@ -178,7 +163,6 @@ function WorkspaceDetailsPage() {
   const handleRoleChange = async (memberId, newRole) => {
     setActionError("");
     setActionMessage("");
-
     if (!token) {
       setActionError("Not authenticated.");
       return;
@@ -232,7 +216,7 @@ function WorkspaceDetailsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-base-200 flex flex-col">
+    <div className="min-h-screen bg-base-200 flex flex-col relative overflow-x-hidden">
       <NavBar />
 
       <main className="flex-1">
@@ -265,7 +249,7 @@ function WorkspaceDetailsPage() {
 
                   <div className="flex items-center gap-2">
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="btn btn-primary btn-sm"
                       onClick={() => navigate(`/workspaces/${id}/files`)}
                     >
                     Files
@@ -282,6 +266,15 @@ function WorkspaceDetailsPage() {
                       onClick={() => navigate(`/workspaces/${id}/voice`)}
                     >
                       Join Voice Chat
+                    </button>
+
+                    {/* Activity Button */}
+                    <button
+                       className="btn btn-primary btn-sm border border-base-300"
+                       onClick={() => navigate(`/workspaces/${id}/activity`)}
+                       title="View Activity History"
+                    >
+                       Activity
                     </button>
                   </div>
                 </div>
@@ -312,8 +305,7 @@ function WorkspaceDetailsPage() {
                     <ul className="space-y-3 text-sm">
                       {workspace.members && workspace.members.length > 0 ? (
                         workspace.members.map((m) => {
-                          const isCurrentUser =
-                            currentUser && m._id === currentUser.id;
+                          const isCurrentUser = currentUser && m._id === currentUser.id;
 
                           return (
                             <li
@@ -442,7 +434,7 @@ function WorkspaceDetailsPage() {
                                 .filter((u) => u._id !== currentUser.id) // Don't show self
                                 .map((u) => {
                                   const alreadyIn = isMember(u._id);
-                                  const alreadyInvited = isInvited(u._id); // [NEW] Check
+                                  const alreadyInvited = isInvited(u._id);
                                   
                                   return (
                                     <div
@@ -460,7 +452,6 @@ function WorkspaceDetailsPage() {
                                           Member
                                         </span>
                                       ) : alreadyInvited ? (
-                                        // [NEW] Badge for invited users
                                         <span className="badge badge-neutral badge-xs opacity-60">
                                           Invited
                                         </span>

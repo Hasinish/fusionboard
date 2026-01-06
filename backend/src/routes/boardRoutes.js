@@ -5,7 +5,8 @@ import {
   listBoards,
   getBoard,
   saveBoard,
-  updateBoard, // [NEW]
+  updateBoard,
+  deleteBoard, 
 } from "../controllers/boardController.js";
 
 const router = express.Router();
@@ -14,6 +15,7 @@ router.post("/", authMiddleware, createBoard);
 router.get("/workspace/:workspaceId", authMiddleware, listBoards);
 router.get("/:boardId", authMiddleware, getBoard);
 router.put("/:boardId/save", authMiddleware, saveBoard);
-router.patch("/:boardId", authMiddleware, updateBoard); // [NEW]
+router.patch("/:boardId", authMiddleware, updateBoard);
+router.delete("/:boardId", authMiddleware, deleteBoard); 
 
 export default router;

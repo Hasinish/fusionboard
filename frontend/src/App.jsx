@@ -6,12 +6,11 @@ import ProfilePage from "./pages/ProfilePage";
 import CreateWorkspacePage from "./pages/CreateWorkspacePage";
 import WorkspaceDetailsPage from "./pages/WorkspaceDetailsPage";
 import NotificationsPage from "./pages/NotificationsPage";
-
 import VoiceChatRoomPage from "./pages/VoiceChatRoomPage";
-
 import WorkspaceBoardsPage from "./pages/WorkspaceBoardsPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
 import WorkspaceFilesPage from "./pages/WorkspaceFilesPage";
+import WorkspaceActivityPage from "./pages/WorkspaceActivityPage"; 
 
 function App() {
   return (
@@ -23,10 +22,13 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/workspaces/create" element={<CreateWorkspacePage />} />
+       
         <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
         <Route path="/workspaces/:id/voice" element={<VoiceChatRoomPage />} />
         <Route path="/workspaces/:id/boards" element={<WorkspaceBoardsPage />} />
         <Route path="/workspaces/:id/files" element={<WorkspaceFilesPage />} />
+        <Route path="/workspaces/:id/activity" element={<WorkspaceActivityPage />} /> 
+        
         <Route path="/workspaces/:id/boards/:boardId" element={<WhiteboardPage />}/>
         <Route path="/notifications" element={<NotificationsPage />} />
       </Routes>

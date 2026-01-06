@@ -1,6 +1,8 @@
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
+import Note from "../models/Note.js";
+import Activity from "../models/Activity.js"; // [NEW]
 
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
@@ -59,6 +61,14 @@ export async function createBoard(req, res) {
         await Notification.bulkWrite(operations);
       }
     }
+
+    // [NEW] Log Activity
+    await Activity.create({
+      workspace: workspaceId,
+      user: userId,
+      action: "created_board",
+      details: board.title,
+    });
 
     return res.status(201).json(board);
   } catch (e) {
@@ -130,7 +140,7 @@ export async function saveBoard(req, res) {
   }
 }
 
-// [NEW] PATCH /api/boards/:boardId { title }
+// PATCH /api/boards/:boardId { title }
 export async function updateBoard(req, res) {
   try {
     const userId = req.userId;
@@ -143,13 +153,55 @@ export async function updateBoard(req, res) {
     const ok = await ensureMember(userId, board.workspace);
     if (!ok) return res.status(403).json({ message: "Not allowed" });
 
-    if (title) board.title = title;
+    if (title && board.title !== title) {
+        // [NEW] Log Renaming
+        await Activity.create({
+            workspace: board.workspace,
+            user: userId,
+            action: "renamed_board",
+            details: `From "${board.title}" to "${title}"`,
+        });
+        board.title = title;
+    }
     
     await board.save();
 
     return res.json({ message: "Board updated", board });
   } catch (e) {
     console.error("updateBoard error:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// DELETE /api/boards/:boardId
+export async function deleteBoard(req, res) {
+  try {
+    const userId = req.userId;
+    const { boardId } = req.params;
+
+    const board = await Board.findById(boardId);
+    if (!board) return res.status(404).json({ message: "Board not found" });
+
+    const ok = await ensureMember(userId, board.workspace);
+    if (!ok) return res.status(403).json({ message: "Not allowed" });
+
+    // [NEW] Log Deletion
+    await Activity.create({
+      workspace: board.workspace,
+      user: userId,
+      action: "deleted_board",
+      details: board.title,
+    });
+
+    // Clean up associated notes first
+    await Note.deleteMany({ board: boardId });
+
+    // Delete the board
+    await Board.findByIdAndDelete(boardId);
+
+    return res.json({ message: "Board deleted" });
+  } catch (e) {
+    console.error("deleteBoard error:", e);
     return res.status(500).json({ message: "Server error" });
   }
 }

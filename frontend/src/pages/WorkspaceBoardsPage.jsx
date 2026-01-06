@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { isLoggedIn } from "../lib/auth";
 import api from "../lib/api";
-import { Search } from "lucide-react"; // Make sure to install lucide-react if needed or use svg
+import { Search, Trash2 } from "lucide-react"; // Added Trash2
 
 function WorkspaceBoardsPage() {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ function WorkspaceBoardsPage() {
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   
-  // [NEW] Search State
+  // Search State
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -67,7 +67,25 @@ function WorkspaceBoardsPage() {
     }
   };
 
-  // [NEW] Filter logic
+  // Handle Delete Board
+  const handleDeleteBoard = async (boardId) => {
+    if (!window.confirm("Are you sure you want to delete this board? This cannot be undone.")) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      await api.delete(`/boards/${boardId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Remove locally
+      setBoards((prev) => prev.filter((b) => b._id !== boardId));
+    } catch (e) {
+      alert(e?.response?.data?.message || "Failed to delete board.");
+    }
+  };
+
+  // Filter logic
   const filteredBoards = boards.filter((b) => 
     b.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -119,10 +137,10 @@ function WorkspaceBoardsPage() {
             </div>
           </div>
 
-          {/* [NEW] Search Bar */}
+          {/* Search Bar */}
           <div className="mb-4 relative">
              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-neutral-400" />
+                 <Search size={18} className="text-neutral-400" />
              </div>
              <input
                type="text"
@@ -151,14 +169,28 @@ function WorkspaceBoardsPage() {
                   {filteredBoards.map((b) => (
                     <div
                       key={b._id}
-                      className="card bg-base-200 cursor-pointer hover:shadow transition"
+                      className="card bg-base-200 cursor-pointer hover:shadow transition group" // Added 'group' for hover effect
                       onClick={() => navigate(`/workspaces/${id}/boards/${b._id}`)}
                     >
-                      <div className="card-body py-4">
-                        <div className="font-semibold">{b.title}</div>
-                        <div className="text-xs text-neutral-500">
-                          Updated: {new Date(b.updatedAt).toLocaleString()}
+                      <div className="card-body py-4 flex flex-row justify-between items-center">
+                        <div>
+                          <div className="font-semibold">{b.title}</div>
+                          <div className="text-xs text-neutral-500">
+                            Updated: {new Date(b.updatedAt).toLocaleString()}
+                          </div>
                         </div>
+
+                        {/* Delete Button */}
+                        <button 
+                          className="btn btn-ghost btn-sm btn-square text-error opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                          title="Delete Board"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            handleDeleteBoard(b._id);
+                          }}
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </div>
                   ))}

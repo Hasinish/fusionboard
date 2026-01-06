@@ -72,7 +72,7 @@ function NavBar() {
           </button>
 
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-secondary btn-sm"
             onClick={() => navigate("/workspaces/create")}
           >
             Create workspace

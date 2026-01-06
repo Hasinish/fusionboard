@@ -1,7 +1,10 @@
 // backend/src/server.js
+
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
@@ -14,6 +17,9 @@ import boardRoutes from "./routes/boardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import driveRoutes from "./routes/driveRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js"; // [NEW]
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
@@ -21,10 +27,8 @@ import Board from "./models/Board.js";
 import User from "./models/User.js";
 import Workspace from "./models/Workspace.js";
 import Notification from "./models/Notification.js";
-import driveRoutes from "./routes/driveRoutes.js";
-import noteRoutes from "./routes/noteRoutes.js";
+import Activity from "./models/Activity.js"; // [NEW]
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -51,6 +55,7 @@ app.use(
   })
 );
 app.use(express.json());
+
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
@@ -58,16 +63,14 @@ app.get("/", (req, res) => {
 // ---- routes ----
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes);
+app.use("/api/workspaces", chatRoutes); // for /:id/messages
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/users", userRoutes); 
-app.use("/api/boards", boardRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/users", userRoutes); 
+app.use("/api/users", userRoutes);
 app.use("/api/drive", driveRoutes);
+app.use("/api/activities", activityRoutes); // [NEW]
 
 // ---- socket server ----
 const server = http.createServer(app);
@@ -108,6 +111,7 @@ const CURSOR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e",
   "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
 ];
+
 function pickColor(key) {
   const s = String(key || "");
   let hash = 0;
@@ -115,6 +119,7 @@ function pickColor(key) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
+// [UPDATED] Meta map to track edit status
 const socketMeta = new Map();
 
 function broadcastParticipants(roomId) {
@@ -124,7 +129,11 @@ function broadcastParticipants(roomId) {
     .map((sid) => {
       const s = io.sockets.sockets.get(sid);
       if (!s) return null;
-      return { peerId: sid, name: s.userName || "Unknown" };
+      return { 
+        peerId: sid, 
+        name: s.userName || "Unknown",
+        isMuted: !!s.isMuted 
+      };
     })
     .filter(Boolean);
   io.to(roomId).emit("voice:participants:update", { participants });
@@ -137,11 +146,18 @@ io.on("connection", (socket) => {
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
     socket.join(roomId);
+    socket.isMuted = false; 
+
     broadcastParticipants(roomId);
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
       name: socket.userName || "Unknown",
     });
+  });
+
+  socket.on("voice:mute-change", ({ roomId, isMuted }) => {
+    socket.isMuted = isMuted; 
+    broadcastParticipants(roomId); 
   });
 
   socket.on("voice:signal", ({ to, data }) => {
@@ -162,11 +178,27 @@ io.on("connection", (socket) => {
   socket.on("disconnecting", () => {
     for (const roomId of socket.rooms) {
       if (roomId === socket.id) continue;
-      setTimeout(() => broadcastParticipants(roomId), 0);
       socket.to(roomId).emit("voice:peer-left", {
         peerId: socket.id,
         name: socket.userName || "Unknown",
       });
+      
+      const room = io.sockets.adapter.rooms.get(roomId);
+      const socketIds = room ? Array.from(room) : [];
+      const participants = socketIds
+        .filter(sid => sid !== socket.id)
+        .map((sid) => {
+            const s = io.sockets.sockets.get(sid);
+            if (!s) return null;
+            return { 
+                peerId: sid, 
+                name: s.userName || "Unknown",
+                isMuted: !!s.isMuted 
+            };
+        })
+        .filter(Boolean);
+      
+      io.to(roomId).emit("voice:participants:update", { participants });
     }
   });
 
@@ -215,7 +247,7 @@ io.on("connection", (socket) => {
       // 2. Broadcast to room
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
 
-      // 3. Create Notifications for ALL members (except sender)
+      // 3. Create Notifications
       const ws = await Workspace.findById(workspaceId).select("name members");
       if (ws && ws.members) {
         const recipients = ws.members
@@ -244,6 +276,14 @@ io.on("connection", (socket) => {
         }
       }
 
+      // [NEW] 4. Log Activity
+      await Activity.create({
+        workspace: workspaceId,
+        user: socket.userId,
+        action: "sent_message",
+        details: clean.substring(0, 50) + (clean.length > 50 ? "..." : ""),
+      });
+
       if (ack) ack({ ok: true });
     } catch (e) {
       console.error("chat:send error:", e);
@@ -254,18 +294,41 @@ io.on("connection", (socket) => {
   // =========================
   // WHITEBOARD
   // =========================
-  socket.on("joinBoard", ({ boardId, user }) => {
+  socket.on("joinBoard", async ({ boardId, user }) => {
     if (!boardId) return;
     const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
     const color = pickColor(userId);
+
+    // [NEW] Fetch workspace info for logging
+    let workspaceId = null;
+    let boardTitle = "Unknown Board";
+    try {
+        const board = await Board.findById(boardId).select("workspace title");
+        if (board) {
+            workspaceId = board.workspace;
+            boardTitle = board.title;
+        }
+    } catch (e) { /* ignore */ }
+
     socket.join(`board:${boardId}`);
-    socketMeta.set(socket.id, { boardId, userId, name, color });
+    
+    // [NEW] Store metadata including hasEdited flag
+    socketMeta.set(socket.id, { 
+        boardId, userId, name, color, 
+        workspaceId, boardTitle, hasEdited: false 
+    });
+    
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
+    
+    // [NEW] Mark session as edited
+    const meta = socketMeta.get(socket.id);
+    if (meta) meta.hasEdited = true;
+
     socket.to(`board:${boardId}`).emit("draw", segment);
     try {
       const updated = await Board.findByIdAndUpdate(
@@ -298,6 +361,10 @@ io.on("connection", (socket) => {
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
     try {
+      // Also mark as edited if cleared
+      const meta = socketMeta.get(socket.id);
+      if (meta) meta.hasEdited = true;
+
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
       io.to(`board:${boardId}`).emit("cleared");
       io.to(`board:${boardId}`).emit("saved", {
@@ -308,10 +375,27 @@ io.on("connection", (socket) => {
     }
   });
 
-  const leaveCursor = () => {
+  // [UPDATED] Leave Logic with Logging
+  const leaveCursor = async () => {
     const meta = socketMeta.get(socket.id);
-    if (!meta?.boardId) return;
-    socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
+    if (!meta) return;
+
+    if (meta.boardId) {
+        socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
+    }
+
+    // [NEW] Log if they drew something during this session
+    if (meta.hasEdited && meta.workspaceId) {
+        try {
+            await Activity.create({
+                workspace: meta.workspaceId,
+                user: meta.userId,
+                action: "edited_board",
+                details: meta.boardTitle,
+            });
+        } catch (e) { console.error("Failed to log board edit", e); }
+    }
+
     socketMeta.delete(socket.id);
   };
 

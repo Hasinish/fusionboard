@@ -128,7 +128,7 @@ export default function WorkspaceChat({ workspaceId }) {
             onChange={(e) => setText(e.target.value)}
             placeholder="Type a message..."
           />
-          <button className="btn btn-primary" type="submit">
+          <button className="btn btn-secondary" type="submit">
             Send
           </button>
         </form>

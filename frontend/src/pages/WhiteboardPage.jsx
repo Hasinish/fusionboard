@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { Edit2, Check } from "lucide-react";
-
 import NavBar from "../components/NavBar";
 import WhiteboardCanvas from "../components/WhiteboardCanvas";
 import PersonalNotes from "../components/PersonalNotes";
+import VoiceChat from "../components/VoiceChat"; // [NEW] Import
 import { getUser, isLoggedIn } from "../lib/auth";
 import api from "../lib/api";
 
@@ -14,7 +14,7 @@ function WhiteboardPage() {
   const { id, boardId } = useParams();
   const me = getUser();
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
+  
   // --- PARENT STATE ---
   const [boardTitle, setBoardTitle] = useState("Loading...");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -40,7 +40,6 @@ function WhiteboardPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBoardTitle(res.data.title || "Untitled Board");
-      // Pass the segments to the child canvas for initial render
       if (res.data.segments) {
         setInitialSegments(res.data.segments);
       }
@@ -98,13 +97,15 @@ function WhiteboardPage() {
     <div className="min-h-screen bg-base-200 flex flex-col">
       <NavBar />
 
-      <main className="flex-1 pb-10">
+      <main className="flex-1 pb-10 relative"> 
+        
+        
         <div className="max-w-6xl mx-auto px-4 py-6">
           
           {/* Header */}
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              {isEditingTitle ? (
+               {isEditingTitle ? (
                  <div className="flex items-center gap-2">
                     <input 
                        className="input input-sm input-bordered text-lg font-bold"
@@ -142,7 +143,7 @@ function WhiteboardPage() {
             </div>
           </div>
 
-          {/* Whiteboard Canvas (Includes Controls) */}
+          {/* Whiteboard Canvas */}
           <WhiteboardCanvas 
             boardId={boardId} 
             socket={socketRef.current}
@@ -155,6 +156,9 @@ function WhiteboardPage() {
             boardId={boardId} 
             token={token} 
           />
+
+          
+          <VoiceChat roomId={boardId} />
 
         </div>
       </main>

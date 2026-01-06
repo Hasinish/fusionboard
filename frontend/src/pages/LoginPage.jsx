@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/api";
 import { saveAuth, isLoggedIn } from "../lib/auth";
+import { GoogleLogin } from "@react-oauth/google"; // [NEW] Import Google Component
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -19,21 +20,33 @@ function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
     try {
       const res = await api.post("/auth/login", { email, password });
-
       saveAuth(res.data.token, res.data.user);
-
-      // Go to dashboard
       navigate("/dashboard");
     } catch (err) {
-      setError("Login failed. Check email or password.");
+      setError(err?.response?.data?.message || "Login failed. Check email or password.");
+    }
+  };
+
+  //Handle Google Login Success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // Send the token we got from Google to our Backend
+      const res = await api.post("/auth/google", {
+        credential: credentialResponse.credential,
+      });
+      // Save our own backend token
+      saveAuth(res.data.token, res.data.user);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError("Google Login failed.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-base-200">
       <div className="card w-full max-w-sm bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title justify-center mb-4">Login</h2>
@@ -43,6 +56,18 @@ function LoginPage() {
               <span>{error}</span>
             </div>
           )}
+
+         
+          <div className="w-full flex justify-center mb-4">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google Login Failed")}
+              theme="outline"
+              width="320"
+            />
+          </div>
+
+          <div className="divider text-xs text-neutral-400">OR EMAIL</div>
 
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="form-control">
