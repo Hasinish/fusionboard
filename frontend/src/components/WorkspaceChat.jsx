@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import api from "../lib/api";
+import api, { API_URL } from "../lib/api"; 
 import { getUser } from "../lib/auth";
 
 function formatTime(d) {
@@ -21,7 +21,6 @@ export default function WorkspaceChat({ workspaceId }) {
   const [status, setStatus] = useState("connecting...");
   const bottomRef = useRef(null);
 
-  // Load previous messages (persistent)
   useEffect(() => {
     const load = async () => {
       if (!token) return;
@@ -37,11 +36,14 @@ export default function WorkspaceChat({ workspaceId }) {
     load();
   }, [workspaceId, token]);
 
-  // Realtime socket (single connection)
+  // Socket Connection
   useEffect(() => {
     if (!token) return;
 
-    const socket = io("http://localhost:5001", {
+    // Use dynamic URL
+    const socketUrl = API_URL.replace("/api", "");
+
+    const socket = io(socketUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
     });
@@ -69,7 +71,6 @@ export default function WorkspaceChat({ workspaceId }) {
     };
   }, [workspaceId, token]);
 
-  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -88,7 +89,6 @@ export default function WorkspaceChat({ workspaceId }) {
     socket.emit("chat:send", { workspaceId, text: clean }, (ack) => {
       if (!ack?.ok) setStatus(ack?.message || "Send failed");
     });
-
     setText("");
   };
 

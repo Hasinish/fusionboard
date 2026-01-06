@@ -1,26 +1,27 @@
-// frontend/src/components/VoiceChat.jsx
-
 import { useMemo, useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { Mic, MicOff, Phone, PhoneOff, Users } from "lucide-react";
 import { getUser } from "../lib/auth";
+import { API_URL } from "../lib/api"; // [NEW] Import helper
 
-const SIGNAL_URL = "http://localhost:5001";
+// [NEW] Use dynamic URL
+const SIGNAL_URL = API_URL.replace("/api", "");
+
 const RTC_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
 export default function VoiceChat({ roomId }) {
   const me = getUser();
-  const [status, setStatus] = useState("idle"); // idle, connecting, connected, error
+  const [status, setStatus] = useState("idle"); 
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
-  const [participants, setParticipants] = useState([]); // { peerId, name, isMuted }
+  const [participants, setParticipants] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const socket = useRef(null);
   const localStream = useRef(null);
-  const pcs = useRef(new Map()); // peerId -> RTCPeerConnection
+  const pcs = useRef(new Map()); 
   const pendingIce = useRef(new Map());
   const makingOffer = useRef(new Map());
 
@@ -147,6 +148,7 @@ export default function VoiceChat({ roomId }) {
         video: false,
       });
 
+      // [NEW] Use dynamic SIGNAL_URL
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
@@ -245,10 +247,9 @@ export default function VoiceChat({ roomId }) {
     if (!track) return;
 
     const next = !isMuted;
-    track.enabled = !next; // Mute locally
-    setIsMuted(next);      // Update local state
+    track.enabled = !next; 
+    setIsMuted(next);      
     
-    // [NEW] Tell server
     if (socket.current) {
         socket.current.emit("voice:mute-change", { roomId, isMuted: next });
     }
@@ -258,7 +259,6 @@ export default function VoiceChat({ roomId }) {
     return () => leaveRoom();
   }, []);
 
-  // --- UI RENDER ---
   if (status === "idle" || status === "error") {
     return (
       <div className="fixed bottom-4 right-4 z-50">
@@ -282,7 +282,6 @@ export default function VoiceChat({ roomId }) {
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       <div id="voice-audio-container" className="hidden" />
 
-      {/* Expanded Participant List */}
       {isExpanded && (
         <div className="card bg-base-100 shadow-xl border border-base-300 w-64 mb-2">
             <div className="card-body p-3">
@@ -295,13 +294,11 @@ export default function VoiceChat({ roomId }) {
                 <ul className="max-h-40 overflow-y-auto space-y-2">
                     {participants.map(p => (
                         <li key={p.peerId} className="text-xs flex items-center gap-2">
-                             {/* [NEW] Show Mic Icon based on isMuted */}
                              {p.isMuted ? (
                                 <MicOff size={14} className="text-error" /> 
                              ) : (
                                 <Mic size={14} className="text-success" />
                              )}
-                             
                              <span className="truncate max-w-[150px]">
                                 {p.name} {p.peerId === socket.current?.id ? "(You)" : ""}
                              </span>
@@ -312,7 +309,6 @@ export default function VoiceChat({ roomId }) {
         </div>
       )}
 
-      {/* Controls Bar */}
       <div className="flex items-center gap-2 bg-base-100 p-2 rounded-full shadow-xl border border-base-200">
         <button 
             className="btn btn-circle btn-sm btn-ghost"

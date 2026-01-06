@@ -1,5 +1,3 @@
-// backend/src/server.js
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -19,7 +17,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import driveRoutes from "./routes/driveRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
-import activityRoutes from "./routes/activityRoutes.js"; // [NEW]
+import activityRoutes from "./routes/activityRoutes.js";
 
 import { ensureMember } from "./controllers/chatController.js";
 import Message from "./models/Message.js";
@@ -27,7 +25,7 @@ import Board from "./models/Board.js";
 import User from "./models/User.js";
 import Workspace from "./models/Workspace.js";
 import Notification from "./models/Notification.js";
-import Activity from "./models/Activity.js"; // [NEW]
+import Activity from "./models/Activity.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -41,16 +39,20 @@ const connect =
       : null;
 
 if (!connect) {
-  throw new Error(
-    "DB connect function not found. Check src/config/db.js export."
-  );
+  throw new Error("DB connect function not found.");
 }
 connect();
 
-// ---- middleware ----
+// [UPDATED] ALLOWED ORIGINS (CORS)
+const allowedOrigins = [
+  "http://localhost:5173", // Local development
+  process.env.FRONTEND_URL, // This will be your Vercel URL
+  "https://fusionboard.vercel.app" // Backup fallback
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -63,20 +65,20 @@ app.get("/", (req, res) => {
 // ---- routes ----
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/workspaces", chatRoutes); // for /:id/messages
+app.use("/api/workspaces", chatRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/boards", boardRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/drive", driveRoutes);
-app.use("/api/activities", activityRoutes); // [NEW]
+app.use("/api/activities", activityRoutes);
 
 // ---- socket server ----
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: allowedOrigins, // [UPDATED] Use same allowed origins
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -106,7 +108,6 @@ io.use(async (socket, next) => {
   }
 });
 
-// WHITEBOARD cursor colors
 const CURSOR_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e",
   "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
@@ -119,7 +120,6 @@ function pickColor(key) {
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
 }
 
-// [UPDATED] Meta map to track edit status
 const socketMeta = new Map();
 
 function broadcastParticipants(roomId) {
@@ -140,14 +140,11 @@ function broadcastParticipants(roomId) {
 }
 
 io.on("connection", (socket) => {
-  // =========================
   // VOICE ROOMS
-  // =========================
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
     socket.join(roomId);
     socket.isMuted = false; 
-
     broadcastParticipants(roomId);
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
@@ -182,7 +179,6 @@ io.on("connection", (socket) => {
         peerId: socket.id,
         name: socket.userName || "Unknown",
       });
-      
       const room = io.sockets.adapter.rooms.get(roomId);
       const socketIds = room ? Array.from(room) : [];
       const participants = socketIds
@@ -197,14 +193,11 @@ io.on("connection", (socket) => {
             };
         })
         .filter(Boolean);
-      
       io.to(roomId).emit("voice:participants:update", { participants });
     }
   });
 
-  // =========================
   // WORKSPACE CHAT
-  // =========================
   socket.on("workspace:join", async ({ workspaceId }, ack) => {
     try {
       const check = await ensureMember(workspaceId, socket.userId);
@@ -226,64 +219,42 @@ io.on("connection", (socket) => {
         if (ack) ack({ ok: false, message: "Empty message" });
         return;
       }
-
       const check = await ensureMember(workspaceId, socket.userId);
       if (!check.ok) {
         if (ack) ack({ ok: false, message: check.message });
         return;
       }
-
-      // 1. Save Message
       const msg = await Message.create({
         workspace: workspaceId,
         sender: socket.userId,
         text: clean,
       });
-
       const full = await Message.findById(msg._id)
         .populate("sender", "name email")
         .lean();
-
-      // 2. Broadcast to room
       io.to(`ws:${workspaceId}`).emit("chat:new", full);
-
-      // 3. Create Notifications
       const ws = await Workspace.findById(workspaceId).select("name members");
       if (ws && ws.members) {
         const recipients = ws.members
           .filter((m) => String(m.user) !== String(socket.userId))
           .map((m) => m.user);
-
         const operations = recipients.map((recipientId) => ({
           updateOne: {
-            filter: {
-              recipient: recipientId,
-              workspace: workspaceId,
-              type: "message",
-            },
-            update: {
-              $set: {
-                text: `You have new messages in ${ws.name}`,
-                isRead: false,
-              },
-            },
+            filter: { recipient: recipientId, workspace: workspaceId, type: "message" },
+            update: { $set: { text: `You have new messages in ${ws.name}`, isRead: false } },
             upsert: true,
           },
         }));
-
         if (operations.length > 0) {
           await Notification.bulkWrite(operations);
         }
       }
-
-      // [NEW] 4. Log Activity
       await Activity.create({
         workspace: workspaceId,
         user: socket.userId,
         action: "sent_message",
         details: clean.substring(0, 50) + (clean.length > 50 ? "..." : ""),
       });
-
       if (ack) ack({ ok: true });
     } catch (e) {
       console.error("chat:send error:", e);
@@ -291,16 +262,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  // =========================
   // WHITEBOARD
-  // =========================
   socket.on("joinBoard", async ({ boardId, user }) => {
     if (!boardId) return;
     const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
     const color = pickColor(userId);
-
-    // [NEW] Fetch workspace info for logging
     let workspaceId = null;
     let boardTitle = "Unknown Board";
     try {
@@ -310,25 +277,18 @@ io.on("connection", (socket) => {
             boardTitle = board.title;
         }
     } catch (e) { /* ignore */ }
-
     socket.join(`board:${boardId}`);
-    
-    // [NEW] Store metadata including hasEdited flag
     socketMeta.set(socket.id, { 
         boardId, userId, name, color, 
         workspaceId, boardTitle, hasEdited: false 
     });
-    
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
   socket.on("draw", async ({ boardId, segment }) => {
     if (!boardId || !segment) return;
-    
-    // [NEW] Mark session as edited
     const meta = socketMeta.get(socket.id);
     if (meta) meta.hasEdited = true;
-
     socket.to(`board:${boardId}`).emit("draw", segment);
     try {
       const updated = await Board.findByIdAndUpdate(
@@ -361,10 +321,8 @@ io.on("connection", (socket) => {
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
     try {
-      // Also mark as edited if cleared
       const meta = socketMeta.get(socket.id);
       if (meta) meta.hasEdited = true;
-
       await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
       io.to(`board:${boardId}`).emit("cleared");
       io.to(`board:${boardId}`).emit("saved", {
@@ -375,16 +333,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  // [UPDATED] Leave Logic with Logging
   const leaveCursor = async () => {
     const meta = socketMeta.get(socket.id);
     if (!meta) return;
-
     if (meta.boardId) {
         socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
     }
-
-    // [NEW] Log if they drew something during this session
     if (meta.hasEdited && meta.workspaceId) {
         try {
             await Activity.create({
@@ -395,7 +349,6 @@ io.on("connection", (socket) => {
             });
         } catch (e) { console.error("Failed to log board edit", e); }
     }
-
     socketMeta.delete(socket.id);
   };
 

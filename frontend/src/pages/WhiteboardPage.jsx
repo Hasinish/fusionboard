@@ -5,9 +5,9 @@ import { Edit2, Check } from "lucide-react";
 import NavBar from "../components/NavBar";
 import WhiteboardCanvas from "../components/WhiteboardCanvas";
 import PersonalNotes from "../components/PersonalNotes";
-import VoiceChat from "../components/VoiceChat"; // [NEW] Import
+import VoiceChat from "../components/VoiceChat";
 import { getUser, isLoggedIn } from "../lib/auth";
-import api from "../lib/api";
+import api, { API_URL } from "../lib/api"; 
 
 function WhiteboardPage() {
   const navigate = useNavigate();
@@ -15,23 +15,17 @@ function WhiteboardPage() {
   const me = getUser();
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   
-  // --- PARENT STATE ---
   const [boardTitle, setBoardTitle] = useState("Loading...");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
-  
-  // Data State
   const [initialSegments, setInitialSegments] = useState([]);
-  
-  // Socket State
   const socketRef = useRef(null);
 
   useEffect(() => {
     if (!isLoggedIn()) navigate("/login");
   }, [navigate]);
 
-  // --- API ---
   const loadBoard = async () => {
     if (!token) return;
     setStatusMsg("Loading board...");
@@ -69,9 +63,12 @@ function WhiteboardPage() {
     }
   };
 
-  // --- SOCKET ---
+  // [UPDATED] SOCKET CONNECTION
   useEffect(() => {
-    const socket = io("http://localhost:5001", {
+    // Use dynamic URL
+    const socketUrl = API_URL.replace("/api", "");
+
+    const socket = io(socketUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -98,11 +95,7 @@ function WhiteboardPage() {
       <NavBar />
 
       <main className="flex-1 pb-10 relative"> 
-        
-        
         <div className="max-w-6xl mx-auto px-4 py-6">
-          
-          {/* Header */}
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
                {isEditingTitle ? (
@@ -143,7 +136,6 @@ function WhiteboardPage() {
             </div>
           </div>
 
-          {/* Whiteboard Canvas */}
           <WhiteboardCanvas 
             boardId={boardId} 
             socket={socketRef.current}
@@ -151,15 +143,12 @@ function WhiteboardPage() {
             me={me}
           />
 
-          {/* Personal Notes */}
           <PersonalNotes 
             boardId={boardId} 
             token={token} 
           />
 
-          
           <VoiceChat roomId={boardId} />
-
         </div>
       </main>
     </div>
