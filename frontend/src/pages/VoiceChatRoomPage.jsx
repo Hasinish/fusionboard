@@ -3,8 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import NavBar from "../components/NavBar";
 import { getUser, isLoggedIn } from "../lib/auth";
+import { API_URL } from "../lib/api"; // [NEW] Import the helper
 
-const SIGNAL_URL = "http://localhost:5001";
+// [NEW] Use dynamic URL instead of localhost
+const SIGNAL_URL = API_URL.replace("/api", "");
 
 const RTC_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -14,15 +16,14 @@ function VoiceChatRoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
   const me = getUser();
-
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
-  const [participants, setParticipants] = useState([]); // [{ peerId, name }]
+  const [participants, setParticipants] = useState([]);
 
   const socket = useRef(null);
   const localStream = useRef(null);
-  const pcs = useRef(new Map()); // peerId -> RTCPeerConnection
+  const pcs = useRef(new Map());
   const pendingIce = useRef(new Map()); // peerId -> RTCIceCandidate[]
   const makingOffer = useRef(new Map()); // peerId -> boolean
 
@@ -64,7 +65,6 @@ function VoiceChatRoomPage() {
 
   const createPeerConnection = (peerId) => {
     const pc = new RTCPeerConnection(RTC_CONFIG);
-
     // Add local audio tracks
     const stream = localStream.current;
     if (stream) {
@@ -78,7 +78,6 @@ function VoiceChatRoomPage() {
 
       const elId = `audio-${peerId}`;
       let audioEl = document.getElementById(elId);
-
       if (!audioEl) {
         audioEl = document.createElement("audio");
         audioEl.id = elId;
@@ -119,10 +118,8 @@ function VoiceChatRoomPage() {
   const flushPendingIce = async (peerId) => {
     const pc = pcs.current.get(peerId);
     if (!pc || !pc.remoteDescription) return;
-
     const list = pendingIce.current.get(peerId);
     if (!list || list.length === 0) return;
-
     while (list.length) {
       const cand = list.shift();
       try {
@@ -147,7 +144,6 @@ function VoiceChatRoomPage() {
 
     try {
       setMakingOffer(peerId, true);
-
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: false,
@@ -165,14 +161,12 @@ function VoiceChatRoomPage() {
 
   const joinRoom = async () => {
     setError("");
-
     if (!isLoggedIn() || !token) {
       navigate("/login");
       return;
     }
 
     setStatus("connecting");
-
     try {
       // get mic
       localStream.current = await navigator.mediaDevices.getUserMedia({
@@ -180,6 +174,7 @@ function VoiceChatRoomPage() {
         video: false,
       });
 
+      // [NEW] Use dynamic SIGNAL_URL
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
@@ -223,7 +218,6 @@ function VoiceChatRoomPage() {
         try {
           if (data?.type === "offer") {
             // If we are currently making an offer, ignore glare by answering only if we are NOT the offerer
-            // With deterministic rule, only one side should offer anyway.
             if (getMakingOffer(from) && iShouldOffer(from)) return;
 
             await pc.setRemoteDescription(data.sdp);
@@ -258,7 +252,6 @@ function VoiceChatRoomPage() {
 
   const leaveRoom = () => {
     setError("");
-
     try {
       if (socket.current) {
         socket.current.emit("voice:leave", { roomId });
