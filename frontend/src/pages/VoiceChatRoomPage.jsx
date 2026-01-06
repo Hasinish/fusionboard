@@ -3,76 +3,86 @@ import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import NavBar from "../components/NavBar";
 import { getUser, isLoggedIn } from "../lib/auth";
-import { API_URL } from "../lib/api"; // [NEW] Import the helper
+import { API_URL } from "../lib/api"; 
 
-// [NEW] Use dynamic URL instead of localhost
 const SIGNAL_URL = API_URL.replace("/api", "");
 
+// [UPDATED] More STUN servers to help with connection
 const RTC_CONFIG = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:global.stun.twilio.com:3478" },
+    { urls: "stun:stun.stunprotocol.org:3478" }
+  ],
 };
 
 function VoiceChatRoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
   const me = getUser();
+  
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [participants, setParticipants] = useState([]);
+  
+  // [NEW] Track connection state for each peer to show on UI
+  const [peerStates, setPeerStates] = useState({}); 
 
   const socket = useRef(null);
   const localStream = useRef(null);
   const pcs = useRef(new Map());
-  const pendingIce = useRef(new Map()); // peerId -> RTCIceCandidate[]
-  const makingOffer = useRef(new Map()); // peerId -> boolean
+  const pendingIce = useRef(new Map());
+  const makingOffer = useRef(new Map());
 
   const token = useMemo(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem("token");
   }, []);
 
+  const updatePeerState = (peerId, state) => {
+    setPeerStates(prev => ({ ...prev, [peerId]: state }));
+  };
+
   const ensurePendingIceList = (peerId) => {
     if (!pendingIce.current.has(peerId)) pendingIce.current.set(peerId, []);
     return pendingIce.current.get(peerId);
   };
 
-  const setMakingOffer = (peerId, v) => {
-    makingOffer.current.set(peerId, v);
-  };
-
-  const getMakingOffer = (peerId) => {
-    return makingOffer.current.get(peerId) === true;
-  };
-
   const cleanupPeer = (peerId) => {
     const pc = pcs.current.get(peerId);
     if (pc) {
-      try {
-        pc.onicecandidate = null;
-        pc.ontrack = null;
-        pc.onconnectionstatechange = null;
-        pc.close();
-      } catch {}
+      pc.close();
       pcs.current.delete(peerId);
     }
     pendingIce.current.delete(peerId);
     makingOffer.current.delete(peerId);
-
+    
+    // Remove audio element
     const audioEl = document.getElementById(`audio-${peerId}`);
     if (audioEl) audioEl.remove();
+
+    // Remove state
+    setPeerStates(prev => {
+        const copy = { ...prev };
+        delete copy[peerId];
+        return copy;
+    });
   };
 
   const createPeerConnection = (peerId) => {
     const pc = new RTCPeerConnection(RTC_CONFIG);
-    // Add local audio tracks
+    updatePeerState(peerId, "connecting");
+
+    // Add local tracks
     const stream = localStream.current;
     if (stream) {
       for (const track of stream.getTracks()) pc.addTrack(track, stream);
     }
 
-    // Receive remote audio
+    // Handle Remote Audio
     pc.ontrack = (event) => {
+      console.log("Receiver track received from:", peerId);
       const [remoteStream] = event.streams;
       if (!remoteStream) return;
 
@@ -83,16 +93,19 @@ function VoiceChatRoomPage() {
         audioEl.id = elId;
         audioEl.autoplay = true;
         audioEl.playsInline = true;
-        audioEl.controls = true;
-        audioEl.className = "w-full mt-2";
+        audioEl.controls = true; // Show controls so you can verify it exists
+        audioEl.className = "w-full mt-1 h-8"; 
         document.getElementById("remote-audio-container")?.appendChild(audioEl);
       }
-
       audioEl.srcObject = remoteStream;
-      audioEl.play().catch(() => {});
+      
+      // Force play
+      audioEl.play().catch(err => {
+        console.error("Autoplay failed:", err);
+        setError("Click the play button on the audio controls to hear sound.");
+      });
     };
 
-    // ICE out
     pc.onicecandidate = (event) => {
       if (event.candidate && socket.current) {
         socket.current.emit("voice:signal", {
@@ -103,8 +116,9 @@ function VoiceChatRoomPage() {
     };
 
     pc.onconnectionstatechange = () => {
-      const st = pc.connectionState;
-      if (st === "failed" || st === "disconnected" || st === "closed") {
+      console.log(`PC ${peerId} state:`, pc.connectionState);
+      updatePeerState(peerId, pc.connectionState);
+      if (pc.connectionState === "failed" || pc.connectionState === "closed") {
         cleanupPeer(peerId);
       }
     };
@@ -115,41 +129,30 @@ function VoiceChatRoomPage() {
 
   const ensurePC = (peerId) => pcs.current.get(peerId) || createPeerConnection(peerId);
 
+  // ... (Standard WebRTC logic helpers remain same)
+  const setMakingOffer = (peerId, v) => makingOffer.current.set(peerId, v);
+  const getMakingOffer = (peerId) => makingOffer.current.get(peerId) === true;
+  const iShouldOffer = (peerId) => (socket.current?.id || "") < peerId;
+
   const flushPendingIce = async (peerId) => {
     const pc = pcs.current.get(peerId);
     if (!pc || !pc.remoteDescription) return;
     const list = pendingIce.current.get(peerId);
-    if (!list || list.length === 0) return;
-    while (list.length) {
+    while (list && list.length) {
       const cand = list.shift();
-      try {
-        await pc.addIceCandidate(cand);
-      } catch {}
+      try { await pc.addIceCandidate(cand); } catch {}
     }
-  };
-
-  // Deterministic offerer: only one side offers (prevents "glare")
-  const iShouldOffer = (peerId) => {
-    const myId = socket.current?.id;
-    if (!myId) return false;
-    return myId < peerId; // stable ordering
   };
 
   const makeOfferTo = async (peerId) => {
     const pc = ensurePC(peerId);
-
     if (!iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
-    if (pc.localDescription || pc.remoteDescription) return; // already negotiated once
-
+    
     try {
       setMakingOffer(peerId, true);
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: false,
-      });
+      const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
       socket.current.emit("voice:signal", {
         to: peerId,
         data: { type: "offer", sdp: pc.localDescription },
@@ -165,240 +168,157 @@ function VoiceChatRoomPage() {
       navigate("/login");
       return;
     }
-
     setStatus("connecting");
+
     try {
-      // get mic
       localStream.current = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false,
       });
 
-      // [NEW] Use dynamic SIGNAL_URL
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
-      });
-
-      socket.current.on("connect_error", (e) => {
-        setStatus("error");
-        setError(e?.message || "Socket connection failed");
       });
 
       socket.current.on("connect", () => {
         socket.current.emit("voice:join", { roomId });
       });
 
-      // Always update list (server sends full list)
       socket.current.on("voice:participants:update", async ({ participants }) => {
-        const list = Array.isArray(participants) ? participants : [];
-        setParticipants(list);
-
+        setParticipants(participants || []);
         const myId = socket.current?.id;
-        const others = myId ? list.filter((p) => p.peerId !== myId) : list;
+        if (!myId) return;
 
-        // Ensure PCs exist
+        const others = participants.filter((p) => p.peerId !== myId);
         for (const p of others) ensurePC(p.peerId);
-
         setStatus("connected");
-
-        // Only the deterministic offerer makes offers
-        for (const p of others) {
-          await makeOfferTo(p.peerId);
-        }
+        for (const p of others) await makeOfferTo(p.peerId);
       });
 
-      socket.current.on("voice:peer-left", ({ peerId }) => {
-        cleanupPeer(peerId);
-      });
+      socket.current.on("voice:peer-left", ({ peerId }) => cleanupPeer(peerId));
 
       socket.current.on("voice:signal", async ({ from, data }) => {
         const pc = ensurePC(from);
-
         try {
-          if (data?.type === "offer") {
-            // If we are currently making an offer, ignore glare by answering only if we are NOT the offerer
+          if (data.type === "offer") {
             if (getMakingOffer(from) && iShouldOffer(from)) return;
-
             await pc.setRemoteDescription(data.sdp);
             await flushPendingIce(from);
-
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-
-            socket.current.emit("voice:signal", {
-              to: from,
-              data: { type: "answer", sdp: pc.localDescription },
-            });
-          } else if (data?.type === "answer") {
+            socket.current.emit("voice:signal", { to: from, data: { type: "answer", sdp: pc.localDescription } });
+          } else if (data.type === "answer") {
             await pc.setRemoteDescription(data.sdp);
             await flushPendingIce(from);
-          } else if (data?.type === "ice" && data?.candidate) {
-            if (!pc.remoteDescription) {
-              ensurePendingIceList(from).push(data.candidate);
-            } else {
-              await pc.addIceCandidate(data.candidate);
-            }
+          } else if (data.type === "ice") {
+            if (pc.remoteDescription) await pc.addIceCandidate(data.candidate);
+            else ensurePendingIceList(from).push(data.candidate);
           }
-        } catch {
-          // keep silent
-        }
+        } catch (e) { console.error("Signal error", e); }
       });
+
     } catch (e) {
       setStatus("error");
-      setError(e?.message || "Could not start voice chat. Check mic permission.");
+      setError("Mic Access Denied: " + e.message);
     }
   };
 
   const leaveRoom = () => {
-    setError("");
-    try {
-      if (socket.current) {
-        socket.current.emit("voice:leave", { roomId });
-        socket.current.disconnect();
-      }
-    } catch {}
-    socket.current = null;
-
-    for (const [peerId, pc] of pcs.current.entries()) {
-      try {
-        pc.close();
-      } catch {}
-      pcs.current.delete(peerId);
-
-      const audioEl = document.getElementById(`audio-${peerId}`);
-      if (audioEl) audioEl.remove();
-    }
-
-    pendingIce.current.clear();
-    makingOffer.current.clear();
-
-    if (localStream.current) {
-      for (const t of localStream.current.getTracks()) t.stop();
-      localStream.current = null;
-    }
-
+    socket.current?.disconnect();
+    localStream.current?.getTracks().forEach(t => t.stop());
+    pcs.current.forEach(pc => pc.close());
+    pcs.current.clear();
     setParticipants([]);
-    setIsMuted(false);
+    setPeerStates({});
     setStatus("idle");
   };
 
   const toggleMute = () => {
-    const stream = localStream.current;
-    if (!stream) return;
-    const track = stream.getAudioTracks()[0];
-    if (!track) return;
-
-    const next = !isMuted;
-    track.enabled = !next;
-    setIsMuted(next);
+    const track = localStream.current?.getAudioTracks()[0];
+    if (track) {
+        track.enabled = !track.enabled;
+        setIsMuted(!track.enabled);
+        socket.current?.emit("voice:mute-change", { roomId, isMuted: !track.enabled });
+    }
   };
 
-  const myLabel = (peerId) => {
-    if (!socket.current?.id) return "";
-    return peerId === socket.current.id ? " (you)" : "";
+  // Label for connection state
+  const getStateColor = (s) => {
+      if (s === "connected") return "text-success";
+      if (s === "failed") return "text-error";
+      if (s === "connecting" || s === "checking") return "text-warning";
+      return "text-neutral-400";
   };
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
       <NavBar />
+      <main className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
+        <div className="mb-5">
+          <h1 className="text-2xl font-bold">Voice Chat</h1>
+          <p className="text-sm text-neutral-500">Room: {roomId}</p>
+        </div>
 
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          <div className="mb-5">
-            <h1 className="text-2xl font-bold">Voice Chat Room</h1>
-            <p className="text-sm text-neutral-500">
-              Room ID: <span className="font-mono">{roomId}</span>
-            </p>
-            {me?.name && (
-              <p className="text-xs text-neutral-500">
-                Logged in as: <span className="font-semibold">{me.name}</span>
-              </p>
+        {error && <div className="alert alert-warning text-sm mb-3">{error}</div>}
+
+        <div className="card bg-base-100 shadow-md">
+          <div className="card-body">
+            <div className="flex justify-between items-center mb-4">
+                <div className="font-semibold text-lg">
+                    Status: <span className={status==="connected"?"text-success":"text-neutral-500"}>{status}</span>
+                </div>
+                <div className="flex gap-2">
+                    {status === "idle" || status === "error" ? (
+                        <button className="btn btn-primary btn-sm" onClick={joinRoom}>Join Voice</button>
+                    ) : (
+                        <>
+                            <button className={`btn btn-sm ${isMuted ? "btn-error" : "btn-outline"}`} onClick={toggleMute}>
+                                {isMuted ? "Unmute" : "Mute Mic"}
+                            </button>
+                            <button className="btn btn-neutral btn-sm" onClick={leaveRoom}>Leave</button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <div className="divider">Participants</div>
+            
+            {participants.length === 0 ? (
+                <div className="text-center text-neutral-400 py-4">No one else is here.</div>
+            ) : (
+                <ul className="space-y-3">
+                    {participants.map(p => {
+                        const isMe = p.peerId === socket.current?.id;
+                        const connState = peerStates[p.peerId] || "new";
+                        
+                        return (
+                            <li key={p.peerId} className="flex flex-col bg-base-50 p-3 rounded-lg border border-base-200">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold flex items-center gap-2">
+                                        {p.name} {isMe && "(You)"}
+                                        {p.isMuted && <span className="badge badge-error badge-xs">Muted</span>}
+                                    </span>
+                                    {!isMe && (
+                                        <span className={`text-xs uppercase font-mono ${getStateColor(connState)}`}>
+                                            {connState}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Audio Container for this person */}
+                                {!isMe && (
+                                    <div id={`audio-${p.peerId}-container`} className="mt-1">
+                                        {/* Audio element will be appended here by JS */}
+                                    </div>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ul>
             )}
-          </div>
 
-          {error && (
-            <div className="alert alert-error py-2 text-sm mb-3">
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  Status: <span className="font-semibold">{status}</span>
-                </div>
-                <div className="text-sm">
-                  People in call:{" "}
-                  <span className="font-semibold">{participants.length}</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {status === "idle" || status === "error" ? (
-                  <button className="btn btn-primary btn-sm" onClick={joinRoom}>
-                    Join Voice Room
-                  </button>
-                ) : (
-                  <button className="btn btn-ghost btn-sm" onClick={leaveRoom}>
-                    Leave Room
-                  </button>
-                )}
-
-                <button
-                  className={`btn btn-sm ${isMuted ? "btn-warning" : "btn-outline"}`}
-                  onClick={toggleMute}
-                  disabled={status !== "connected"}
-                >
-                  {isMuted ? "Unmute" : "Mute"}
-                </button>
-
-                <button
-                  className="btn btn-sm btn-outline"
-                  onClick={() => navigate(`/workspaces/${roomId}`)}
-                >
-                  Back to Workspace
-                </button>
-              </div>
-
-              <div className="divider" />
-
-              <div>
-                <h2 className="font-semibold mb-2">Participants</h2>
-                {participants.length === 0 ? (
-                  <p className="text-sm text-neutral-500">No one in the call yet.</p>
-                ) : (
-                  <ul className="text-sm space-y-1">
-                    {participants.map((p) => (
-                      <li key={p.peerId} className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {p.name || "Unknown"}
-                          <span className="text-neutral-500">{myLabel(p.peerId)}</span>
-                        </span>
-                        <span className="text-xs font-mono text-neutral-500">
-                          {p.peerId.slice(0, 6)}...
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="divider" />
-
-              <div>
-                <h2 className="font-semibold mb-2">Remote Audio</h2>
-                <div id="remote-audio-container" className="space-y-2" />
-                <p className="text-xs text-neutral-500 mt-2">
-                  If autoplay is blocked, click Play on the audio controls above.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 text-xs text-neutral-500">
-            Same PC tip: use headphones to avoid echo/feedback.
+            <div id="remote-audio-container" className="hidden" /> 
+            {/* Hidden container just to hold elements if not manually placed */}
           </div>
         </div>
       </main>
