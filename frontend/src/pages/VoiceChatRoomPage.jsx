@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import NavBar from "../components/NavBar";
@@ -7,27 +7,27 @@ import { API_URL } from "../lib/api";
 
 const SIGNAL_URL = API_URL.replace("/api", "");
 
-// [UPDATED] RTC Config with Free TURN Servers
+// [FIXED] RTC Config with your Metered Credentials pre-filled
 const RTC_CONFIG = {
   iceServers: [
-    // 1. Google's Free STUN (Good for simple connections)
+    // 1. Google's Free STUN (Keeps basic connections fast)
     { urls: "stun:stun.l.google.com:19302" },
 
     // 2. Your Metered.ca TURN Servers (Relays audio through firewalls)
     {
       urls: "turn:global.turn.metered.ca:80",
-      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
-      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
     },
     {
       urls: "turn:global.turn.metered.ca:443",
-      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
-      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
     },
     {
       urls: "turn:global.turn.metered.ca:443?transport=tcp",
-      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
-      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
     }
   ],
 };
@@ -87,60 +87,66 @@ function VoiceChatRoomPage() {
   };
 
   const createPeerConnection = (peerId) => {
-    const pc = new RTCPeerConnection(RTC_CONFIG);
-    updatePeerState(peerId, "connecting");
+    try {
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        updatePeerState(peerId, "connecting");
 
-    // Add local tracks
-    const stream = localStream.current;
-    if (stream) {
-      for (const track of stream.getTracks()) pc.addTrack(track, stream);
+        // Add local tracks
+        const stream = localStream.current;
+        if (stream) {
+          for (const track of stream.getTracks()) pc.addTrack(track, stream);
+        }
+
+        // Handle Remote Audio
+        pc.ontrack = (event) => {
+          console.log("Receiver track received from:", peerId);
+          const [remoteStream] = event.streams;
+          if (!remoteStream) return;
+
+          const elId = `audio-${peerId}`;
+          let audioEl = document.getElementById(elId);
+          if (!audioEl) {
+            audioEl = document.createElement("audio");
+            audioEl.id = elId;
+            audioEl.autoplay = true;
+            audioEl.playsInline = true;
+            audioEl.controls = true; // Show controls so you can verify it exists
+            audioEl.className = "w-full mt-1 h-8"; 
+            document.getElementById("remote-audio-container")?.appendChild(audioEl);
+          }
+          audioEl.srcObject = remoteStream;
+          
+          // Force play
+          audioEl.play().catch(err => {
+            console.error("Autoplay failed:", err);
+            setError("Click the play button on the audio controls to hear sound.");
+          });
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && socket.current) {
+            socket.current.emit("voice:signal", {
+              to: peerId,
+              data: { type: "ice", candidate: event.candidate },
+            });
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          console.log(`PC ${peerId} state:`, pc.connectionState);
+          updatePeerState(peerId, pc.connectionState);
+          if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+            cleanupPeer(peerId);
+          }
+        };
+
+        pcs.current.set(peerId, pc);
+        return pc;
+    } catch (err) {
+        console.error("Failed to create PeerConnection:", err);
+        setError("RTC Config Error: " + err.message);
+        return null;
     }
-
-    // Handle Remote Audio
-    pc.ontrack = (event) => {
-      console.log("Receiver track received from:", peerId);
-      const [remoteStream] = event.streams;
-      if (!remoteStream) return;
-
-      const elId = `audio-${peerId}`;
-      let audioEl = document.getElementById(elId);
-      if (!audioEl) {
-        audioEl = document.createElement("audio");
-        audioEl.id = elId;
-        audioEl.autoplay = true;
-        audioEl.playsInline = true;
-        audioEl.controls = true; // Show controls so you can verify it exists
-        audioEl.className = "w-full mt-1 h-8"; 
-        document.getElementById("remote-audio-container")?.appendChild(audioEl);
-      }
-      audioEl.srcObject = remoteStream;
-      
-      // Force play
-      audioEl.play().catch(err => {
-        console.error("Autoplay failed:", err);
-        setError("Click the play button on the audio controls to hear sound.");
-      });
-    };
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socket.current) {
-        socket.current.emit("voice:signal", {
-          to: peerId,
-          data: { type: "ice", candidate: event.candidate },
-        });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log(`PC ${peerId} state:`, pc.connectionState);
-      updatePeerState(peerId, pc.connectionState);
-      if (pc.connectionState === "failed" || pc.connectionState === "closed") {
-        cleanupPeer(peerId);
-      }
-    };
-
-    pcs.current.set(peerId, pc);
-    return pc;
   };
 
   const ensurePC = (peerId) => pcs.current.get(peerId) || createPeerConnection(peerId);
@@ -162,7 +168,7 @@ function VoiceChatRoomPage() {
 
   const makeOfferTo = async (peerId) => {
     const pc = ensurePC(peerId);
-    if (!iShouldOffer(peerId)) return;
+    if (!pc || !iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
     
     try {
@@ -216,6 +222,8 @@ function VoiceChatRoomPage() {
 
       socket.current.on("voice:signal", async ({ from, data }) => {
         const pc = ensurePC(from);
+        if (!pc) return;
+
         try {
           if (data.type === "offer") {
             if (getMakingOffer(from) && iShouldOffer(from)) return;
@@ -266,6 +274,10 @@ function VoiceChatRoomPage() {
       if (s === "connecting" || s === "checking") return "text-warning";
       return "text-neutral-400";
   };
+
+  useEffect(() => {
+     return () => leaveRoom();
+  }, []);
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
