@@ -7,12 +7,28 @@ import { API_URL } from "../lib/api";
 
 const SIGNAL_URL = API_URL.replace("/api", "");
 
-// [UPDATED] More STUN servers to help with connection
+// [UPDATED] RTC Config with Free TURN Servers
 const RTC_CONFIG = {
   iceServers: [
+    // 1. Google's Free STUN (Good for simple connections)
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:global.stun.twilio.com:3478" },
-    { urls: "stun:stun.stunprotocol.org:3478" }
+
+    // 2. Your Metered.ca TURN Servers (Relays audio through firewalls)
+    {
+      urls: "turn:global.turn.metered.ca:80",
+      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
+      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+    },
+    {
+      urls: "turn:global.turn.metered.ca:443",
+      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
+      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+    },
+    {
+      urls: "turn:global.turn.metered.ca:443?transport=tcp",
+      username: "b5933385af82516fbc3ecd1d", // <--- PASTE USERNAME HERE
+      credential: "CcalWZ0DmKgr2cbF", // <--- PASTE PASSWORD HERE
+    }
   ],
 };
 
@@ -26,7 +42,7 @@ function VoiceChatRoomPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [participants, setParticipants] = useState([]);
   
-  // [NEW] Track connection state for each peer to show on UI
+  // Track connection state for each peer to show on UI
   const [peerStates, setPeerStates] = useState({}); 
 
   const socket = useRef(null);
