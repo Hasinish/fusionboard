@@ -2,18 +2,39 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { Mic, MicOff, Phone, PhoneOff, Users } from "lucide-react";
 import { getUser } from "../lib/auth";
-import { API_URL } from "../lib/api"; // [NEW] Import helper
+import { API_URL } from "../lib/api"; 
 
-// [NEW] Use dynamic URL
+// Use dynamic URL
 const SIGNAL_URL = API_URL.replace("/api", "");
 
+// RTC Config with  Metered Credentials
 const RTC_CONFIG = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    // 1. Google's Free STUN
+    { urls: "stun:stun.l.google.com:19302" },
+
+    // 2. Metered.ca TURN Servers (For 4G/Firewalls)
+    {
+      urls: "turn:global.turn.metered.ca:80",
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
+    },
+    {
+      urls: "turn:global.turn.metered.ca:443",
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
+    },
+    {
+      urls: "turn:global.turn.metered.ca:443?transport=tcp",
+      username: "b5933385af82516fbc3ecd1d",
+      credential: "CcalWZ0DmKgr2cbF",
+    }
+  ],
 };
 
 export default function VoiceChat({ roomId }) {
   const me = getUser();
-  const [status, setStatus] = useState("idle"); 
+  const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [participants, setParticipants] = useState([]);
@@ -34,6 +55,7 @@ export default function VoiceChat({ roomId }) {
     if (!pendingIce.current.has(peerId)) pendingIce.current.set(peerId, []);
     return pendingIce.current.get(peerId);
   };
+
   const setMakingOffer = (peerId, v) => makingOffer.current.set(peerId, v);
   const getMakingOffer = (peerId) => makingOffer.current.get(peerId) === true;
 
@@ -55,48 +77,53 @@ export default function VoiceChat({ roomId }) {
   };
 
   const createPeerConnection = (peerId) => {
-    const pc = new RTCPeerConnection(RTC_CONFIG);
-    
-    const stream = localStream.current;
-    if (stream) {
-      for (const track of stream.getTracks()) pc.addTrack(track, stream);
+    try {
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        
+        const stream = localStream.current;
+        if (stream) {
+          for (const track of stream.getTracks()) pc.addTrack(track, stream);
+        }
+
+        pc.ontrack = (event) => {
+          const [remoteStream] = event.streams;
+          if (!remoteStream) return;
+
+          const elId = `audio-${peerId}`;
+          let audioEl = document.getElementById(elId);
+          if (!audioEl) {
+            audioEl = document.createElement("audio");
+            audioEl.id = elId;
+            audioEl.autoplay = true;
+            audioEl.playsInline = true;
+            document.getElementById("voice-audio-container")?.appendChild(audioEl);
+          }
+          audioEl.srcObject = remoteStream;
+          audioEl.play().catch((e) => console.error("Autoplay blocked", e));
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && socket.current) {
+            socket.current.emit("voice:signal", {
+              to: peerId,
+              data: { type: "ice", candidate: event.candidate },
+            });
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          const st = pc.connectionState;
+          if (st === "failed" || st === "disconnected" || st === "closed") {
+            cleanupPeer(peerId);
+          }
+        };
+
+        pcs.current.set(peerId, pc);
+        return pc;
+    } catch (e) {
+        console.error("RTC Create Error", e);
+        return null;
     }
-
-    pc.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      if (!remoteStream) return;
-
-      const elId = `audio-${peerId}`;
-      let audioEl = document.getElementById(elId);
-      if (!audioEl) {
-        audioEl = document.createElement("audio");
-        audioEl.id = elId;
-        audioEl.autoplay = true;
-        audioEl.playsInline = true;
-        document.getElementById("voice-audio-container")?.appendChild(audioEl);
-      }
-      audioEl.srcObject = remoteStream;
-      audioEl.play().catch(() => {});
-    };
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socket.current) {
-        socket.current.emit("voice:signal", {
-          to: peerId,
-          data: { type: "ice", candidate: event.candidate },
-        });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      const st = pc.connectionState;
-      if (st === "failed" || st === "disconnected" || st === "closed") {
-        cleanupPeer(peerId);
-      }
-    };
-
-    pcs.current.set(peerId, pc);
-    return pc;
   };
 
   const ensurePC = (peerId) => pcs.current.get(peerId) || createPeerConnection(peerId);
@@ -108,7 +135,8 @@ export default function VoiceChat({ roomId }) {
     if (!list || list.length === 0) return;
     while (list.length) {
       const cand = list.shift();
-      try { await pc.addIceCandidate(cand); } catch (e) { /* ignore */ }
+      try { await pc.addIceCandidate(cand);
+      } catch (e) { /* ignore */ }
     }
   };
 
@@ -120,10 +148,9 @@ export default function VoiceChat({ roomId }) {
 
   const makeOfferTo = async (peerId) => {
     const pc = ensurePC(peerId);
-    if (!iShouldOffer(peerId)) return;
+    if (!pc || !iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
-    if (pc.localDescription || pc.remoteDescription) return;
-
+    
     try {
       setMakingOffer(peerId, true);
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
@@ -148,7 +175,6 @@ export default function VoiceChat({ roomId }) {
         video: false,
       });
 
-      // [NEW] Use dynamic SIGNAL_URL
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
@@ -184,6 +210,8 @@ export default function VoiceChat({ roomId }) {
 
       socket.current.on("voice:signal", async ({ from, data }) => {
         const pc = ensurePC(from);
+        if (!pc) return;
+
         try {
           if (data?.type === "offer") {
             if (getMakingOffer(from) && iShouldOffer(from)) return;
@@ -196,15 +224,14 @@ export default function VoiceChat({ roomId }) {
               data: { type: "answer", sdp: pc.localDescription },
             });
           } else if (data?.type === "answer") {
-            await pc.setRemoteDescription(data.sdp);
-            await flushPendingIce(from);
+             await pc.setRemoteDescription(data.sdp);
+             await flushPendingIce(from);
           } else if (data?.type === "ice" && data?.candidate) {
             if (!pc.remoteDescription) ensurePendingIceList(from).push(data.candidate);
             else await pc.addIceCandidate(data.candidate);
           }
         } catch (e) { /* ignore */ }
       });
-
     } catch (e) {
       setStatus("error");
       setError(e?.message || "Check mic permission.");
@@ -221,7 +248,8 @@ export default function VoiceChat({ roomId }) {
     socket.current = null;
 
     for (const [peerId, pc] of pcs.current.entries()) {
-      try { pc.close(); } catch (e) { /* ignore */ }
+      try { pc.close();
+      } catch (e) { /* ignore */ }
       pcs.current.delete(peerId);
       const audioEl = document.getElementById(`audio-${peerId}`);
       if (audioEl) audioEl.remove();
@@ -248,8 +276,7 @@ export default function VoiceChat({ roomId }) {
 
     const next = !isMuted;
     track.enabled = !next; 
-    setIsMuted(next);      
-    
+    setIsMuted(next);
     if (socket.current) {
         socket.current.emit("voice:mute-change", { roomId, isMuted: next });
     }
