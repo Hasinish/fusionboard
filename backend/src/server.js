@@ -30,7 +30,7 @@ import Activity from "./models/Activity.js";
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// ---- DB connect ----
+// hook up the database
 const connect =
   typeof dbModule.default === "function"
     ? dbModule.default
@@ -43,7 +43,7 @@ if (!connect) {
 }
 connect();
 
-// [UPDATED] ALLOWED ORIGINS (CORS)
+// who's allowed to talk to us (cors stuff)
 const allowedOrigins = [
   "http://localhost:5173", // Local development
   process.env.FRONTEND_URL, // This will be your Vercel URL
@@ -62,7 +62,7 @@ app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
-// ---- routes ----
+// all our api routes
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", chatRoutes);
@@ -74,7 +74,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/drive", driveRoutes);
 app.use("/api/activities", activityRoutes);
 
-// ---- socket server ----
+// spin up the websocket server
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -84,7 +84,7 @@ const io = new Server(server, {
   },
 });
 
-// Socket auth middleware
+// make sure socket users actually have a valid token
 io.use(async (socket, next) => {
   try {
     const token =
@@ -129,10 +129,10 @@ function broadcastParticipants(roomId) {
     .map((sid) => {
       const s = io.sockets.sockets.get(sid);
       if (!s) return null;
-      return { 
-        peerId: sid, 
+      return {
+        peerId: sid,
         name: s.userName || "Unknown",
-        isMuted: !!s.isMuted 
+        isMuted: !!s.isMuted
       };
     })
     .filter(Boolean);
@@ -140,11 +140,11 @@ function broadcastParticipants(roomId) {
 }
 
 io.on("connection", (socket) => {
-  // VOICE ROOMS
+  // handling voice chat stuff
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
     socket.join(roomId);
-    socket.isMuted = false; 
+    socket.isMuted = false;
     broadcastParticipants(roomId);
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
@@ -153,8 +153,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("voice:mute-change", ({ roomId, isMuted }) => {
-    socket.isMuted = isMuted; 
-    broadcastParticipants(roomId); 
+    socket.isMuted = isMuted;
+    broadcastParticipants(roomId);
   });
 
   socket.on("voice:signal", ({ to, data }) => {
@@ -184,20 +184,20 @@ io.on("connection", (socket) => {
       const participants = socketIds
         .filter(sid => sid !== socket.id)
         .map((sid) => {
-            const s = io.sockets.sockets.get(sid);
-            if (!s) return null;
-            return { 
-                peerId: sid, 
-                name: s.userName || "Unknown",
-                isMuted: !!s.isMuted 
-            };
+          const s = io.sockets.sockets.get(sid);
+          if (!s) return null;
+          return {
+            peerId: sid,
+            name: s.userName || "Unknown",
+            isMuted: !!s.isMuted
+          };
         })
         .filter(Boolean);
       io.to(roomId).emit("voice:participants:update", { participants });
     }
   });
 
-  // WORKSPACE CHAT
+  // handling text chat in workspaces
   socket.on("workspace:join", async ({ workspaceId }, ack) => {
     try {
       const check = await ensureMember(workspaceId, socket.userId);
@@ -262,7 +262,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // WHITEBOARD
+  // real-time whiteboard drawing stuff
   socket.on("joinBoard", async ({ boardId, user }) => {
     if (!boardId) return;
     const name = user?.name ? String(user.name) : socket.userName || "User";
@@ -271,16 +271,16 @@ io.on("connection", (socket) => {
     let workspaceId = null;
     let boardTitle = "Unknown Board";
     try {
-        const board = await Board.findById(boardId).select("workspace title");
-        if (board) {
-            workspaceId = board.workspace;
-            boardTitle = board.title;
-        }
+      const board = await Board.findById(boardId).select("workspace title");
+      if (board) {
+        workspaceId = board.workspace;
+        boardTitle = board.title;
+      }
     } catch (e) { /* ignore */ }
     socket.join(`board:${boardId}`);
-    socketMeta.set(socket.id, { 
-        boardId, userId, name, color, 
-        workspaceId, boardTitle, hasEdited: false 
+    socketMeta.set(socket.id, {
+      boardId, userId, name, color,
+      workspaceId, boardTitle, hasEdited: false
     });
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
@@ -337,17 +337,17 @@ io.on("connection", (socket) => {
     const meta = socketMeta.get(socket.id);
     if (!meta) return;
     if (meta.boardId) {
-        socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
+      socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
     }
     if (meta.hasEdited && meta.workspaceId) {
-        try {
-            await Activity.create({
-                workspace: meta.workspaceId,
-                user: meta.userId,
-                action: "edited_board",
-                details: meta.boardTitle,
-            });
-        } catch (e) { console.error("Failed to log board edit", e); }
+      try {
+        await Activity.create({
+          workspace: meta.workspaceId,
+          user: meta.userId,
+          action: "edited_board",
+          details: meta.boardTitle,
+        });
+      } catch (e) { console.error("Failed to log board edit", e); }
     }
     socketMeta.delete(socket.id);
   };

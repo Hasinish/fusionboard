@@ -5,7 +5,7 @@ import Invitation from "../models/Invitation.js";
 
 const ONLINE_THRESHOLD_MS = 1000 * 5; // 5 secs ative threshold
 
-// Create a new workspace and send invitations
+// spin up a new workspace and blast out invites
 export async function createWorkspace(req, res) {
   try {
     const userId = req.userId;
@@ -20,7 +20,7 @@ export async function createWorkspace(req, res) {
       return res.status(404).json({ message: "Owner user not found" });
     }
 
-    // Create workspace with owner as first member (role: owner)
+    // make the creator the owner right away
     const workspace = await Workspace.create({
       name,
       description: description || "",
@@ -33,7 +33,7 @@ export async function createWorkspace(req, res) {
       ],
     });
 
-    // memberEmails is expected as an array of strings
+    // expecting a list of emails here
     if (Array.isArray(memberEmails)) {
       for (const rawEmail of memberEmails) {
         const email = String(rawEmail).trim().toLowerCase();
@@ -42,11 +42,11 @@ export async function createWorkspace(req, res) {
 
         const invitedUser = await User.findOne({ email });
         if (!invitedUser) {
-          // If user not registered, skip silently for now
+          // skip unregistered folks for now
           continue;
         }
 
-        // Avoid duplicate invitation
+        // don't spam them if they already have an invite
         const existingInvite = await Invitation.findOne({
           workspace: workspace._id,
           invitedUser: invitedUser._id,
@@ -73,7 +73,7 @@ export async function createWorkspace(req, res) {
   }
 }
 
-// Invite new members (by email) from an existing workspace (owner only)
+// owner-only invite blaster
 export async function inviteMembers(req, res) {
   try {
     const userId = req.userId;
@@ -135,7 +135,7 @@ export async function inviteMembers(req, res) {
   }
 }
 
-// Get all workspaces where the user is a member
+// pull everything this user is part of
 export async function getMyWorkspaces(req, res) {
   try {
     const userId = req.userId;
@@ -153,7 +153,7 @@ export async function getMyWorkspaces(req, res) {
   }
 }
 
-// Get details of a single workspace (only if user is member/owner)
+// fetch workspace info (gotta be in it though)
 export async function getWorkspaceById(req, res) {
   try {
     const userId = req.userId;
@@ -230,7 +230,7 @@ export async function getWorkspaceById(req, res) {
   }
 }
 
-// Change a member's role (owner, editor, viewer) – only owner can do this
+// promote or demote someone (owner only)
 export async function updateMemberRole(req, res) {
   try {
     const userId = req.userId;
@@ -260,7 +260,7 @@ export async function updateMemberRole(req, res) {
       return res.status(404).json({ message: "Member not found in workspace" });
     }
 
-    // Do not allow owner to make themselves non-owner using this endpoint
+    // stop the owner from accidentally locking themselves out
     if (
       String(workspace.owner._id) === String(memberId) &&
       role !== "owner"
@@ -272,7 +272,7 @@ export async function updateMemberRole(req, res) {
     }
 
     if (role === "owner") {
-      // Transfer ownership: new owner gets owner role, old owner becomes editor
+      // hand over the keys and step down
       workspace.members.forEach((m) => {
         if (String(m.user) === String(memberId)) {
           m.role = "owner";
@@ -294,7 +294,7 @@ export async function updateMemberRole(req, res) {
   }
 }
 
-// Remove a member from workspace – only owner, cannot remove owner
+// give someone the boot
 export async function removeMember(req, res) {
   try {
     const userId = req.userId;

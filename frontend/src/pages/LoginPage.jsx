@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/api";
 import { saveAuth, isLoggedIn } from "../lib/auth";
-import { GoogleLogin } from "@react-oauth/google"; // [NEW] Import Google Component
+import { GoogleLogin } from "@react-oauth/google"; // pull in the google login button
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // If already logged in, go to dashboard
+  // boot them to the dashboard if they're already signed in
   useEffect(() => {
     if (isLoggedIn()) {
       navigate("/dashboard");
@@ -29,14 +29,14 @@ function LoginPage() {
     }
   };
 
-  //Handle Google Login Success
+  // what to do when google login works
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      // Send the token we got from Google to our Backend
+      // pass the google token to our server
       const res = await api.post("/auth/google", {
         credential: credentialResponse.credential,
       });
-      // Save our own backend token
+      // store our shiny new login token
       saveAuth(res.data.token, res.data.user);
       navigate("/dashboard");
     } catch (err) {
@@ -57,7 +57,7 @@ function LoginPage() {
             </div>
           )}
 
-         
+
           <div className="w-full flex justify-center mb-4">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}

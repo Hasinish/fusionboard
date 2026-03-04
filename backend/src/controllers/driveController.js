@@ -4,7 +4,7 @@ import { getDriveClient } from "../services/driveService.js";
 import { oauth2Client } from "../config/googleDrive.js";
 import { Readable } from "stream";
 
-// Helper to convert buffer to stream
+// handy trick to turn a buffer into a stream
 function bufferToStream(buffer) {
   const stream = new Readable();
   stream.push(buffer);
@@ -17,7 +17,7 @@ export async function uploadFile(req, res) {
     const { workspaceId } = req.body;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    // 1. Fetch Workspace and its Drive config
+    // 1. grab the workspace and its gdrive setup
     const workspace = await Workspace.findById(workspaceId).populate("members.user");
     if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
@@ -28,7 +28,7 @@ export async function uploadFile(req, res) {
     const drive = getDriveClient(workspace.googleDriveRefreshToken);
     const FOLDER_ID = workspace.googleDriveFolderId;
 
-    // Prepare metadata
+    // set up the file info for google
     const fileMetadata = {
       name: req.file.originalname,
       parents: [FOLDER_ID],
@@ -42,7 +42,7 @@ export async function uploadFile(req, res) {
       body: bufferToStream(req.file.buffer),
     };
 
-    // 2. Upload the file
+    // 2. chuck it into google drive
     const response = await drive.files.create({
       requestBody: fileMetadata,
       media: media,
@@ -51,13 +51,13 @@ export async function uploadFile(req, res) {
 
     const fileId = response.data.id;
 
-    // 3. Add Permissions for each member
-    // We collect all valid emails from the workspace members
+    // 3. give all the workspace members access to it
+    // gather up everyone's email
     const validEmails = workspace.members
       .map(m => m.user?.email)
       .filter(email => email); // remove null/undefined
 
-    // Use Promise.all to add permissions in parallel
+    // speed this up by doing them all at once
     await Promise.all(validEmails.map(async (email) => {
       try {
         await drive.permissions.create({
@@ -74,7 +74,7 @@ export async function uploadFile(req, res) {
       }
     }));
 
-    // [NEW] Log Activity
+    // log the upload
     await Activity.create({
       workspace: workspaceId,
       user: req.userId,
@@ -105,7 +105,7 @@ export async function listFiles(req, res) {
     const drive = getDriveClient(workspace.googleDriveRefreshToken);
     const FOLDER_ID = workspace.googleDriveFolderId;
 
-    // This query looks for files that have the 'workspaceId' tag
+    // hunt down files tagged with this workspace ID
     const query = `'${FOLDER_ID}' in parents and appProperties has { key='workspaceId' and value='${workspaceId}' } and trashed=false`;
 
     const response = await drive.files.list({
@@ -133,7 +133,7 @@ export async function deleteFile(req, res) {
 
     const drive = getDriveClient(workspace.googleDriveRefreshToken);
 
-    // [NEW] Get file info first for logging
+    // grab the file info so we can log what was deleted
     try {
       const fileMeta = await drive.files.get({
         fileId,
@@ -167,7 +167,7 @@ export async function getAuthUrl(req, res) {
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
-    // Only owner can connect Drive
+    // gotta be the boss to link the drive
     if (workspace.owner.toString() !== req.userId) {
       return res.status(403).json({ message: "Only the workspace owner can connect Google Drive." });
     }
@@ -198,7 +198,7 @@ export async function oauthCallback(req, res) {
 
     const drive = getDriveClient(refreshToken);
 
-    // Create a dedicated folder for this workspace
+    // make a shiny new folder just for this workspace
     const workspace = await Workspace.findById(workspaceId);
     const folderMetadata = {
       name: `FusionBoard - ${workspace.name}`,
@@ -210,12 +210,12 @@ export async function oauthCallback(req, res) {
       fields: "id",
     });
 
-    // Save to workspace
+    // save the new creds
     workspace.googleDriveRefreshToken = refreshToken;
     workspace.googleDriveFolderId = folder.data.id;
     await workspace.save();
 
-    // Redirect to frontend
+    // send them back to the app
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/workspaces/${workspaceId}/files?status=success`);
   } catch (error) {

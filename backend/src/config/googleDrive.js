@@ -9,7 +9,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI || "http://localhost:5001/api/drive/callback"
 );
 
-// Set the credentials permanently using the refresh token
+// plug the refresh token in so we don't have to keep logging in
 oauth2Client.setCredentials({
   refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
 });

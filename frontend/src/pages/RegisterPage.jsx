@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/api";
-import { saveAuth } from "../lib/auth"; // [NEW] Added saveAuth import
-import { GoogleLogin } from "@react-oauth/google"; // [NEW] Import Google Component
+import { saveAuth } from "../lib/auth"; // import the auth saver
+import { GoogleLogin } from "@react-oauth/google"; // bring in the google signup button
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -16,20 +16,20 @@ function RegisterPage() {
     setError("");
     try {
       await api.post("/auth/register", { name, email, password });
-      // Standard email register sends them to login page
+      // send them to login after they register
       navigate("/login");
     } catch (err) {
       setError("Registration failed. Try another email.");
     }
   };
 
-  //  Handle Google Signup (Same logic as login)
+  // what happens when they sign up with google
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const res = await api.post("/auth/google", {
         credential: credentialResponse.credential,
       });
-      // Google Signup automatically logs them in, so we go to dashboard
+      // log them straight in and send them to the dashboard
       saveAuth(res.data.token, res.data.user);
       navigate("/dashboard");
     } catch (err) {
@@ -50,7 +50,7 @@ function RegisterPage() {
             </div>
           )}
 
-          
+
           <div className="w-full flex justify-center mb-4">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}

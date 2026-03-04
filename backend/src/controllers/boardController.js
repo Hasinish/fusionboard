@@ -12,7 +12,7 @@ async function ensureMember(userId, workspaceId) {
   return !!ws;
 }
 
-// POST /api/boards  { workspaceId, title? }
+// create a new board in a workspace
 export async function createBoard(req, res) {
   try {
     const userId = req.userId;
@@ -33,7 +33,7 @@ export async function createBoard(req, res) {
       segments: [],
     });
 
-    // Notify all other members
+    // tell everyone else about it
     const ws = await Workspace.findById(workspaceId).select("name members");
     if (ws && ws.members) {
       const recipients = ws.members
@@ -62,7 +62,7 @@ export async function createBoard(req, res) {
       }
     }
 
-    // [NEW] Log Activity
+    // log what just happened
     await Activity.create({
       workspace: workspaceId,
       user: userId,
@@ -77,7 +77,7 @@ export async function createBoard(req, res) {
   }
 }
 
-// GET /api/boards/workspace/:workspaceId
+// grab all boards for a workspace
 export async function listBoards(req, res) {
   try {
     const userId = req.userId;
@@ -98,7 +98,7 @@ export async function listBoards(req, res) {
   }
 }
 
-// GET /api/boards/:boardId
+// fetch a specific board
 export async function getBoard(req, res) {
   try {
     const userId = req.userId;
@@ -117,7 +117,7 @@ export async function getBoard(req, res) {
   }
 }
 
-// PUT /api/boards/:boardId/save  { segments }
+// save the latest drawing strokes
 export async function saveBoard(req, res) {
   try {
     const userId = req.userId;
@@ -140,7 +140,7 @@ export async function saveBoard(req, res) {
   }
 }
 
-// PATCH /api/boards/:boardId { title }
+// rename a board
 export async function updateBoard(req, res) {
   try {
     const userId = req.userId;
@@ -154,16 +154,16 @@ export async function updateBoard(req, res) {
     if (!ok) return res.status(403).json({ message: "Not allowed" });
 
     if (title && board.title !== title) {
-        // [NEW] Log Renaming
-        await Activity.create({
-            workspace: board.workspace,
-            user: userId,
-            action: "renamed_board",
-            details: `From "${board.title}" to "${title}"`,
-        });
-        board.title = title;
+      // log the rename event
+      await Activity.create({
+        workspace: board.workspace,
+        user: userId,
+        action: "renamed_board",
+        details: `From "${board.title}" to "${title}"`,
+      });
+      board.title = title;
     }
-    
+
     await board.save();
 
     return res.json({ message: "Board updated", board });
@@ -173,7 +173,7 @@ export async function updateBoard(req, res) {
   }
 }
 
-// DELETE /api/boards/:boardId
+// trash a board completely
 export async function deleteBoard(req, res) {
   try {
     const userId = req.userId;
@@ -185,7 +185,7 @@ export async function deleteBoard(req, res) {
     const ok = await ensureMember(userId, board.workspace);
     if (!ok) return res.status(403).json({ message: "Not allowed" });
 
-    // [NEW] Log Deletion
+    // log the deletion
     await Activity.create({
       workspace: board.workspace,
       user: userId,
@@ -193,10 +193,10 @@ export async function deleteBoard(req, res) {
       details: board.title,
     });
 
-    // Clean up associated notes first
+    // wipe related notes first so we don't have orphans
     await Note.deleteMany({ board: boardId });
 
-    // Delete the board
+    // actually delete it
     await Board.findByIdAndDelete(boardId);
 
     return res.json({ message: "Board deleted" });

@@ -20,7 +20,7 @@ const boardVersionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // We store the exact state of segments at this point in time
+    // snapshot of the drawing at this exact moment
     segments: { type: [segmentSchema], default: [] },
   },
   { timestamps: true }

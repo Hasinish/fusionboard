@@ -4,7 +4,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js"; // [NEW] Import User to get email
 import driveClient from "../config/googleDrive.js"; // [NEW] Import Drive Client
 
-// Get pending invitations for logged-in user
+// fetch any invites waiting for me
 export async function getMyInvitations(req, res) {
   try {
     const userId = req.userId;
@@ -23,7 +23,7 @@ export async function getMyInvitations(req, res) {
   }
 }
 
-// Get pending invitations for a specific workspace (returns list of user IDs)
+// see who still hasn't accepted their invite here
 export async function getWorkspacePendingInvitations(req, res) {
   try {
     const userId = req.userId;
@@ -34,7 +34,7 @@ export async function getWorkspacePendingInvitations(req, res) {
       return res.status(404).json({ message: "Workspace not found" });
     }
 
-    // Check if requester is a member/owner
+    // gotta be inside the workspace to peek at this
     const isMember = workspace.members.some(
       (m) => String(m.user) === String(userId)
     );
@@ -42,13 +42,13 @@ export async function getWorkspacePendingInvitations(req, res) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    // Find all pending invitations for this workspace
+    // grab all the unanswered invites
     const invitations = await Invitation.find({
       workspace: workspaceId,
       status: "pending",
     }).select("invitedUser");
-    
-    // Return just the array of user IDs
+
+    // just spit out the user IDs
     const invitedUserIds = invitations.map((i) => i.invitedUser);
     return res.json(invitedUserIds);
   } catch (e) {
@@ -57,7 +57,7 @@ export async function getWorkspacePendingInvitations(req, res) {
   }
 }
 
-// [UPDATED] Accept Invitation & Sync Drive Permissions
+// say yes to an invite and wire up google drive
 export async function acceptInvitation(req, res) {
   try {
     const userId = req.userId;
@@ -76,7 +76,7 @@ export async function acceptInvitation(req, res) {
       return res.status(400).json({ message: "Invitation already processed" });
     }
 
-    // 1. Mark invitation as accepted
+    // 1. flip the invite to accepted
     invitation.status = "accepted";
     await invitation.save();
 
@@ -85,56 +85,56 @@ export async function acceptInvitation(req, res) {
       return res.status(404).json({ message: "Workspace not found" });
     }
 
-    // 2. Add user to workspace DB members
+    // 2. actually add them to the workspace
     const alreadyMember = workspace.members.some(
       (m) => String(m.user) === String(userId)
     );
-    
+
     if (!alreadyMember) {
       workspace.members.push({ user: userId, role: "viewer" });
       await workspace.save();
 
-      // [NEW] 3. GRANT GOOGLE DRIVE ACCESS FOR HISTORICAL FILES
+      // 3. give them access to all the old files in drive
       try {
         const userEmail = invitation.invitedUser?.email;
         if (userEmail) {
-            const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-            
-            // Find all files belonging to this workspace
-            const query = `'${FOLDER_ID}' in parents and appProperties has { key='workspaceId' and value='${workspace._id}' } and trashed=false`;
-            
-            const driveRes = await driveClient.files.list({
-                q: query,
-                fields: "files(id, name)",
-            });
+          const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-            const files = driveRes.data.files || [];
-            
-            if (files.length > 0) {
-                console.log(`Granting access to ${files.length} files for new member ${userEmail}...`);
-                
-                // Process in parallel
-                await Promise.all(files.map(file => 
-                    driveClient.permissions.create({
-                        fileId: file.id,
-                        requestBody: {
-                            role: 'reader',
-                            type: 'user',
-                            emailAddress: userEmail,
-                        },
-                        // invitationNotificationEmail: false // Optional: suppress emails
-                    }).catch(err => {
-                        console.error(`Failed to share file ${file.id} with ${userEmail}:`, err.message);
-                    })
-                ));
-            }
+          // hunt down all the workspace's files
+          const query = `'${FOLDER_ID}' in parents and appProperties has { key='workspaceId' and value='${workspace._id}' } and trashed=false`;
+
+          const driveRes = await driveClient.files.list({
+            q: query,
+            fields: "files(id, name)",
+          });
+
+          const files = driveRes.data.files || [];
+
+          if (files.length > 0) {
+            console.log(`Granting access to ${files.length} files for new member ${userEmail}...`);
+
+            // speed run granting permissions
+            await Promise.all(files.map(file =>
+              driveClient.permissions.create({
+                fileId: file.id,
+                requestBody: {
+                  role: 'reader',
+                  type: 'user',
+                  emailAddress: userEmail,
+                },
+                // invitationNotificationEmail: false // Optional: suppress emails
+              }).catch(err => {
+                console.error(`Failed to share file ${file.id} with ${userEmail}:`, err.message);
+              })
+            ));
+          }
         }
       } catch (driveError) {
         console.error("Error syncing Drive permissions on join:", driveError);
-        // We do NOT stop the request here; the user joined successfully even if Drive sync failed partially.
+        // ignore drive errors so we don't block them from joining
       }
 
-      // 4. Notify Owner
+      // 4. tell the boss they joined
       try {
         const joinerName = invitation.invitedUser?.name || "A user";
         await Notification.updateOne(

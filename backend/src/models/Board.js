@@ -20,7 +20,7 @@ const boardSchema = new mongoose.Schema(
       required: true,
     },
     title: { type: String, default: "Untitled Board" },
-    segments: { type: [segmentSchema], default: [] }, // saved state
+    segments: { type: [segmentSchema], default: [] }, // the final drawing state
   },
   { timestamps: true }
 );

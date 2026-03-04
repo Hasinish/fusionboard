@@ -22,17 +22,17 @@ const workspaceSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: { type: String },
 
-    // Current owner (there can be only one)
+    // the big boss (only 1 allowed)
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    // Members (including owner) with roles
+    // everyone in the workspace plus their perms
     members: [memberSchema],
 
-    // Google Drive Configuration (for the owner)
+    // gdrive settings (owner only)
     googleDriveRefreshToken: { type: String },
     googleDriveFolderId: { type: String },
   },

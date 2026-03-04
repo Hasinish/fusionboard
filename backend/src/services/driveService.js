@@ -2,11 +2,10 @@
 import { google } from "googleapis";
 import { oauth2Client } from "../config/googleDrive.js";
 
-/**
- * Creates a Google Drive client for a specific workspace using its refresh token.
- * @param {string} refreshToken - The refresh token of the workspace owner.
- * @returns {object} Google Drive client instance.
- */
+/*
+  spins up a fresh google drive client for whatever workspace is asking for it,
+  using that specific workspace owner's refresh token
+*/
 export function getDriveClient(refreshToken) {
     const client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,

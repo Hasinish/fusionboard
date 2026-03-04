@@ -1,23 +1,23 @@
 import Activity from "../models/Activity.js";
 import Workspace from "../models/Workspace.js";
 
-// GET /api/activities/:workspaceId
+// fetch the activity feed for a workspace
 export async function getWorkspaceActivities(req, res) {
   try {
     const { workspaceId } = req.params;
     const userId = req.userId;
 
-    // Ensure access
+    // make sure they're allowed to see this
     const ws = await Workspace.findOne({
       _id: workspaceId,
       "members.user": userId,
     });
     if (!ws) return res.status(403).json({ message: "Access denied" });
 
-    // Fetch activities (newest first)
+    // grab the latest stuff
     const activities = await Activity.find({ workspace: workspaceId })
       .sort({ createdAt: -1 })
-      .limit(50) // Limit to last 50 entries
+      .limit(50) // don't bog down the system, just get the last 50
       .populate("user", "name email")
       .lean();
 

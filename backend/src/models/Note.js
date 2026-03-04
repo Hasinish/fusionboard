@@ -14,7 +14,7 @@ const noteSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    content: { type: String, required: true }, // Stores HTML (e.g., "<b>text</b>")
+    content: { type: String, required: true }, // holds the raw html content
   },
   { timestamps: true }
 );

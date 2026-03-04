@@ -12,26 +12,26 @@ import {
 
 const router = express.Router();
 
-// POST /api/workspaces
+// make a new workspace
 router.post("/", authMiddleware, createWorkspace);
 
-// POST /api/workspaces/:id/invite
+// invite folks
 router.post("/:id/invite", authMiddleware, inviteMembers);
 
-// GET /api/workspaces/my
+// grab my workspaces
 router.get("/my", authMiddleware, getMyWorkspaces);
 
-// GET /api/workspaces/:id
+// get details for one workspace
 router.get("/:id", authMiddleware, getWorkspaceById);
 
-// PATCH /api/workspaces/:id/members/:memberId/role
+// change someone's role
 router.patch(
   "/:id/members/:memberId/role",
   authMiddleware,
   updateMemberRole
 );
 
-// DELETE /api/workspaces/:id/members/:memberId
+// kick a member
 router.delete("/:id/members/:memberId", authMiddleware, removeMember);
 
 export default router;

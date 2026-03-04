@@ -13,7 +13,7 @@ function ProfilePage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Redirect if not logged in
+  // kick them out if they aren't logged in
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate("/login");
@@ -47,7 +47,7 @@ function ProfilePage() {
         }
       );
 
-      // Update localStorage user with new data
+      // save the new info to local storage
       saveAuth(token, res.data.user);
       setMessage("Profile updated successfully.");
     } catch (err) {

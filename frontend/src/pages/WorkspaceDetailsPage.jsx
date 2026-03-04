@@ -24,9 +24,9 @@ function WorkspaceDetailsPage() {
 
   const [allUsers, setAllUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   const [pendingInvites, setPendingInvites] = useState([]);
-  
+
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
@@ -35,7 +35,7 @@ function WorkspaceDetailsPage() {
       `/notifications/read/workspace/${id}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch(() => {});
+    ).catch(() => { });
   }, [id, token]);
 
   const loadWorkspace = async () => {
@@ -64,7 +64,7 @@ function WorkspaceDetailsPage() {
       });
       setAllUsers(Array.isArray(res.data) ? res.data : []);
     } catch {
-      // ignore
+      // silently ignore failures
     } finally {
       setLoadingUsers(false);
     }
@@ -209,9 +209,8 @@ function WorkspaceDetailsPage() {
 
   const renderStatusDot = (isOnline) => (
     <span
-      className={`inline-block w-2 h-2 rounded-full mr-2 ${
-        isOnline ? "bg-green-500" : "bg-red-500"
-      }`}
+      className={`inline-block w-2 h-2 rounded-full mr-2 ${isOnline ? "bg-green-500" : "bg-red-500"
+        }`}
     />
   );
 
@@ -235,7 +234,7 @@ function WorkspaceDetailsPage() {
             </div>
           ) : (
             <>
-              {/* Header: Workspace info + actions */}
+              {/* top section with title and buttons */}
               <div className="mb-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
@@ -252,7 +251,7 @@ function WorkspaceDetailsPage() {
                       className="btn btn-primary btn-sm"
                       onClick={() => navigate(`/workspaces/${id}/files`)}
                     >
-                    Files
+                      Files
                     </button>
                     <button
                       className="btn btn-primary btn-sm"
@@ -268,13 +267,13 @@ function WorkspaceDetailsPage() {
                       Join Voice Chat
                     </button>
 
-                    {/* Activity Button */}
+                    {/* button to check recent history */}
                     <button
-                       className="btn btn-primary btn-sm border border-base-300"
-                       onClick={() => navigate(`/workspaces/${id}/activity`)}
-                       title="View Activity History"
+                      className="btn btn-primary btn-sm border border-base-300"
+                      onClick={() => navigate(`/workspaces/${id}/activity`)}
+                      title="View Activity History"
                     >
-                       Activity
+                      Activity
                     </button>
                   </div>
                 </div>
@@ -296,7 +295,7 @@ function WorkspaceDetailsPage() {
               )}
 
               <div className="grid gap-6 lg:grid-cols-3">
-                {/* Members */}
+                {/* list of people in this workspace */}
                 <div className="card bg-base-100 shadow-md lg:col-span-2">
                   <div className="card-body">
                     <h2 className="card-title text-base mb-2">
@@ -373,12 +372,12 @@ function WorkspaceDetailsPage() {
                   </div>
                 </div>
 
-                {/* Right column: owner + invite */}
+                {/* right side panel for owners to invite people */}
                 <div className="space-y-4">
 
                   {isOwner && (
                     <>
-                      {/* Invite By Email Manual Input */}
+                      {/* box to type emails to invite */}
                       <div className="card bg-base-100 shadow-md">
                         <div className="card-body">
                           <h2 className="card-title text-base mb-2">
@@ -409,9 +408,8 @@ function WorkspaceDetailsPage() {
                             </p>
                             <button
                               type="submit"
-                              className={`btn btn-primary btn-sm w-full ${
-                                inviteLoading ? "btn-disabled" : ""
-                              }`}
+                              className={`btn btn-primary btn-sm w-full ${inviteLoading ? "btn-disabled" : ""
+                                }`}
                               disabled={inviteLoading}
                             >
                               {inviteLoading ? "Sending..." : "Invite"}
@@ -420,7 +418,7 @@ function WorkspaceDetailsPage() {
                         </div>
                       </div>
 
-                      {/* All Users Directory List */}
+                      {/* massive list of every user in the app */}
                       <div className="card bg-base-100 shadow-md">
                         <div className="card-body p-4">
                           <h2 className="card-title text-base mb-2">
@@ -431,11 +429,11 @@ function WorkspaceDetailsPage() {
                           ) : (
                             <div className="max-h-60 overflow-y-auto space-y-2">
                               {allUsers
-                                .filter((u) => u._id !== currentUser.id) // Don't show self
+                                .filter((u) => u._id !== currentUser.id) // don't let me invite myself
                                 .map((u) => {
                                   const alreadyIn = isMember(u._id);
                                   const alreadyInvited = isInvited(u._id);
-                                  
+
                                   return (
                                     <div
                                       key={u._id}
@@ -481,7 +479,7 @@ function WorkspaceDetailsPage() {
                 </div>
               </div>
 
-              {/* Chat */}
+              {/* the workspace chatbox */}
               <div className="mt-6">
                 <WorkspaceChat workspaceId={id} />
               </div>

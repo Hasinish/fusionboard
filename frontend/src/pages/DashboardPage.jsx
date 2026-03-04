@@ -12,7 +12,7 @@ function DashboardPage() {
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [error, setError] = useState("");
 
-  // If not logged in, redirect to login
+  // kick them to login if they aren't authenticated
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate("/login");

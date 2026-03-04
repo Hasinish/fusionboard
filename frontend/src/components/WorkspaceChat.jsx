@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import api, { API_URL } from "../lib/api"; 
+import api, { API_URL } from "../lib/api";
 import { getUser } from "../lib/auth";
 
 function formatTime(d) {
@@ -30,17 +30,17 @@ export default function WorkspaceChat({ workspaceId }) {
         });
         setMessages(Array.isArray(res.data) ? res.data : []);
       } catch {
-        // keep silent
+        // shhh, swallow the error
       }
     };
     load();
   }, [workspaceId, token]);
 
-  // Socket Connection
+  // wire up the real-time chat connection
   useEffect(() => {
     if (!token) return;
 
-    // Use dynamic URL
+    // grab the right url for the websocket
     const socketUrl = API_URL.replace("/api", "");
 
     const socket = io(socketUrl, {

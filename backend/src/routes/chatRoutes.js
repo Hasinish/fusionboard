@@ -4,7 +4,7 @@ import { getWorkspaceMessages } from "../controllers/chatController.js";
 
 const router = express.Router();
 
-// GET /api/workspaces/:id/messages
+// grab the chat history for a workspace
 router.get("/:id/messages", authMiddleware, getWorkspaceMessages);
 
 export default router;

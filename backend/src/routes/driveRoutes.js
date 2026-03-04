@@ -11,21 +11,21 @@ import {
 
 const router = express.Router();
 
-// Use memory storage so we can stream directly to Drive without saving to disk first
+// keep it in memory so we can pipe it straight to google drive (no disk writing)
 const upload = multer({ storage: multer.memoryStorage() });
 
-// OAuth Flow
+// oauth stuff needs to go through here
 router.get("/auth-url/:workspaceId", authMiddleware, getAuthUrl);
 router.get("/callback", oauthCallback);
-// Note: Callback shouldn't have authMiddleware because redirect comes from Google
+// skip auth middleware here since google redirects them back to us
 
-// GET /api/drive/workspace/:workspaceId
+// fetch files for a given workspace
 router.get("/workspace/:workspaceId", authMiddleware, listFiles);
 
-// POST /api/drive/upload
+// upload a new file
 router.post("/upload", authMiddleware, upload.single("file"), uploadFile);
 
-// DELETE /api/drive/:fileId
+// trash a file
 router.delete("/:fileId", authMiddleware, deleteFile);
 
 export default router;

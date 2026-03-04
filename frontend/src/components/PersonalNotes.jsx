@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { 
-  Plus, StickyNote, X, Bold, Italic, List, 
-  ListOrdered, Quote, Eye, Trash2 
+import {
+  Plus, StickyNote, X, Bold, Italic, List,
+  ListOrdered, Quote, Eye, Trash2
 } from "lucide-react";
 import api from "../lib/api";
 
@@ -14,7 +14,7 @@ export default function PersonalNotes({ boardId, token }) {
   const [editingId, setEditingId] = useState(null);
   const [, forceUpdate] = useState(0);
 
-  // --- TIPTAP ---
+  // setup the rich text editor
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: { levels: [1, 2] } })],
     content: "",
@@ -34,7 +34,7 @@ export default function PersonalNotes({ boardId, token }) {
     }
   }, [isNoteOpen, editor]);
 
-  // --- DATA ---
+  // fetch the notes from the server
   const loadNotes = async () => {
     if (!token) return;
     try {
@@ -58,14 +58,14 @@ export default function PersonalNotes({ boardId, token }) {
 
     try {
       if (editingId) {
-        const res = await api.put(`/notes/${editingId}`, 
-          { content: noteContent }, 
+        const res = await api.put(`/notes/${editingId}`,
+          { content: noteContent },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setNotes(notes.map(n => n._id === editingId ? res.data : n));
       } else {
-        const res = await api.post("/notes", 
-          { boardId, content: noteContent }, 
+        const res = await api.post("/notes",
+          { boardId, content: noteContent },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setNotes([res.data, ...notes]);
@@ -87,7 +87,7 @@ export default function PersonalNotes({ boardId, token }) {
   };
 
   const handleDeleteNote = async (noteId) => {
-    if(!confirm("Delete this note?")) return;
+    if (!confirm("Delete this note?")) return;
     try {
       await api.delete(`/notes/${noteId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -106,7 +106,7 @@ export default function PersonalNotes({ boardId, token }) {
           <h2 className="text-xl font-bold flex items-center gap-2">
             <StickyNote className="text-primary" /> My Notes
           </h2>
-          <button 
+          <button
             className="btn btn-primary btn-sm gap-2"
             onClick={() => {
               if (isNoteOpen) setIsNoteOpen(false);
@@ -134,7 +134,7 @@ export default function PersonalNotes({ boardId, token }) {
                 <X size={14} />
               </button>
             </div>
-            
+
             {editor && (
               <div className="flex items-center gap-1 p-2 bg-white border-b border-base-200">
                 <button onClick={() => editor.chain().focus().toggleBold().run()} className={`btn btn-xs btn-square ${editor.isActive('bold') ? 'btn-primary' : 'btn-ghost'}`}><Bold size={14} /></button>
@@ -150,10 +150,10 @@ export default function PersonalNotes({ boardId, token }) {
             </div>
 
             <div className="p-3 bg-base-50 border-t border-base-200 flex justify-end gap-2">
-                <button className="btn btn-ghost btn-sm" onClick={() => setIsNoteOpen(false)}>Cancel</button>
-                <button className="btn btn-primary btn-sm" onClick={handleSaveNote}>
-                  {editingId ? "Update Note" : "Save Note"}
-                </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setIsNoteOpen(false)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={handleSaveNote}>
+                {editingId ? "Update Note" : "Save Note"}
+              </button>
             </div>
           </div>
         )}

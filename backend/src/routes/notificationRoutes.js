@@ -7,10 +7,10 @@ import {
 
 const router = express.Router();
 
-// Get all notifications for the user
+// grab all my notifs
 router.get("/", authMiddleware, getMyNotifications);
 
-// Mark messages from a specific workspace as read
+// clear unread status for a workspace
 router.put("/read/workspace/:workspaceId", authMiddleware, markWorkspaceRead);
 
 export default router;

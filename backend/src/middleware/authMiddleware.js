@@ -19,9 +19,9 @@ export function authMiddleware(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
 
-    // Update lastActive (fire and forget)
+    // blindly update their active status so we don't hold up the request
     User.findByIdAndUpdate(decoded.id, { lastActive: new Date() }).catch(
-      () => {}
+      () => { }
     );
 
     next();

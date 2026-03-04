@@ -27,7 +27,7 @@ const activitySchema = new mongoose.Schema(
       required: true,
     },
     details: {
-      type: String, // e.g., "Project Roadmap", "image.png", "Hello team"
+      type: String, // extra info like filename or message snippet
       required: true,
     },
   },

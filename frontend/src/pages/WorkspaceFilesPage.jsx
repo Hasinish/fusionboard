@@ -35,7 +35,7 @@ export default function WorkspaceFilesPage() {
       return;
     }
     fetchInitialData();
-    // Check for status in URL
+    // see if google drive just sent us back with a status
     const params = new URLSearchParams(window.location.search);
     if (params.get("status") === "success") {
       setMsg("Google Drive connected successfully!");
@@ -165,7 +165,7 @@ export default function WorkspaceFilesPage() {
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-8">
 
-          {/* --- Header Section --- */}
+          {/* --- top header area --- */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -184,7 +184,7 @@ export default function WorkspaceFilesPage() {
             </button>
           </div>
 
-          {/* --- Upload Card --- */}
+          {/* --- file upload box --- */}
           <div className="card bg-base-100 shadow-sm border border-base-300 mb-8">
             <div className="card-body">
               {!isDriveConnected ? (
@@ -250,7 +250,7 @@ export default function WorkspaceFilesPage() {
             </div>
           </div>
 
-          {/* --- Files Table --- */}
+          {/* --- list of uploaded files --- */}
           <div className="card bg-base-100 shadow-xl overflow-hidden">
             <div className="card-body p-0">
               {loading ? (

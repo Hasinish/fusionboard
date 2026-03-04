@@ -2,11 +2,11 @@ import Note from "../models/Note.js";
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
 
-// Helper: Ensure user belongs to the workspace
+// make sure the user is actually in this workspace
 async function checkAccess(userId, boardId) {
   const board = await Board.findById(boardId);
   if (!board) return false;
-  
+
   const workspace = await Workspace.findById(board.workspace);
   if (!workspace) return false;
 
@@ -44,7 +44,7 @@ export async function getMyNotes(req, res) {
   }
 }
 
-// 👇 NEW: Update Note Function
+// piece to handle note edits
 export async function updateNote(req, res) {
   try {
     const { noteId } = req.params;

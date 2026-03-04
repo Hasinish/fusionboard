@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/", authMiddleware, createNote);
 router.get("/:boardId", authMiddleware, getMyNotes);
-router.put("/:noteId", authMiddleware, updateNote); // 👈 NEW ROUTE
+router.put("/:noteId", authMiddleware, updateNote); // added this for updates
 router.delete("/:noteId", authMiddleware, deleteNote);
 
 export default router;

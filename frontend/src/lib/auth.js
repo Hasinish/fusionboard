@@ -1,10 +1,10 @@
-// Save token + user info
+// stash the token and user profile in local storage
 export function saveAuth(token, user) {
   localStorage.setItem("token", token);
   localStorage.setItem("user", JSON.stringify(user));
 }
 
-// Get current user object or null
+// grab the user's profile if they have one
 export function getUser() {
   const raw = localStorage.getItem("user");
   if (!raw) return null;
@@ -15,12 +15,12 @@ export function getUser() {
   }
 }
 
-// Simple logged-in check
+// quick check if they're logged in
 export function isLoggedIn() {
   return !!localStorage.getItem("token");
 }
 
-// Clear auth on logout
+// wipe everything when they log out
 export function clearAuth() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");

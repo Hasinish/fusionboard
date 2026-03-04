@@ -4,21 +4,21 @@ import {
   getMyInvitations,
   acceptInvitation,
   rejectInvitation,
-  getWorkspacePendingInvitations, // [NEW]
+  getWorkspacePendingInvitations, // added to check pending stuff
 } from "../controllers/invitationController.js";
 
 const router = express.Router();
 
-// GET /api/invitations/my
+// fetch my invites
 router.get("/my", authMiddleware, getMyInvitations);
 
-// [NEW] GET /api/invitations/workspace/:workspaceId (Get pending invite UserIDs)
+// see who we already invited
 router.get("/workspace/:workspaceId", authMiddleware, getWorkspacePendingInvitations);
 
-// POST /api/invitations/:id/accept
+// say yes to invite
 router.post("/:id/accept", authMiddleware, acceptInvitation);
 
-// POST /api/invitations/:id/reject
+// say no to invite
 router.post("/:id/reject", authMiddleware, rejectInvitation);
 
 export default router;

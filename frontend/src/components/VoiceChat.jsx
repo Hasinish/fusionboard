@@ -2,18 +2,18 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { Mic, MicOff, Phone, PhoneOff, Users } from "lucide-react";
 import { getUser } from "../lib/auth";
-import { API_URL } from "../lib/api"; 
+import { API_URL } from "../lib/api";
 
-// Use dynamic URL
+// grab the right url for the signaling server
 const SIGNAL_URL = API_URL.replace("/api", "");
 
-// RTC Config with  Metered Credentials
+// setup the peer-to-peer connection settings
 const RTC_CONFIG = {
   iceServers: [
-    // 1. Google's Free STUN
+    // 1. basic connection helper
     { urls: "stun:stun.l.google.com:19302" },
 
-    // 2. Metered.ca TURN Servers (For 4G/Firewalls)
+    // 2. heavy duty connection helpers for strict firewalls
     {
       urls: "turn:global.turn.metered.ca:80",
       username: "b5933385af82516fbc3ecd1d",
@@ -42,7 +42,7 @@ export default function VoiceChat({ roomId }) {
 
   const socket = useRef(null);
   const localStream = useRef(null);
-  const pcs = useRef(new Map()); 
+  const pcs = useRef(new Map());
   const pendingIce = useRef(new Map());
   const makingOffer = useRef(new Map());
 
@@ -50,7 +50,7 @@ export default function VoiceChat({ roomId }) {
     return localStorage.getItem("token");
   }, []);
 
-  // --- WebRTC Logic ---
+  // --- the scary peer-to-peer stuff ---
   const ensurePendingIceList = (peerId) => {
     if (!pendingIce.current.has(peerId)) pendingIce.current.set(peerId, []);
     return pendingIce.current.get(peerId);
@@ -78,51 +78,51 @@ export default function VoiceChat({ roomId }) {
 
   const createPeerConnection = (peerId) => {
     try {
-        const pc = new RTCPeerConnection(RTC_CONFIG);
-        
-        const stream = localStream.current;
-        if (stream) {
-          for (const track of stream.getTracks()) pc.addTrack(track, stream);
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+
+      const stream = localStream.current;
+      if (stream) {
+        for (const track of stream.getTracks()) pc.addTrack(track, stream);
+      }
+
+      pc.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (!remoteStream) return;
+
+        const elId = `audio-${peerId}`;
+        let audioEl = document.getElementById(elId);
+        if (!audioEl) {
+          audioEl = document.createElement("audio");
+          audioEl.id = elId;
+          audioEl.autoplay = true;
+          audioEl.playsInline = true;
+          document.getElementById("voice-audio-container")?.appendChild(audioEl);
         }
+        audioEl.srcObject = remoteStream;
+        audioEl.play().catch((e) => console.error("Autoplay blocked", e));
+      };
 
-        pc.ontrack = (event) => {
-          const [remoteStream] = event.streams;
-          if (!remoteStream) return;
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socket.current) {
+          socket.current.emit("voice:signal", {
+            to: peerId,
+            data: { type: "ice", candidate: event.candidate },
+          });
+        }
+      };
 
-          const elId = `audio-${peerId}`;
-          let audioEl = document.getElementById(elId);
-          if (!audioEl) {
-            audioEl = document.createElement("audio");
-            audioEl.id = elId;
-            audioEl.autoplay = true;
-            audioEl.playsInline = true;
-            document.getElementById("voice-audio-container")?.appendChild(audioEl);
-          }
-          audioEl.srcObject = remoteStream;
-          audioEl.play().catch((e) => console.error("Autoplay blocked", e));
-        };
+      pc.onconnectionstatechange = () => {
+        const st = pc.connectionState;
+        if (st === "failed" || st === "disconnected" || st === "closed") {
+          cleanupPeer(peerId);
+        }
+      };
 
-        pc.onicecandidate = (event) => {
-          if (event.candidate && socket.current) {
-            socket.current.emit("voice:signal", {
-              to: peerId,
-              data: { type: "ice", candidate: event.candidate },
-            });
-          }
-        };
-
-        pc.onconnectionstatechange = () => {
-          const st = pc.connectionState;
-          if (st === "failed" || st === "disconnected" || st === "closed") {
-            cleanupPeer(peerId);
-          }
-        };
-
-        pcs.current.set(peerId, pc);
-        return pc;
+      pcs.current.set(peerId, pc);
+      return pc;
     } catch (e) {
-        console.error("RTC Create Error", e);
-        return null;
+      console.error("RTC Create Error", e);
+      return null;
     }
   };
 
@@ -135,7 +135,8 @@ export default function VoiceChat({ roomId }) {
     if (!list || list.length === 0) return;
     while (list.length) {
       const cand = list.shift();
-      try { await pc.addIceCandidate(cand);
+      try {
+        await pc.addIceCandidate(cand);
       } catch (e) { /* ignore */ }
     }
   };
@@ -143,14 +144,14 @@ export default function VoiceChat({ roomId }) {
   const iShouldOffer = (peerId) => {
     const myId = socket.current?.id;
     if (!myId) return false;
-    return myId < peerId; 
+    return myId < peerId;
   };
 
   const makeOfferTo = async (peerId) => {
     const pc = ensurePC(peerId);
     if (!pc || !iShouldOffer(peerId)) return;
     if (pc.signalingState !== "stable") return;
-    
+
     try {
       setMakingOffer(peerId, true);
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
@@ -197,9 +198,9 @@ export default function VoiceChat({ roomId }) {
         const others = myId ? list.filter((p) => p.peerId !== myId) : list;
 
         for (const p of others) ensurePC(p.peerId);
-        
+
         setStatus("connected");
-        setIsExpanded(true); 
+        setIsExpanded(true);
 
         for (const p of others) {
           await makeOfferTo(p.peerId);
@@ -224,8 +225,8 @@ export default function VoiceChat({ roomId }) {
               data: { type: "answer", sdp: pc.localDescription },
             });
           } else if (data?.type === "answer") {
-             await pc.setRemoteDescription(data.sdp);
-             await flushPendingIce(from);
+            await pc.setRemoteDescription(data.sdp);
+            await flushPendingIce(from);
           } else if (data?.type === "ice" && data?.candidate) {
             if (!pc.remoteDescription) ensurePendingIceList(from).push(data.candidate);
             else await pc.addIceCandidate(data.candidate);
@@ -248,7 +249,8 @@ export default function VoiceChat({ roomId }) {
     socket.current = null;
 
     for (const [peerId, pc] of pcs.current.entries()) {
-      try { pc.close();
+      try {
+        pc.close();
       } catch (e) { /* ignore */ }
       pcs.current.delete(peerId);
       const audioEl = document.getElementById(`audio-${peerId}`);
@@ -275,10 +277,10 @@ export default function VoiceChat({ roomId }) {
     if (!track) return;
 
     const next = !isMuted;
-    track.enabled = !next; 
+    track.enabled = !next;
     setIsMuted(next);
     if (socket.current) {
-        socket.current.emit("voice:mute-change", { roomId, isMuted: next });
+      socket.current.emit("voice:mute-change", { roomId, isMuted: next });
     }
   };
 
@@ -290,11 +292,11 @@ export default function VoiceChat({ roomId }) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         {error && (
-            <div className="absolute bottom-12 right-0 alert alert-error text-xs w-48 shadow-lg mb-2">
-                <span>{error}</span>
-            </div>
+          <div className="absolute bottom-12 right-0 alert alert-error text-xs w-48 shadow-lg mb-2">
+            <span>{error}</span>
+          </div>
         )}
-        <button 
+        <button
           className="btn btn-circle btn-primary shadow-xl"
           onClick={joinRoom}
           title="Join Voice Chat"
@@ -311,54 +313,54 @@ export default function VoiceChat({ roomId }) {
 
       {isExpanded && (
         <div className="card bg-base-100 shadow-xl border border-base-300 w-64 mb-2">
-            <div className="card-body p-3">
-                <div className="flex justify-between items-center border-b border-base-200 pb-2 mb-2">
-                    <h3 className="font-bold text-sm flex items-center gap-2">
-                        <Users size={16} /> Participants ({participants.length})
-                    </h3>
-                    <button className="btn btn-xs btn-ghost" onClick={() => setIsExpanded(false)}>Hide</button>
-                </div>
-                <ul className="max-h-40 overflow-y-auto space-y-2">
-                    {participants.map(p => (
-                        <li key={p.peerId} className="text-xs flex items-center gap-2">
-                             {p.isMuted ? (
-                                <MicOff size={14} className="text-error" /> 
-                             ) : (
-                                <Mic size={14} className="text-success" />
-                             )}
-                             <span className="truncate max-w-[150px]">
-                                {p.name} {p.peerId === socket.current?.id ? "(You)" : ""}
-                             </span>
-                        </li>
-                    ))}
-                </ul>
+          <div className="card-body p-3">
+            <div className="flex justify-between items-center border-b border-base-200 pb-2 mb-2">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Users size={16} /> Participants ({participants.length})
+              </h3>
+              <button className="btn btn-xs btn-ghost" onClick={() => setIsExpanded(false)}>Hide</button>
             </div>
+            <ul className="max-h-40 overflow-y-auto space-y-2">
+              {participants.map(p => (
+                <li key={p.peerId} className="text-xs flex items-center gap-2">
+                  {p.isMuted ? (
+                    <MicOff size={14} className="text-error" />
+                  ) : (
+                    <Mic size={14} className="text-success" />
+                  )}
+                  <span className="truncate max-w-[150px]">
+                    {p.name} {p.peerId === socket.current?.id ? "(You)" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
       <div className="flex items-center gap-2 bg-base-100 p-2 rounded-full shadow-xl border border-base-200">
-        <button 
-            className="btn btn-circle btn-sm btn-ghost"
-            onClick={() => setIsExpanded(!isExpanded)}
-            title="Toggle List"
+        <button
+          className="btn btn-circle btn-sm btn-ghost"
+          onClick={() => setIsExpanded(!isExpanded)}
+          title="Toggle List"
         >
-            <Users size={18} />
-        </button>
-        
-        <button 
-            className={`btn btn-circle btn-sm ${isMuted ? 'btn-warning' : 'btn-ghost'}`}
-            onClick={toggleMute}
-            title={isMuted ? "Unmute" : "Mute"}
-        >
-            {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+          <Users size={18} />
         </button>
 
-        <button 
-            className="btn btn-circle btn-sm btn-error text-white"
-            onClick={leaveRoom}
-            title="Leave Call"
+        <button
+          className={`btn btn-circle btn-sm ${isMuted ? 'btn-warning' : 'btn-ghost'}`}
+          onClick={toggleMute}
+          title={isMuted ? "Unmute" : "Mute"}
         >
-            <PhoneOff size={18} />
+          {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+        </button>
+
+        <button
+          className="btn btn-circle btn-sm btn-error text-white"
+          onClick={leaveRoom}
+          title="Leave Call"
+        >
+          <PhoneOff size={18} />
         </button>
       </div>
     </div>

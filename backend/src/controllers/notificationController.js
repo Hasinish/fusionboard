@@ -1,6 +1,6 @@
 import Notification from "../models/Notification.js";
 
-// GET /api/notifications
+// fetch all my notifications
 export async function getMyNotifications(req, res) {
   try {
     const userId = req.userId;
@@ -15,13 +15,13 @@ export async function getMyNotifications(req, res) {
   }
 }
 
-// PUT /api/notifications/read/workspace/:workspaceId
+// mark a whole workspace as read
 export async function markWorkspaceRead(req, res) {
   try {
     const userId = req.userId;
     const { workspaceId } = req.params;
 
-    // [UPDATED] Removed 'type' filter so this clears BOTH messages and board notifications
+    // clear everything at once (msgs + boards)
     await Notification.updateMany(
       { recipient: userId, workspace: workspaceId },
       { $set: { isRead: true } }

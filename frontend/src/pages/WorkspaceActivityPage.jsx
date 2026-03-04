@@ -3,18 +3,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import api from "../lib/api";
 import { isLoggedIn } from "../lib/auth";
-import { 
-  Activity, 
-  FileText, 
-  MessageSquare, 
-  Trash2, 
-  Edit3, 
+import {
+  Activity,
+  FileText,
+  MessageSquare,
+  Trash2,
+  Edit3,
   PlusCircle,
   ArrowLeft
 } from "lucide-react";
 
 export default function WorkspaceActivityPage() {
-  const { id } = useParams(); // workspaceId
+  const { id } = useParams(); // grab the workspace ID
   const navigate = useNavigate();
 
   const [activities, setActivities] = useState([]);
@@ -120,12 +120,12 @@ export default function WorkspaceActivityPage() {
                 >
                   <div className="card-body py-4 flex flex-row items-start gap-4">
                     <div className="mt-1 bg-base-200 p-2 rounded-full">
-                        {getIcon(act.action)}
+                      {getIcon(act.action)}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-neutral-600">
                         <span className="font-bold text-neutral-900">
-                            {act.user?.name || "Unknown"}
+                          {act.user?.name || "Unknown"}
                         </span>{" "}
                         {formatText(act)}
                       </p>

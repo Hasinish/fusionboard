@@ -4,7 +4,7 @@ import { getAllUsers } from "../controllers/userController.js";
 
 const router = express.Router();
 
-// GET /api/users
+// get all users in the system
 router.get("/", authMiddleware, getAllUsers);
 
 export default router;

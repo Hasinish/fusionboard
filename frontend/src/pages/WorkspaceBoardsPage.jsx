@@ -7,14 +7,14 @@ import { Search, Trash2 } from "lucide-react"; // Added Trash2
 
 function WorkspaceBoardsPage() {
   const navigate = useNavigate();
-  const { id } = useParams(); // workspaceId
+  const { id } = useParams(); // pull the workspace ID from the URL
 
   const [boards, setBoards] = useState([]);
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
-  
-  // Search State
+
+  // what are we searching for?
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -67,10 +67,10 @@ function WorkspaceBoardsPage() {
     }
   };
 
-  // Handle Delete Board
+  // trash a board
   const handleDeleteBoard = async (boardId) => {
     if (!window.confirm("Are you sure you want to delete this board? This cannot be undone.")) return;
-    
+
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -78,15 +78,15 @@ function WorkspaceBoardsPage() {
       await api.delete(`/boards/${boardId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Remove locally
+      // hide it from the screen immediately
       setBoards((prev) => prev.filter((b) => b._id !== boardId));
     } catch (e) {
       alert(e?.response?.data?.message || "Failed to delete board.");
     }
   };
 
-  // Filter logic
-  const filteredBoards = boards.filter((b) => 
+  // sift through boards based on search
+  const filteredBoards = boards.filter((b) =>
     b.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -118,7 +118,7 @@ function WorkspaceBoardsPage() {
             </div>
           )}
 
-          {/* Create board */}
+          {/* the big create button area */}
           <div className="card bg-base-100 shadow-md mb-6">
             <div className="card-body flex flex-row items-center justify-between">
               <div>
@@ -137,21 +137,21 @@ function WorkspaceBoardsPage() {
             </div>
           </div>
 
-          {/* Search Bar */}
+          {/* the search input box */}
           <div className="mb-4 relative">
-             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                 <Search size={18} className="text-neutral-400" />
-             </div>
-             <input
-               type="text"
-               className="input input-bordered w-full pl-10"
-               placeholder="Search boards by name..."
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-             />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-neutral-400" />
+            </div>
+            <input
+              type="text"
+              className="input input-bordered w-full pl-10"
+              placeholder="Search boards by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
-          {/* Previous boards */}
+          {/* list of boards we already made */}
           <div className="card bg-base-100 shadow-md mb-6">
             <div className="card-body">
               <h2 className="text-lg font-semibold mb-3">Previous boards</h2>
@@ -180,12 +180,12 @@ function WorkspaceBoardsPage() {
                           </div>
                         </div>
 
-                        {/* Delete Button */}
-                        <button 
+                        {/* the trash can icon */}
+                        <button
                           className="btn btn-ghost btn-sm btn-square text-error opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           title="Delete Board"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
+                            e.stopPropagation(); // don't navigate when clicking delete
                             handleDeleteBoard(b._id);
                           }}
                         >

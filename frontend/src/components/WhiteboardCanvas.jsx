@@ -1,29 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client"; // Helper if we need types, but JS is fine
+import { io } from "socket.io-client"; // socket io client stuff
 
-export default function WhiteboardCanvas({ 
-  boardId, 
-  socket, 
-  initialSegments, 
-  me 
+export default function WhiteboardCanvas({
+  boardId,
+  socket,
+  initialSegments,
+  me
 }) {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
-  
-  // Local State for Tools (Controls)
+
+  // what tool are we using right now?
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState("#000000");
   const [width, setWidth] = useState(2);
   const [statusMsg, setStatusMsg] = useState("");
 
-  // Canvas State
+  // keep track of the drawing strokes
   const drawingRef = useRef(false);
   const lastPointRef = useRef({ x: 0, y: 0 });
   const segmentsRef = useRef([]);
   const [cursors, setCursors] = useState({});
   const lastCursorEmitRef = useRef(0);
 
-  // --- INITIALIZE SEGMENTS FROM PARENT ---
+  // --- pull in the saved drawing from the server ---
   useEffect(() => {
     if (initialSegments && initialSegments.length > 0) {
       segmentsRef.current = initialSegments;
@@ -31,7 +31,7 @@ export default function WhiteboardCanvas({
     }
   }, [initialSegments]);
 
-  // --- CANVAS HELPERS ---
+  // --- handy drawing functions ---
   const fillWhiteBackground = () => {
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
@@ -88,7 +88,7 @@ export default function WhiteboardCanvas({
     };
   };
 
-  // --- SOCKET LISTENERS ---
+  // --- listen for other people drawing ---
   useEffect(() => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -147,7 +147,7 @@ export default function WhiteboardCanvas({
     };
   }, [socket]);
 
-  // Cleanup old cursors
+  // sweep away cursors that haven't moved in a while
   useEffect(() => {
     const t = setInterval(() => {
       const now = Date.now();
@@ -166,11 +166,11 @@ export default function WhiteboardCanvas({
     return () => clearInterval(t);
   }, []);
 
-  // --- POINTER EVENTS ---
+  // --- handle mouse and touch events ---
   const emitCursorMove = (x, y) => {
     if (!socket || !socket.connected) return;
     const now = Date.now();
-    if (now - lastCursorEmitRef.current < 30) return; 
+    if (now - lastCursorEmitRef.current < 30) return;
     lastCursorEmitRef.current = now;
     socket.emit("cursorMove", { boardId, x, y });
   };
@@ -186,21 +186,21 @@ export default function WhiteboardCanvas({
     const p = getCanvasPoint(e);
     emitCursorMove(p.x, p.y);
     if (!drawingRef.current) return;
-    
+
     const prev = lastPointRef.current;
     const effectiveColor = tool === "eraser" ? "#ffffff" : color;
     const effectiveWidth = tool === "eraser" ? Math.max(10, width * 3) : width;
-    
+
     const segment = {
       x0: prev.x, y0: prev.y,
       x1: p.x, y1: p.y,
       color: effectiveColor,
       width: effectiveWidth,
     };
-    
+
     segmentsRef.current.push(segment);
     drawSegment(segment);
-    
+
     if (socket?.connected) {
       socket.emit("draw", { boardId, segment });
     }
@@ -211,7 +211,7 @@ export default function WhiteboardCanvas({
     drawingRef.current = false;
   };
 
-  // --- HANDLERS ---
+  // --- button click handlers ---
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -230,7 +230,7 @@ export default function WhiteboardCanvas({
 
   return (
     <>
-      {/* Controls Card */}
+      {/* the toolbar at the top */}
       <div className="card bg-base-100 shadow-md mb-4">
         <div className="card-body flex flex-col gap-3 md:flex-row md:items-center md:justify-between py-3 px-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -250,7 +250,7 @@ export default function WhiteboardCanvas({
             </div>
 
             <label className="text-sm flex items-center gap-2">
-              Color 
+              Color
               <input
                 type="color"
                 value={color}
@@ -261,7 +261,7 @@ export default function WhiteboardCanvas({
             </label>
 
             <label className="text-sm flex items-center gap-2">
-              Width 
+              Width
               <input
                 type="range"
                 min="1" max="10"
@@ -281,7 +281,7 @@ export default function WhiteboardCanvas({
         </div>
       </div>
 
-      {/* Canvas Card */}
+      {/* the actual drawing board */}
       <div className="card bg-base-100 shadow-md mb-8">
         <div className="card-body p-1 relative">
           <canvas
@@ -295,7 +295,7 @@ export default function WhiteboardCanvas({
             onTouchMove={onPointerMove}
             onTouchEnd={onPointerUp}
           />
-          {/* Cursors Overlay */}
+          {/* show everyone else's mouse pointers */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             {Object.entries(cursors).map(([userId, c]) => (
               <div
@@ -308,7 +308,7 @@ export default function WhiteboardCanvas({
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <div 
+                  <div
                     className="w-3 h-3 rounded-full border border-white"
                     style={{ background: c.color }}
                   />

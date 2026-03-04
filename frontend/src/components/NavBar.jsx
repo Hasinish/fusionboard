@@ -18,7 +18,7 @@ function NavBar() {
       if (!token) return;
 
       try {
-        // 1. Get Invitations
+        // 1. fetch pending invites
         const resInvites = await api.get("/invitations/my", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -26,7 +26,7 @@ function NavBar() {
           ? resInvites.data.length
           : 0;
 
-        // 2. Get Notifications (filtered by unread)
+        // 2. grab unread notifications
         const resNotes = await api.get("/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -36,12 +36,12 @@ function NavBar() {
 
         setTotalBadge(inviteCount + unreadNotesCount);
       } catch {
-        // keep silent
+        // ignore errors quietly
       }
     };
 
     fetchData();
-    // Poll every 10 seconds to keep badge updated
+    // keep checking for new stuff every 10 seconds
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);

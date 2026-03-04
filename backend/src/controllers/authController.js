@@ -3,17 +3,17 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library"; // [NEW] Import Google Library
 
-// [NEW] Initialize Google Client using your existing ID from .env
+// set up the google login helper
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export async function register(req, res) {
   try {
     const { name, email, password } = req.body;
-    // Check existing user
+    // see if they already signed up
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "Email already used" });
 
-    // Hash password
+    // scramble their password
     const hashed = await bcrypt.hash(password, 10);
     await User.create({ name, email, password: hashed });
 
@@ -29,7 +29,7 @@ export async function login(req, res) {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-    // [FIX] If user signed up via Google (no password), tell them to use Google
+    // if they used google before, make them use it again
     if (!user.password) {
       return res.status(400).json({ message: "Please sign in with Google" });
     }
@@ -37,9 +37,9 @@ export async function login(req, res) {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Create token
+    // spin up a login token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    // Send token + basic user info
+    // ship back the token and their basic profile
     res.json({
       token,
       user: {
@@ -59,7 +59,7 @@ export async function googleLogin(req, res) {
   try {
     const { credential } = req.body;
 
-    // Verify the token sent from frontend
+    // make sure the token from the frontend is legit
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -68,11 +68,11 @@ export async function googleLogin(req, res) {
     const payload = ticket.getPayload();
     const { email, name, sub: googleId, picture } = payload;
 
-    // Check if user exists in DB
+    // see if we know this person
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user (No password)
+      // register them (google handles the password)
       user = await User.create({
         name,
         email,
@@ -80,7 +80,7 @@ export async function googleLogin(req, res) {
         avatar: picture,
       });
     } else {
-      // If user exists but wasn't linked to Google yet, link them now
+      // tie their existing account to their google login
       if (!user.googleId) {
         user.googleId = googleId;
         if (!user.avatar) user.avatar = picture;
@@ -88,7 +88,7 @@ export async function googleLogin(req, res) {
       }
     }
 
-    // Generate JWT for our app
+    // mint a fresh local token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
     res.json({
@@ -106,7 +106,7 @@ export async function googleLogin(req, res) {
   }
 }
 
-// UPDATE LOGGED-IN USER PROFILE
+// let them change their profile info
 export async function updateMe(req, res) {
   try {
     const userId = req.userId;
@@ -115,7 +115,7 @@ export async function updateMe(req, res) {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // If email is changed, check uniqueness
+    // make sure nobody else claimed this email
     if (email && email !== user.email) {
       const exists = await User.findOne({ email });
       if (exists) {

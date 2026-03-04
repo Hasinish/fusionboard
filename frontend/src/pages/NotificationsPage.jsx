@@ -24,13 +24,13 @@ function NotificationsPage() {
     setLoading(true);
 
     try {
-      // Fetch Invitations
+      // grab the pending invites
       const resInvites = await api.get("/invitations/my", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setInvitations(Array.isArray(resInvites.data) ? resInvites.data : []);
 
-      // Fetch Message Notifications
+      // grab the regular notifications
       const resNotes = await api.get("/notifications", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -62,7 +62,7 @@ function NotificationsPage() {
       setMessage(
         action === "accept" ? "Invitation accepted." : "Invitation rejected."
       );
-      // Remove from list locally
+      // hide it from the screen immediately
       setInvitations((prev) => prev.filter((inv) => inv._id !== id));
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to update invitation.");
@@ -71,7 +71,7 @@ function NotificationsPage() {
 
   const handleNotificationClick = (note) => {
     if (note.workspace) {
-      // Navigate to workspace. The WorkspaceDetailsPage will mark it as read on mount.
+      // send them to the workspace (which will clear the notif)
       navigate(`/workspaces/${note.workspace._id}`);
     }
   };
@@ -110,8 +110,8 @@ function NotificationsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              
-              {/* Invitations Section */}
+
+              {/* the invites list */}
               {invitations.length > 0 && (
                 <div>
                   <h2 className="text-lg font-semibold mb-2">Invitations</h2>
@@ -149,7 +149,7 @@ function NotificationsPage() {
                 </div>
               )}
 
-              {/* Message Notifications Section */}
+              {/* the messages list */}
               {notifications.length > 0 && (
                 <div>
                   <h2 className="text-lg font-semibold mb-2">Messages</h2>
@@ -177,8 +177,8 @@ function NotificationsPage() {
                               {new Date(note.updatedAt).toLocaleString()}
                             </p>
                           </div>
-                          
-                          
+
+
                         </div>
                       </div>
                     ))}
