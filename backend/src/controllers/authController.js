@@ -28,10 +28,10 @@ export async function login(req, res) {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
-    
+
     // [FIX] If user signed up via Google (no password), tell them to use Google
     if (!user.password) {
-        return res.status(400).json({ message: "Please sign in with Google" });
+      return res.status(400).json({ message: "Please sign in with Google" });
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -46,7 +46,7 @@ export async function login(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        avatar: user.avatar 
+        avatar: user.avatar
       },
     });
   } catch (e) {
@@ -57,14 +57,14 @@ export async function login(req, res) {
 // Google Login Logic
 export async function googleLogin(req, res) {
   try {
-    const { credential } = req.body; 
+    const { credential } = req.body;
 
     // Verify the token sent from frontend
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const payload = ticket.getPayload();
     const { email, name, sub: googleId, picture } = payload;
 
@@ -141,5 +141,20 @@ export async function updateMe(req, res) {
     });
   } catch (e) {
     return res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function getMe(req, res) {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
   }
 }

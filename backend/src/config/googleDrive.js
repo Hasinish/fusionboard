@@ -6,7 +6,7 @@ dotenv.config();
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  "https://developers.google.com/oauthplayground" // This URL doesn't matter for backend calls, but is required
+  process.env.GOOGLE_REDIRECT_URI || "http://localhost:5001/api/drive/callback"
 );
 
 // Set the credentials permanently using the refresh token
@@ -19,4 +19,5 @@ const driveClient = google.drive({
   auth: oauth2Client,
 });
 
+export { oauth2Client, driveClient };
 export default driveClient;

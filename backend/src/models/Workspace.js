@@ -31,6 +31,10 @@ const workspaceSchema = new mongoose.Schema(
 
     // Members (including owner) with roles
     members: [memberSchema],
+
+    // Google Drive Configuration (for the owner)
+    googleDriveRefreshToken: { type: String },
+    googleDriveFolderId: { type: String },
   },
   { timestamps: true }
 );

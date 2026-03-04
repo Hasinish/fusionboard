@@ -222,6 +222,7 @@ export async function getWorkspaceById(req, res) {
       description: workspace.description,
       owner: ownerData,
       members,
+      googleDriveFolderId: workspace.googleDriveFolderId,
     });
   } catch (e) {
     console.error("Error fetching workspace:", e);

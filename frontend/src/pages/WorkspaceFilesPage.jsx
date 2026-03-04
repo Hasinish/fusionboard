@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Trash2, 
-  UploadCloud, 
-  ArrowLeft, 
-  File, 
-  Image as ImageIcon 
+import {
+  FileText,
+  Download,
+  Eye,
+  Trash2,
+  UploadCloud,
+  ArrowLeft,
+  File,
+  Image as ImageIcon,
+  CheckCircle,
+  AlertCircle,
+  Lock
 } from "lucide-react";
 import NavBar from "../components/NavBar";
 import api from "../lib/api";
@@ -19,19 +22,60 @@ export default function WorkspaceFilesPage() {
   const navigate = useNavigate();
 
   const [files, setFiles] = useState([]);
+  const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (!isLoggedIn()) navigate("/login");
-    fetchFiles();
+    if (!isLoggedIn()) {
+      navigate("/login");
+      return;
+    }
+    fetchInitialData();
+    // Check for status in URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("status") === "success") {
+      setMsg("Google Drive connected successfully!");
+    } else if (params.get("status") === "error") {
+      setError(`Failed to connect Drive: ${params.get("message")}`);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const fetchFiles = async () => {
+  const fetchInitialData = async () => {
     setLoading(true);
+    await Promise.all([fetchFiles(), fetchWorkspace(), fetchCurrentUser()]);
+    setLoading(false);
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api.get("/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCurrentUser(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchWorkspace = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api.get(`/workspaces/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWorkspace(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchFiles = async () => {
     try {
       const token = localStorage.getItem("token");
       const res = await api.get(`/drive/workspace/${id}`, {
@@ -40,8 +84,6 @@ export default function WorkspaceFilesPage() {
       setFiles(res.data);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -60,15 +102,15 @@ export default function WorkspaceFilesPage() {
     try {
       const token = localStorage.getItem("token");
       await api.post("/drive/upload", formData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
       setMsg("File uploaded successfully!");
-      fetchFiles(); 
+      fetchFiles();
     } catch (err) {
-      setError("Upload failed.");
+      setError(err.response?.data?.message || "Upload failed.");
     } finally {
       setUploading(false);
       setTimeout(() => setMsg(""), 3000);
@@ -76,10 +118,10 @@ export default function WorkspaceFilesPage() {
   };
 
   const handleDelete = async (fileId) => {
-    if(!window.confirm("Are you sure you want to delete this file?")) return;
+    if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
       const token = localStorage.getItem("token");
-      await api.delete(`/drive/${fileId}`, {
+      await api.delete(`/drive/${fileId}?workspaceId=${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFiles(files.filter(f => f.id !== fileId));
@@ -102,24 +144,39 @@ export default function WorkspaceFilesPage() {
     return <File size={20} className="text-blue-500" />;
   };
 
+  const handleConnectDrive = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api.get(`/drive/auth-url/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      window.location.href = res.data.url;
+    } catch (err) {
+      setError("Could not get auth URL.");
+    }
+  };
+
+  const isOwner = workspace && currentUser && workspace.owner && workspace.owner._id === currentUser._id;
+  const isDriveConnected = workspace && workspace.googleDriveFolderId;
+
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
       <NavBar />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-8">
-          
+
           {/* --- Header Section --- */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
-                <UploadCloud className="text-primary" size={32} /> 
+                <UploadCloud className="text-primary" size={32} />
                 Workspace Files
               </h1>
               <p className="text-neutral-500 mt-1">
                 Manage documents and assets for this workspace.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => navigate(`/workspaces/${id}`)}
               className="btn btn-outline gap-2"
             >
@@ -130,31 +187,55 @@ export default function WorkspaceFilesPage() {
           {/* --- Upload Card --- */}
           <div className="card bg-base-100 shadow-sm border border-base-300 mb-8">
             <div className="card-body">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="card-title text-lg">Upload File</h2>
-                  <p className="text-sm text-neutral-500">
-                    Supported formats: Images, PDF, Docs. Max 15GB (shared).
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                   <label className={`btn btn-primary gap-2 w-full sm:w-auto ${uploading ? 'btn-disabled' : ''}`}>
-                    {uploading ? (
-                      <span className="loading loading-spinner loading-sm"></span>
-                    ) : (
+              {!isDriveConnected ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center text-warning">
+                    <Lock size={32} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">Google Drive Not Connected</h2>
+                    <p className="text-neutral-500 max-w-md mx-auto mt-2">
+                      Files for this workspace are stored in the owner's Google Drive.
+                      {isOwner ? "You need to connect your drive to enable uploads." : "Wait for the owner to connect their Google Drive."}
+                    </p>
+                  </div>
+                  {isOwner && (
+                    <button
+                      onClick={handleConnectDrive}
+                      className="btn btn-warning gap-2"
+                    >
                       <UploadCloud size={18} />
-                    )}
-                    {uploading ? "Uploading..." : "Select & Upload"}
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleUpload} 
-                      disabled={uploading}
-                    />
-                  </label>
+                      Connect Google Drive
+                    </button>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="card-title text-lg">Upload File</h2>
+                    <p className="text-sm text-neutral-500">
+                      Supported formats: Images, PDF, Docs. Max 15GB (shared).
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <label className={`btn btn-primary gap-2 w-full sm:w-auto ${uploading ? 'btn-disabled' : ''}`}>
+                      {uploading ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        <UploadCloud size={18} />
+                      )}
+                      {uploading ? "Uploading..." : "Select & Upload"}
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {msg && (
                 <div className="alert alert-success mt-4 py-2 text-sm rounded-md flex items-center">
@@ -162,8 +243,8 @@ export default function WorkspaceFilesPage() {
                 </div>
               )}
               {error && (
-                <div className="alert alert-error mt-4 py-2 text-sm rounded-md">
-                  {error}
+                <div className="alert alert-error mt-4 py-2 text-sm rounded-md flex items-center">
+                  <AlertCircle size={16} className="mr-2" /> {error}
                 </div>
               )}
             </div>
@@ -234,23 +315,23 @@ export default function WorkspaceFilesPage() {
                                 2. 'inline-flex items-center justify-center' on buttons ensures internal icon centering
                             */}
                             <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                              <a 
-                                href={f.webViewLink} 
-                                target="_blank" 
+                              <a
+                                href={f.webViewLink}
+                                target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-square btn-sm btn-ghost inline-flex items-center justify-center tooltip tooltip-left"
                                 data-tip="Preview"
                               >
                                 <Eye size={18} />
                               </a>
-                              <a 
-                                href={f.webContentLink} 
+                              <a
+                                href={f.webContentLink}
                                 className="btn btn-square btn-sm btn-ghost inline-flex items-center justify-center tooltip tooltip-left"
                                 data-tip="Download"
                               >
                                 <Download size={18} />
                               </a>
-                              <button 
+                              <button
                                 onClick={() => handleDelete(f.id)}
                                 className="btn btn-square btn-sm btn-ghost text-error hover:bg-error/10 inline-flex items-center justify-center tooltip tooltip-left"
                                 data-tip="Delete"
@@ -274,23 +355,3 @@ export default function WorkspaceFilesPage() {
   );
 }
 
-// Simple Helper Icon for Success Message
-function CheckCircle({ size, className }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
-  );
-}
