@@ -109,12 +109,13 @@ io.use(async (socket, next) => {
 });
 
 const CURSOR_COLORS = [
-  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
-  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
+  "#dc2626", "#ea580c", "#d97706", "#059669",
+  "#0891b2", "#2563eb", "#4f46e5", "#7c3aed",
+  "#c026d3", "#db2777", "#4b5563", "#0f172a"
 ];
 
 function pickColor(key) {
-  const s = String(key || "");
+  const s = String(key || Math.random());
   let hash = 0;
   for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
   return CURSOR_COLORS[hash % CURSOR_COLORS.length];
@@ -267,41 +268,74 @@ io.on("connection", (socket) => {
     if (!boardId) return;
     const name = user?.name ? String(user.name) : socket.userName || "User";
     const userId = socket.userId;
-    const color = pickColor(userId);
+    const color = pickColor(socket.id);
     let workspaceId = null;
     let boardTitle = "Unknown Board";
+    let existingStrokes = [];
+    let existingElements = [];
     try {
-      const board = await Board.findById(boardId).select("workspace title");
+      const board = await Board.findById(boardId).select("workspace title strokes elements");
       if (board) {
         workspaceId = board.workspace;
         boardTitle = board.title;
+        existingStrokes = (board.strokes || []).filter(s => !s.undone);
+        existingElements = board.elements || [];
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { /* ignore non-ObjectId boardIds */ }
     socket.join(`board:${boardId}`);
     socketMeta.set(socket.id, {
       boardId, userId, name, color,
       workspaceId, boardTitle, hasEdited: false
     });
+    socket.emit("boardStrokes", existingStrokes);
+    socket.emit("boardElements", existingElements);
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
   });
 
-  socket.on("draw", async ({ boardId, segment }) => {
-    if (!boardId || !segment) return;
+  socket.on("strokeStart", ({ boardId, stroke }) => {
+    if (!boardId || !stroke) return;
+    socket.to(`board:${boardId}`).emit("strokeStarted", stroke);
+  });
+
+  socket.on("strokeUpdate", ({ boardId, strokeId, point }) => {
+    if (!boardId || !strokeId || !point) return;
+    socket.to(`board:${boardId}`).emit("strokeUpdated", { strokeId, point });
+  });
+
+  socket.on("strokeEnd", async ({ boardId, stroke }) => {
+    if (!boardId || !stroke) return;
     const meta = socketMeta.get(socket.id);
     if (meta) meta.hasEdited = true;
-    socket.to(`board:${boardId}`).emit("draw", segment);
+    // Broadcast final stroke to ensure everyone has the full data
+    socket.to(`board:${boardId}`).emit("strokeFinished", stroke);
+    // Persist to DB
     try {
-      const updated = await Board.findByIdAndUpdate(
-        boardId,
-        { $push: { segments: segment } },
-        { new: true }
-      ).select("updatedAt");
-      if (updated) {
-        io.to(`board:${boardId}`).emit("saved", { updatedAt: updated.updatedAt });
-      }
-    } catch (e) {
-      console.error("autosave error:", e);
-    }
+      await Board.findByIdAndUpdate(boardId, { $push: { strokes: stroke } });
+    } catch (e) { /* non-ObjectId boardId — ignore */ }
+  });
+
+  socket.on("undoStroke", async ({ boardId, strokeId }) => {
+    if (!boardId || !strokeId) return;
+    // Broadcast immediately for real-time feel
+    io.to(`board:${boardId}`).emit("strokeUndone", { strokeId });
+    try {
+      await Board.findOneAndUpdate(
+        { _id: boardId, "strokes.id": strokeId },
+        { $set: { "strokes.$.undone": true } }
+      );
+    } catch (e) { /* ignore */ }
+  });
+
+  socket.on("redoStroke", async ({ boardId, stroke }) => {
+    if (!boardId || !stroke) return;
+    // Broadcast immediately
+    io.to(`board:${boardId}`).emit("strokeRedone", stroke);
+    try {
+      await Board.findOneAndUpdate(
+        { _id: boardId, "strokes.id": stroke.id },
+        { $set: { "strokes.$.undone": false } }
+      );
+    } catch (e) { /* ignore */ }
   });
 
   socket.on("cursorMove", ({ boardId, x, y }) => {
@@ -318,16 +352,59 @@ io.on("connection", (socket) => {
     });
   });
 
+  // ─── Elements (sticky notes, shapes) ───────────────────────────────────────
+
+  socket.on("addElement", async ({ boardId, element }) => {
+    if (!boardId || !element) return;
+    socket.to(`board:${boardId}`).emit("elementAdded", element);
+    try {
+      await Board.findByIdAndUpdate(boardId, { $push: { elements: element } });
+    } catch (e) { /* ignore non-ObjectId boardIds */ }
+  });
+
+  socket.on("updateElement", async ({ boardId, element }) => {
+    if (!boardId || !element?.id) return;
+    socket.to(`board:${boardId}`).emit("elementUpdated", element);
+    try {
+      // Use $set with the entire object to ensure all fields are persisted
+      await Board.findOneAndUpdate(
+        { _id: boardId, "elements.id": element.id },
+        { $set: { "elements.$": element } }
+      );
+    } catch (e) { /* ignore */ }
+  });
+
+  socket.on("updateElements", async ({ boardId, elements }) => {
+    if (!boardId || !Array.isArray(elements)) return;
+    socket.to(`board:${boardId}`).emit("elementsUpdated", elements);
+    try {
+      const ops = elements.map(el => ({
+        updateOne: {
+          filter: { _id: boardId, "elements.id": el.id },
+          update: { $set: { "elements.$": el } }
+        }
+      }));
+      await Board.bulkWrite(ops);
+    } catch (e) {
+      console.error("updateElements error:", e);
+    }
+  });
+
+  socket.on("deleteElement", async ({ boardId, elementId }) => {
+    if (!boardId || !elementId) return;
+    io.to(`board:${boardId}`).emit("elementDeleted", { elementId });
+    try {
+      await Board.findByIdAndUpdate(boardId, { $pull: { elements: { id: elementId } } });
+    } catch (e) { /* ignore */ }
+  });
+
   socket.on("clearBoard", async ({ boardId }) => {
     if (!boardId) return;
+    io.to(`board:${boardId}`).emit("cleared");
     try {
       const meta = socketMeta.get(socket.id);
       if (meta) meta.hasEdited = true;
-      await Board.findByIdAndUpdate(boardId, { $set: { segments: [] } });
-      io.to(`board:${boardId}`).emit("cleared");
-      io.to(`board:${boardId}`).emit("saved", {
-        updatedAt: new Date().toISOString(),
-      });
+      await Board.findByIdAndUpdate(boardId, { $set: { strokes: [], elements: [] } });
     } catch (e) {
       console.error("clearBoard error:", e);
     }

@@ -65,9 +65,17 @@ function DashboardPage() {
               </p>
             </div>
 
-            <button onClick={handleLogout} className="btn btn-ghost btn-sm">
-              Logout
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate("/test-whiteboard")}
+                className="btn btn-secondary btn-sm"
+              >
+                Test Infinite Canvas
+              </button>
+              <button onClick={handleLogout} className="btn btn-ghost btn-sm">
+                Logout
+              </button>
+            </div>
           </div>
 
           {error && (

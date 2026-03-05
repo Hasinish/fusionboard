@@ -10,7 +10,8 @@ import VoiceChatRoomPage from "./pages/VoiceChatRoomPage";
 import WorkspaceBoardsPage from "./pages/WorkspaceBoardsPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
 import WorkspaceFilesPage from "./pages/WorkspaceFilesPage";
-import WorkspaceActivityPage from "./pages/WorkspaceActivityPage"; 
+import WorkspaceActivityPage from "./pages/WorkspaceActivityPage";
+import TestWhiteboardPage from "./pages/TestWhiteboardPage";
 
 function App() {
   return (
@@ -22,15 +23,17 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/workspaces/create" element={<CreateWorkspacePage />} />
-       
+
         <Route path="/workspaces/:id" element={<WorkspaceDetailsPage />} />
         <Route path="/workspaces/:id/voice" element={<VoiceChatRoomPage />} />
         <Route path="/workspaces/:id/boards" element={<WorkspaceBoardsPage />} />
         <Route path="/workspaces/:id/files" element={<WorkspaceFilesPage />} />
-        <Route path="/workspaces/:id/activity" element={<WorkspaceActivityPage />} /> 
-        
-        <Route path="/workspaces/:id/boards/:boardId" element={<WhiteboardPage />}/>
+        <Route path="/workspaces/:id/activity" element={<WorkspaceActivityPage />} />
+
+        <Route path="/workspaces/:id/boards/:boardId" element={<WhiteboardPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        {/* Infinite Canvas Test Route */}
+        <Route path="/test-whiteboard" element={<TestWhiteboardPage />} />
       </Routes>
     </div>
   );

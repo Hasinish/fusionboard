@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -51,3 +53,17 @@
 .note-content ul { list-style-type: disc; padding-left: 1.5em; }
 .note-content ol { list-style-type: decimal; padding-left: 1.5em; }
 .note-content blockquote { border-left: 3px solid #ccc; padding-left: 1em; }
+
+/* ─── Whiteboard Zoom Fixes ─── */
+
+/* Force all pointers to fall through to the canvas when Ctrl is held,
+   ensuring cross-origin iframes like YouTube don't swallow wheel events. */
+body.ctrl-down iframe {
+  pointer-events: none !important;
+}
+
+/* Prevent textareas (code blocks) from scrolling when Ctrl is held 
+   so the whiteboard zoom takes priority. */
+body.ctrl-down textarea {
+  overflow: hidden !important;
+}

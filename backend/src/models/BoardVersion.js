@@ -8,6 +8,7 @@ const segmentSchema = new mongoose.Schema(
     y1: Number,
     color: { type: String, default: "#000000" },
     width: { type: Number, default: 2 },
+    isEraser: { type: Boolean, default: false },
   },
   { _id: false }
 );

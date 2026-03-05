@@ -1,15 +1,66 @@
 import mongoose from "mongoose";
 
-const segmentSchema = new mongoose.Schema(
+const pointSchema = new mongoose.Schema(
+  { x: Number, y: Number },
+  { _id: false }
+);
+
+const strokeSchema = new mongoose.Schema(
   {
-    x0: Number,
-    y0: Number,
-    x1: Number,
-    y1: Number,
+    id: { type: String, required: true },
+    points: { type: [pointSchema], default: [] },
     color: { type: String, default: "#000000" },
     width: { type: Number, default: 2 },
+    isEraser: { type: Boolean, default: false },
+    undone: { type: Boolean, default: false },
   },
   { _id: false }
+);
+
+// Elements: sticky notes, rect, ellipse, triangle, arrow
+const elementSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["sticky", "rect", "ellipse", "triangle", "arrow", "path", "code", "video"],
+      required: true
+    },
+    x: { type: Number, default: 0 },
+    y: { type: Number, default: 0 },
+    w: { type: Number, default: 200 },
+    h: { type: Number, default: 150 },
+    rotation: { type: Number, default: 0 },
+    fill: { type: String, default: "#fef08a" },
+    stroke: { type: String, default: "#e2c94e" },
+    strokeWidth: { type: Number, default: 2 },
+    text: { type: String, default: "" },
+    textAlign: { type: String, default: "left" },
+    fontFamily: { type: String, default: "Inter" },
+    fontSize: { type: Number, default: 14 },
+    bold: { type: Boolean, default: false },
+    italic: { type: Boolean, default: false },
+    textColor: { type: String, default: "#1e1e1e" },
+    textVerticalAlign: { type: String, enum: ["top", "middle", "bottom"], default: "top" },
+
+    // Path element specific
+    points: { type: [pointSchema], default: undefined },
+
+    // Video element specific
+    url: { type: String },
+    videoId: { type: String },
+
+    // Code element specific
+    code: { type: String },
+    output: { type: String },
+    language: { type: String },
+
+    // General styling/state overrides
+    color: { type: String },
+    width: { type: Number },
+    isMarkedForErasure: { type: Boolean, default: false },
+  },
+  { _id: false, strict: false }
 );
 
 const boardSchema = new mongoose.Schema(
@@ -20,7 +71,8 @@ const boardSchema = new mongoose.Schema(
       required: true,
     },
     title: { type: String, default: "Untitled Board" },
-    segments: { type: [segmentSchema], default: [] }, // the final drawing state
+    strokes: { type: [strokeSchema], default: [] },
+    elements: { type: [elementSchema], default: [] },
   },
   { timestamps: true }
 );
