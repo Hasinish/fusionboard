@@ -1246,6 +1246,7 @@ export default React.memo(function ElementsLayer({
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
     const updateTimer = useRef({});
     const socketRef = useRef(socket);
+    const lastGroupEmitRef = useRef(0);
     const propertyEditStateRef = useRef(null); // Tracks the "true" before-state for undo
 
     const elementsRef = useRef(elements);
@@ -1547,6 +1548,14 @@ export default React.memo(function ElementsLayer({
                 updated.forEach(u => map.set(u.id, u));
                 return Array.from(map.values());
             });
+
+            if (socketRef.current?.connected) {
+                const now = Date.now();
+                if (now - lastGroupEmitRef.current > 40) {
+                    socketRef.current.emit("updateElements", { boardId, elements: updated });
+                    lastGroupEmitRef.current = now;
+                }
+            }
         }
     };
 

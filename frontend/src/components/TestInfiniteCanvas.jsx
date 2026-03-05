@@ -854,6 +854,36 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         return () => window.removeEventListener("keydown", hkd);
     }, [performUndo, performRedo]);
 
+    // ─── tool shortcuts ───────────────────────────────────────────────────────
+    useEffect(() => {
+        const handleKeys = (e) => {
+            // Ignore if the user is typing in an input, textarea, or contenteditable
+            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
+
+            // Ignore if Ctrl/Cmd/Alt is pressed
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case 'v': setTool("select"); break;
+                case 'h': setTool("hand"); break;
+                case 'p': setTool("pen"); break;
+                case 'e': setTool("eraser"); break;
+                case 't': setTool("text"); break;
+                case 's': setTool("sticky"); setLastShapeType("sticky"); break;
+                case 'r': setTool("rect"); setLastShapeType("rect"); break;
+                case 'o': setTool("ellipse"); setLastShapeType("ellipse"); break;
+                case 'a': setTool("arrow"); setLastShapeType("arrow"); break;
+                case 'c': setTool("code"); break;
+                case 'y': setTool("video"); break;
+                default: break;
+            }
+        };
+
+        window.addEventListener("keydown", handleKeys);
+        return () => window.removeEventListener("keydown", handleKeys);
+    }, []);
+
     // ─── pointer events ───────────────────────────────────────────────────────
 
     const getSP = (e) => {
