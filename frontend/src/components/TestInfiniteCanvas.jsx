@@ -276,7 +276,7 @@ function EraserTrailPreview({ eraserPath, camera }) {
     );
 }
 
-export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI }) {
+export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [] }) {
     // minimap
     const minimapCanvasRef = useRef(null);
     const minimapCtxRef = useRef(null);
@@ -288,6 +288,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const [width, setWidth] = useState(2);
     const [bgMode, setBgMode] = useState("white");
     const [statusMsg, setStatusMsg] = useState("");
+    const [remoteLiveStrokes, setRemoteLiveStrokes] = useState({}); // userId -> stroke object
+    const lastEmittedTimeRef = useRef(0);
 
     // camera (infinite canvas)
     const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 });
@@ -319,6 +321,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     useEffect(() => { toolRef.current = tool; }, [tool]);
 
     const [cursors, setCursors] = useState({});
+    const [participants, setParticipants] = useState([]);
     const lastCursorEmitRef = useRef(0);
     const socketRef = useRef(socket);
     useEffect(() => { socketRef.current = socket; }, [socket]);
@@ -357,6 +360,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const [shapeType, setShapeType] = useState("rect");
     const [lastShapeType, setLastShapeType] = useState("rect");
     const [pendingEditId, setPendingEditId] = useState(null);
+    const clearPendingEditId = useCallback(() => setPendingEditId(null), []);
 
     // ─── coordinate helpers ───────────────────────────────────────────────────
 
@@ -601,14 +605,48 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             socket.on("saved", () => { setStatusMsg("Saved ✅"); setTimeout(() => setStatusMsg(""), 1500); });
 
+            socket.on("boardParticipants", (p) => setParticipants(p || []));
             socket.on("cursorJoin", ({ userId, name, color }) => {
                 setCursors(prev => ({ ...prev, [userId]: { name, color, x: 0, y: 0, ts: Date.now() } }));
+                setParticipants(prev => {
+                    if (prev.find(p => p.userId === userId)) return prev;
+                    return [...prev, { userId, name, color }];
+                });
             });
             socket.on("cursorMove", ({ userId, name, color, x, y }) => {
                 setCursors(prev => ({ ...prev, [userId]: { name, color, x, y, ts: Date.now() } }));
+                setParticipants(prev => {
+                    if (prev.find(p => p.userId === userId)) return prev;
+                    return [...prev, { userId, name, color }];
+                });
             });
             socket.on("cursorLeave", ({ userId }) => {
-                setCursors(prev => { const c = { ...prev }; delete c[userId]; return c; });
+                setParticipants(prev => prev.filter(p => (p.userId || p.peerId) !== userId));
+                setCursors(prev => {
+                    const next = { ...prev };
+                    delete next[userId];
+                    return next;
+                });
+                setRemoteLiveStrokes(prev => {
+                    const next = { ...prev };
+                    delete next[userId];
+                    return next;
+                });
+            });
+
+            socket.on("draw:stroke-progress", ({ userId, stroke }) => {
+                setRemoteLiveStrokes(prev => ({
+                    ...prev,
+                    [userId]: stroke
+                }));
+            });
+
+            socket.on("draw:stroke-end", ({ userId }) => {
+                setRemoteLiveStrokes(prev => {
+                    const next = { ...prev };
+                    delete next[userId];
+                    return next;
+                });
             });
         }
 
@@ -619,6 +657,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 socket.off("cursorJoin"); socket.off("cursorMove"); socket.off("cursorLeave");
                 socket.off("elementAdded"); socket.off("elementUpdated"); socket.off("elementDeleted");
                 socket.off("boardElements");
+                socket.off("draw:stroke-progress");
+                socket.off("draw:stroke-end");
             }
         };
     }, [socket, drawMinimap]);
@@ -1033,6 +1073,16 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             }
             currentPathRef.current.points.push({ x: p.x, y: p.y, pressure });
             setCurrentPath({ ...currentPathRef.current });
+
+            // Throttle socket emission for performance
+            const now = Date.now();
+            if (now - lastEmittedTimeRef.current > 40) {
+                socket?.emit("draw:stroke-progress", {
+                    boardId,
+                    stroke: currentPathRef.current
+                });
+                lastEmittedTimeRef.current = now;
+            }
             return;
         }
 
@@ -1094,23 +1144,25 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             const path = currentPathRef.current;
             currentPathRef.current = null;
             setCurrentPath(null);
+            drawingRef.current = false;
+
+            if (socket?.connected) {
+                socket.emit("draw:stroke-end", { boardId });
+            }
 
             if (path && path.points.length > 0) {
                 // Compute bounding box for the element
                 const bounds = getPathBounds(path.points);
                 const el = {
                     ...path,
-                    x: bounds.x,
-                    y: bounds.y,
-                    w: bounds.w,
-                    h: bounds.h,
-                    rotation: 0,
+                    id: uid(),
+                    ...bounds,
+                    userId: me?.userId || me?.id, // track who made it
                 };
                 setElements(prev => [...prev, el]);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
             }
-            drawingRef.current = false;
             return;
         }
 
@@ -1147,6 +1199,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         }
 
         drawingRef.current = false;
+    };
+
+    const getInitials = (name) => {
+        if (!name) return "?";
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0].substring(0, 1).toUpperCase();
+        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
     };
 
     const resetCamera = () => setCamera({ x: 0, y: 0, z: 1 });
@@ -1202,6 +1261,34 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             {/* Eraser trail preview */}
             <EraserTrailPreview eraserPath={eraserPath} camera={camera} />
 
+            {/* Remote live strokes preview */}
+            {Object.keys(remoteLiveStrokes).length > 0 && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 9 }}>
+                    <g transform={`translate(${camera.x}, ${camera.y}) scale(${camera.z})`}>
+                        {Object.entries(remoteLiveStrokes).map(([uid, stroke]) => {
+                            if (!stroke || !stroke.points || stroke.points.length === 0) return null;
+                            const outlinePoints = getStroke(stroke.points.map(p => [p.x, p.y, p.pressure || 0.5]), {
+                                size: stroke.width * 2,
+                                thinning: 0.5,
+                                smoothing: 0.5,
+                                streamline: 0.5,
+                            });
+                            const pathData = getSvgPathFromStroke(outlinePoints);
+                            if (!pathData) return null;
+
+                            return (
+                                <path
+                                    key={`remote-live-${uid}`}
+                                    d={pathData}
+                                    fill={stroke.color}
+                                    style={{ opacity: 0.8 }}
+                                />
+                            );
+                        })}
+                    </g>
+                </svg>
+            )}
+
             <ElementsLayer
                 tool={tool}
                 elements={elements}
@@ -1214,7 +1301,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 ghostElement={ghostElement}
                 pushAction={pushAction}
                 pendingEditId={pendingEditId}
-                onPendingEditConsumed={() => setPendingEditId(null)}
+                onPendingEditConsumed={clearPendingEditId}
             />
 
             {tool === "eraser" && (
@@ -1238,10 +1325,31 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             {/* UI overlay container */}
             <div className="pointer-events-none">
                 <div className="absolute top-4 right-4 flex flex-col items-end gap-3 z-30 pointer-events-none">
-                    <div className="ui-container bg-base-100 rounded-full px-5 py-2 shadow-md flex items-center gap-3 border border-base-200 pointer-events-auto">
-                        <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-sm font-semibold text-base-content/70">{statusMsg || "Ready"}</span>
-                        <button className="btn btn-ghost btn-sm btn-circle ml-2" onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-2">
+                        {/* Participants Bubbles */}
+                        <div className="flex -space-x-3 pointer-events-auto mr-2">
+                            {participants.slice(0, 5).map((p, idx) => (
+                                <div
+                                    key={`${p.userId}-${idx}`}
+                                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-base-100"}`}
+                                    style={{ backgroundColor: p.color || "#ccc" }}
+                                    data-tip={p.name}
+                                >
+                                    {getInitials(p.name)}
+                                </div>
+                            ))}
+                            {participants.length > 5 && (
+                                <div className="w-10 h-10 rounded-full border-2 border-base-100 bg-base-300 flex items-center justify-center text-base-content text-xs font-bold shadow-sm">
+                                    +{participants.length - 5}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="ui-container bg-base-100 rounded-full px-5 py-2 shadow-md flex items-center gap-3 border border-base-200 pointer-events-auto">
+                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                            <span className="text-sm font-semibold text-base-content/70">{statusMsg || "Ready"}</span>
+                            <button className="btn btn-ghost btn-sm btn-circle ml-2" onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
+                        </div>
                     </div>
                     <div className="ui-container bg-base-100 rounded-xl shadow-md border border-base-200 px-3 py-2 flex items-center gap-2 pointer-events-auto">
                         <button className="btn btn-sm btn-ghost px-2" title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>

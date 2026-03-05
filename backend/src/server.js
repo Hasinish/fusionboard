@@ -132,6 +132,7 @@ function broadcastParticipants(roomId) {
       if (!s) return null;
       return {
         peerId: sid,
+        userId: s.userId,
         name: s.userName || "Unknown",
         isMuted: !!s.isMuted
       };
@@ -145,7 +146,7 @@ io.on("connection", (socket) => {
   socket.on("voice:join", ({ roomId }) => {
     if (!roomId) return;
     socket.join(roomId);
-    socket.isMuted = false;
+    socket.isMuted = true;
     broadcastParticipants(roomId);
     socket.to(roomId).emit("voice:peer-joined", {
       peerId: socket.id,
@@ -189,6 +190,7 @@ io.on("connection", (socket) => {
           if (!s) return null;
           return {
             peerId: sid,
+            userId: s.userId,
             name: s.userName || "Unknown",
             isMuted: !!s.isMuted
           };
@@ -287,6 +289,19 @@ io.on("connection", (socket) => {
       boardId, userId, name, color,
       workspaceId, boardTitle, hasEdited: false
     });
+
+    // Get current participants in this board
+    const boardRoom = io.sockets.adapter.rooms.get(`board:${boardId}`);
+    const participantIds = boardRoom ? Array.from(boardRoom) : [];
+    const participants = participantIds
+      .map(sid => {
+        const meta = socketMeta.get(sid);
+        if (!meta) return null;
+        return { userId: meta.userId, name: meta.name, color: meta.color };
+      })
+      .filter(Boolean);
+
+    socket.emit("boardParticipants", participants);
     socket.emit("boardStrokes", existingStrokes);
     socket.emit("boardElements", existingElements);
     socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
@@ -336,6 +351,23 @@ io.on("connection", (socket) => {
         { $set: { "strokes.$.undone": false } }
       );
     } catch (e) { /* ignore */ }
+  });
+
+  socket.on("draw:stroke-progress", ({ boardId, stroke }) => {
+    if (!boardId) return;
+    const meta = socketMeta.get(socket.id);
+    socket.to(`board:${boardId}`).emit("draw:stroke-progress", {
+      userId: meta?.userId || socket.userId || socket.id,
+      stroke
+    });
+  });
+
+  socket.on("draw:stroke-end", ({ boardId }) => {
+    if (!boardId) return;
+    const meta = socketMeta.get(socket.id);
+    socket.to(`board:${boardId}`).emit("draw:stroke-end", {
+      userId: meta?.userId || socket.userId || socket.id
+    });
   });
 
   socket.on("cursorMove", ({ boardId, x, y }) => {

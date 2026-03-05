@@ -32,19 +32,29 @@ const RTC_CONFIG = {
   ],
 };
 
-export default function VoiceChat({ roomId }) {
+export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }) {
   const me = getUser();
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [participants, setParticipants] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const socket = useRef(null);
+  const isMutedRef = useRef(isMuted);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  const participantsRef = useRef([]);
+  useEffect(() => { participantsRef.current = participants; }, [participants]);
   const localStream = useRef(null);
   const pcs = useRef(new Map());
   const pendingIce = useRef(new Map());
   const makingOffer = useRef(new Map());
+
+  // Volume Monitoring
+  const audioContext = useRef(null);
+  const analysers = useRef(new Map()); // peerId -> analyser
+  const speakingRef = useRef(new Set());
+  const analysisRaf = useRef(null);
 
   const token = useMemo(() => {
     return localStorage.getItem("token");
@@ -69,6 +79,7 @@ export default function VoiceChat({ roomId }) {
       } catch (e) { /* ignore */ }
       pcs.current.delete(peerId);
     }
+    analysers.current.delete(peerId);
     pendingIce.current.delete(peerId);
     makingOffer.current.delete(peerId);
 
@@ -100,6 +111,17 @@ export default function VoiceChat({ roomId }) {
         }
         audioEl.srcObject = remoteStream;
         audioEl.play().catch((e) => console.error("Autoplay blocked", e));
+
+        // Setup Analysis
+        if (audioContext.current) {
+          try {
+            const source = audioContext.current.createMediaStreamSource(remoteStream);
+            const analyser = audioContext.current.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            analysers.current.set(peerId, analyser);
+          } catch (e) { console.error("Analysis setup error", e); }
+        }
       };
 
       pc.onicecandidate = (event) => {
@@ -176,6 +198,11 @@ export default function VoiceChat({ roomId }) {
         video: false,
       });
 
+      // Mute the local track immediately
+      if (localStream.current.getAudioTracks()[0]) {
+        localStream.current.getAudioTracks()[0].enabled = false;
+      }
+
       socket.current = io(SIGNAL_URL, {
         auth: { token },
         transports: ["websocket"],
@@ -188,10 +215,20 @@ export default function VoiceChat({ roomId }) {
 
       socket.current.on("connect", () => {
         socket.current.emit("voice:join", { roomId });
+        // Inform server we are muted
+        socket.current.emit("voice:mute-change", { roomId, isMuted: true });
       });
 
       socket.current.on("voice:participants:update", async ({ participants }) => {
-        const list = Array.isArray(participants) ? participants : [];
+        const rawList = Array.isArray(participants) ? participants : [];
+
+        // Deduplicate: If multiple sockets for the same user, keep only the latest peerId
+        const unique = new Map();
+        for (const p of rawList) {
+          unique.set(p.userId, p);
+        }
+        const list = Array.from(unique.values());
+
         setParticipants(list);
 
         const myId = socket.current?.id;
@@ -200,7 +237,6 @@ export default function VoiceChat({ roomId }) {
         for (const p of others) ensurePC(p.peerId);
 
         setStatus("connected");
-        setIsExpanded(true);
 
         for (const p of others) {
           await makeOfferTo(p.peerId);
@@ -233,6 +269,88 @@ export default function VoiceChat({ roomId }) {
           }
         } catch (e) { /* ignore */ }
       });
+
+      // Start Volume Analysis
+      if (!audioContext.current) {
+        audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const ctx = audioContext.current;
+      const localSource = ctx.createMediaStreamSource(localStream.current);
+
+      // 1. Noise Suppression: Highpass filter to remove low rumble (fans/AC)
+      const hpFilter = ctx.createBiquadFilter();
+      hpFilter.type = "highpass";
+      hpFilter.frequency.value = 150;
+
+      // 2. Auto-Leveling: Compressor to normalize voice volume
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, ctx.currentTime);
+      compressor.knee.setValueAtTime(30, ctx.currentTime);
+      compressor.ratio.setValueAtTime(12, ctx.currentTime);
+      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+      compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
+      // 3. Analysis: Monitor the processed signal
+      const localAnalyser = ctx.createAnalyser();
+      localAnalyser.fftSize = 256;
+
+      // Connect: Source -> Filter -> Compressor -> Analyser
+      localSource.connect(hpFilter);
+      hpFilter.connect(compressor);
+      compressor.connect(localAnalyser);
+
+      analysers.current.set("local", localAnalyser);
+
+      let lastSpeakingTime = 0;
+      const runAnalysis = () => {
+        const threshold = 15; // Tuned for RMS
+        const holdTime = 200; // Hysteresis in ms (Discord-like)
+        const currentlySpeaking = new Set();
+        const nowParticipants = participantsRef.current;
+        const now = Date.now();
+
+        for (const [id, analyser] of analysers.current.entries()) {
+          const data = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(data);
+
+          let sumSquares = 0;
+          for (let i = 0; i < data.length; i++) {
+            sumSquares += data[i] * data[i];
+          }
+          const rms = Math.sqrt(sumSquares / data.length);
+
+          if (rms > threshold) {
+            if (id === "local") {
+              const myUserId = getUser()?.id;
+              if (myUserId && !isMutedRef.current) {
+                currentlySpeaking.add(myUserId);
+                lastSpeakingTime = now;
+              }
+            } else {
+              const p = nowParticipants.find(p => p.peerId === id);
+              if (p && p.userId && !p.isMuted) currentlySpeaking.add(p.userId);
+            }
+          }
+        }
+
+        // Apply Hysteresis to local user
+        const myUserId = getUser()?.id;
+        if (myUserId && !currentlySpeaking.has(myUserId) && (now - lastSpeakingTime < holdTime) && !isMutedRef.current) {
+          currentlySpeaking.add(myUserId);
+        }
+
+        const talkingArray = Array.from(currentlySpeaking).sort();
+        const prevArray = Array.from(speakingRef.current).sort();
+
+        if (JSON.stringify(talkingArray) !== JSON.stringify(prevArray)) {
+          speakingRef.current = currentlySpeaking;
+          onSpeakingChange?.(talkingArray);
+        }
+        analysisRaf.current = requestAnimationFrame(runAnalysis);
+      };
+      runAnalysis();
+
     } catch (e) {
       setStatus("error");
       setError(e?.message || "Check mic permission.");
@@ -265,8 +383,17 @@ export default function VoiceChat({ roomId }) {
       localStream.current = null;
     }
 
+    if (analysisRaf.current) cancelAnimationFrame(analysisRaf.current);
+    if (audioContext.current) {
+      audioContext.current.close().catch(() => { });
+      audioContext.current = null;
+    }
+    analysers.current.clear();
+    speakingRef.current.clear();
+    onSpeakingChange?.([]);
+
     setParticipants([]);
-    setIsMuted(false);
+    setIsMuted(true);
     setStatus("idle");
   };
 
@@ -285,8 +412,11 @@ export default function VoiceChat({ roomId }) {
   };
 
   useEffect(() => {
+    if (autoJoin && status === "idle") {
+      joinRoom();
+    }
     return () => leaveRoom();
-  }, []);
+  }, [autoJoin, roomId]);
 
   if (status === "idle" || status === "error") {
     return (

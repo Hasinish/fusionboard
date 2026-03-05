@@ -1237,7 +1237,7 @@ function GhostElement({ ghost, camera }) {
     );
 }
 
-export default function ElementsLayer({
+export default React.memo(function ElementsLayer({
     tool, elements, camera, boardId, socket,
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
     pendingEditId, onPendingEditConsumed
@@ -1813,4 +1813,4 @@ export default function ElementsLayer({
             })()}
         </>
     );
-}
+});

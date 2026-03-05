@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { ArrowLeft, Settings2, Trash2 } from "lucide-react";
 import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
+import VoiceChat from "../components/VoiceChat";
 import { getUser, isLoggedIn } from "../lib/auth";
 import { API_URL } from "../lib/api";
 
@@ -12,6 +13,7 @@ function TestWhiteboardPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
     const [socket, setSocket] = useState(null);
+    const [talkingUserIds, setTalkingUserIds] = useState([]);
 
     useEffect(() => {
         if (!isLoggedIn()) navigate("/login");
@@ -49,6 +51,7 @@ function TestWhiteboardPage() {
                 socket={socket}
                 initialSegments={[]}
                 me={me}
+                talkingUserIds={talkingUserIds}
                 renderTopLeftUI={({ setBgMode, clearBoard }) => (
                     <>
                         <button
@@ -72,6 +75,7 @@ function TestWhiteboardPage() {
                     </>
                 )}
             />
+            <VoiceChat roomId="infinite-test-room" autoJoin={false} onSpeakingChange={setTalkingUserIds} />
         </div>
     );
 }
