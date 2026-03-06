@@ -163,37 +163,39 @@ function WhiteboardPage() {
                 </span>
               )}
 
-              {!isViewer && (
-                <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto flex items-center">
-                  <summary className={`${topBtnClass} w-10 h-10 list-none cursor-pointer active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
-                  <ul className={`dropdown-content z-50 menu p-3 shadow-2xl rounded-2xl w-64 mt-4 border backdrop-blur-xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white" : "bg-base-100 border-base-200"}`}>
-                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 pb-2`}>Background</li>
-                    <li><a onClick={() => setBgMode("white")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Solid</a></li>
-                    <li><a onClick={() => setBgMode("dots")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Dotted Grid</a></li>
-                    <li><a onClick={() => setBgMode("grid")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Infinite Grid</a></li>
+              <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto flex items-center">
+                <summary className={`${topBtnClass} w-10 h-10 list-none cursor-pointer active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
+                <ul className={`dropdown-content z-50 menu p-3 shadow-2xl rounded-2xl w-64 mt-4 border backdrop-blur-xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white" : "bg-base-100 border-base-200"}`}>
+                  <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 pb-2`}>Background</li>
+                  <li><a onClick={() => setBgMode("white")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Solid</a></li>
+                  <li><a onClick={() => setBgMode("dots")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Dotted Grid</a></li>
+                  <li><a onClick={() => setBgMode("grid")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Infinite Grid</a></li>
 
-                    <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
-                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Theme</li>
-                    <li className="px-4 py-2">
-                      <div className="flex items-center justify-between gap-4 p-0 hover:bg-transparent">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold">{isDark ? "Dark Mode" : "Light Mode"}</span>
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-primary toggle-sm"
-                          checked={isDark}
-                          onChange={(e) => setIsDark(e.target.checked)}
-                        />
+                  <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                  <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Theme</li>
+                  <li className="px-4 py-2">
+                    <div className="flex items-center justify-between gap-4 p-0 hover:bg-transparent">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold">{isDark ? "Dark Mode" : "Light Mode"}</span>
                       </div>
-                    </li>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary toggle-sm"
+                        checked={isDark}
+                        onChange={(e) => setIsDark(e.target.checked)}
+                      />
+                    </div>
+                  </li>
 
-                    <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
-                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Danger</li>
-                    <li><a onClick={clearBoard} className="text-error hover:bg-error/10 font-bold py-2.5 px-4 rounded-xl"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
-                  </ul>
-                </details>
-              )}
+                  {!isViewer && (
+                    <>
+                      <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                      <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Danger</li>
+                      <li><a onClick={clearBoard} className="text-error hover:bg-error/10 font-bold py-2.5 px-4 rounded-xl"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
+                    </>
+                  )}
+                </ul>
+              </details>
             </>
           );
         }}
