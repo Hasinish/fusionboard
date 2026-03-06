@@ -15,7 +15,7 @@ import { useElementKeyboard } from "./canvas/useElementKeyboard";
 
 
 export default React.memo(function ElementsLayer({
-    tool, elements, camera, boardId, socket,
+    tool, elements, camera, boardId, socket, isDark,
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
     pendingEditId, onPendingEditConsumed
 }) {
@@ -248,6 +248,7 @@ export default React.memo(function ElementsLayer({
                         handleDelete={handleDelete}
                         activeBounds={activeBounds}
                         camera={camera}
+                        isDark={isDark}
                     />
                 );
             })()}

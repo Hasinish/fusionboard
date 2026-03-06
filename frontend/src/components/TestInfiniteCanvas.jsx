@@ -228,7 +228,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     }, [isDark]);
 
     const toolbarClass = isDark ? "bg-[#1f1f1f] border-[#333333] text-white/70" : "bg-base-100/95 border-base-200";
-    const ghostBtnClass = isDark ? "btn-ghost text-white/70 hover:text-white hover:bg-white/10" : "btn-ghost";
+    const ghostBtnClass = isDark ? "btn-ghost text-white/90 hover:text-white hover:bg-white/10" : "btn-ghost";
 
     const statusMsgRef = useRef(""); // local ref if needed, but we use state below
     const [statusMsg, setStatusMsg] = useState("");
@@ -319,6 +319,30 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const [lastShapeType, setLastShapeType] = useState("rect");
     const [pendingEditId, setPendingEditId] = useState(null);
     const clearPendingEditId = useCallback(() => setPendingEditId(null), []);
+
+    // Dropdown states for custom implementation
+    const [shapesOpen, setShapesOpen] = useState(false);
+    const [plusOpen, setPlusOpen] = useState(false);
+    const [colorOpen, setColorOpen] = useState(false);
+
+    const shapesRef = useRef(null);
+    const plusRef = useRef(null);
+    const colorRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            const shapesPopup = document.getElementById('shapes-popup');
+            if (shapesRef.current && !shapesRef.current.contains(e.target) && (!shapesPopup || !shapesPopup.contains(e.target))) setShapesOpen(false);
+
+            const plusPopup = document.getElementById('plus-popup');
+            if (plusRef.current && !plusRef.current.contains(e.target) && (!plusPopup || !plusPopup.contains(e.target))) setPlusOpen(false);
+
+            const colorPopup = document.getElementById('color-popup');
+            if (colorRef.current && !colorRef.current.contains(e.target) && (!colorPopup || !colorPopup.contains(e.target))) setColorOpen(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // ─── coordinate helpers ───────────────────────────────────────────────────
 
@@ -862,6 +886,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const onPointerDown = (e) => {
         // Ignore clicks on UI elements natively without breaking React's onClick
         if (e.target.closest('.ui-container')) return;
+        if (e.target.closest('[data-ui="color-menu"]')) return;
 
         // Capture pointer so all subsequent move/up events go to this surface,
         // even when the pointer crosses over toolbar, minimap, or other UI
@@ -1397,46 +1422,81 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                         <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "hand" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
                     </div>
                     <div className={`w-px h-8 ${isDark ? "bg-white/20" : "bg-base-300"} rounded-full`} />
-                    <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
-                        <summary className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl list-none`}>
+                    <div className="relative pointer-events-auto" ref={shapesRef}>
+                        <button
+                            className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
+                            onClick={() => { setShapesOpen(!shapesOpen); setPlusOpen(false); setColorOpen(false); }}
+                        >
                             <div className="flex items-center gap-2">
                                 {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}
                                 {lastShapeType === "rect" && <Square className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
                                 {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
                                 {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
                                 {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
-                                <ChevronUp className="w-4 h-4 opacity-50" />
+                                <ChevronUp className={`w-4 h-4 opacity-50 transition-transform ${shapesOpen ? "rotate-180" : ""}`} />
                             </div>
-                        </summary>
-                        <div className={`dropdown-content z-50 p-4 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border w-72 min-w-[280px] backdrop-blur-xl`}>
-                            <div className="grid grid-cols-5 gap-3">
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("rect"); setLastShapeType("rect"); }} data-tip="Rectangle (R)"><Square className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); }} data-tip="Ellipse (O)"><Circle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("triangle"); setLastShapeType("triangle"); }} data-tip="Triangle"><Triangle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("arrow"); setLastShapeType("arrow"); }} data-tip="Arrow (A)"><ArrowRight className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={2} /></button>
-                            </div>
-                        </div>
-                    </details>
-                    <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
-                        <summary className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl list-none`}>
+                        </button>
+                        {/* Popup moved to top level */}
+                    </div>
+                    <div className="relative pointer-events-auto" ref={plusRef}>
+                        <button
+                            className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl`}
+                            onClick={() => { setPlusOpen(!plusOpen); setShapesOpen(false); setColorOpen(false); }}
+                        >
                             <Plus className="w-5 h-5" />
-                        </summary>
-                        <div className={`dropdown-content z-50 p-3 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border backdrop-blur-xl`}>
-                            <div className="flex gap-2">
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => setTool("code")} data-tip="Code (C)">
-                                    <Terminal className="w-5 h-5" />
-                                </button>
-                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => setTool("video")} data-tip="Video (Y)">
-                                    <Youtube className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </details>
+                        </button>
+                        {/* Popup moved to top level */}
+                    </div>
                     <div className="flex items-center gap-2 pointer-events-auto">
                         {/* The Settings menu was moved to TestWhiteboardPage via renderTopLeftUI */}
                     </div>
                 </div>
+
+                {/* Dropdown Popups (Moved to top level to avoid nested backdrop-blur) */}
+                {shapesOpen && (
+                    <div id="shapes-popup" className="z-50 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-72 min-w-[280px] pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 58, left: '50%', transform: 'translateX(-50%)' }}>
+                        <div className="grid grid-cols-5 gap-3">
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); setShapesOpen(false); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("rect"); setLastShapeType("rect"); setShapesOpen(false); }} data-tip="Rectangle (R)"><Square className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); setShapesOpen(false); }} data-tip="Ellipse (O)"><Circle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("triangle"); setLastShapeType("triangle"); setShapesOpen(false); }} data-tip="Triangle"><Triangle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("arrow"); setLastShapeType("arrow"); setShapesOpen(false); }} data-tip="Arrow (A)"><ArrowRight className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={2} /></button>
+                        </div>
+                    </div>
+                )}
+
+                {plusOpen && (
+                    <div id="plus-popup" className="z-50 p-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 58, left: '50%', transform: 'translateX(-50%)' }}>
+                        <div className="flex gap-2">
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("code"); setPlusOpen(false); }} data-tip="Code (C)">
+                                <Terminal className="w-5 h-5" />
+                            </button>
+                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("video"); setPlusOpen(false); }} data-tip="Video (Y)">
+                                <Youtube className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {colorOpen && (
+                    <div id="color-popup" data-ui="color-menu" className="z-40 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-56 pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 106, left: colorRef.current ? colorRef.current.getBoundingClientRect().left + colorRef.current.offsetWidth / 2 : '50%', transform: 'translateX(-50%)' }}>
+                        <div className="grid grid-cols-4 gap-3">
+                            {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
+                                <button key={c} className={`w-10 h-10 rounded-full border transition-all hover:scale-110 active:scale-90 ${isDark ? "border-white/10" : "border-base-300"}`} style={{ backgroundColor: c }} onClick={() => { setColor(c); setColorOpen(false); }} />
+                            ))}
+                        </div>
+                        <div className={`h-px w-full my-4 bg-white/20`} />
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold uppercase tracking-widest opacity-40">Custom</span>
+                            <input
+                                type="color"
+                                value={color}
+                                onChange={(e) => setColor(e.target.value)}
+                                className={`w-full h-9 cursor-pointer rounded-xl bg-white/10 p-1 border border-white/20`}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Provide the Top Left UI render slot here, floating above everything */}
                 {renderTopLeftUI && (
@@ -1462,26 +1522,14 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                         className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
                         style={{ bottom: toolbarHeight + 36 }} // 24px (bottom-6) + height + 12px gap
                     >
-                        <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
-                            <summary className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg cursor-pointer ring-2 ring-offset-2 list-none ring-base-300 hover:ring-primary transition-all active:scale-95" style={{ backgroundColor: color }} />
-                            <div className={`dropdown-content z-40 p-4 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border w-56 backdrop-blur-xl`}>
-                                <div className="grid grid-cols-4 gap-3">
-                                    {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
-                                        <button key={c} className={`w-10 h-10 rounded-full border transition-all hover:scale-110 active:scale-90 ${isDark ? "border-white/10" : "border-base-300"}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
-                                    ))}
-                                </div>
-                                <div className={`h-px w-full my-4 ${isDark ? "bg-white/5" : "bg-base-200"}`} />
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs font-bold uppercase tracking-widest opacity-40">Custom</span>
-                                    <input
-                                        type="color"
-                                        value={color}
-                                        onChange={(e) => setColor(e.target.value)}
-                                        className={`w-full h-9 cursor-pointer rounded-xl ${isDark ? "bg-[#121212]" : "bg-base-200"} p-1 border border-transparent`}
-                                    />
-                                </div>
-                            </div>
-                        </details>
+                        <div className="relative pointer-events-auto" ref={colorRef}>
+                            <button
+                                className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg cursor-pointer ring-2 ring-offset-2 ring-base-300 hover:ring-primary transition-all active:scale-95"
+                                style={{ backgroundColor: color }}
+                                onClick={() => { setColorOpen(!colorOpen); setShapesOpen(false); setPlusOpen(false); }}
+                            />
+                            {/* Popup moved to top level */}
+                        </div>
                         <input
                             type="range"
                             min="1"
