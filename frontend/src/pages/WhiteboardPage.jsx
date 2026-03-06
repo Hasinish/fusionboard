@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { Edit2, Check } from "lucide-react";
-import NavBar from "../components/NavBar";
-import WhiteboardCanvas from "../components/WhiteboardCanvas";
-import PersonalNotes from "../components/PersonalNotes";
+import { ArrowLeft, Settings2, Trash2, Check } from "lucide-react";
+import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
 import VoiceChat from "../components/VoiceChat";
 import { getUser, isLoggedIn } from "../lib/auth";
 import api, { API_URL } from "../lib/api";
@@ -15,34 +13,25 @@ function WhiteboardPage() {
   const me = getUser();
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
+  const [socket, setSocket] = useState(null);
+  const [talkingUserIds, setTalkingUserIds] = useState([]);
   const [boardTitle, setBoardTitle] = useState("Loading...");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
-  const [statusMsg, setStatusMsg] = useState("");
-  const [initialSegments, setInitialSegments] = useState([]);
-  const [bgMode, setBgMode] = useState("white");
-  const socketRef = useRef(null);
 
   useEffect(() => {
     if (!isLoggedIn()) navigate("/login");
   }, [navigate]);
 
-  const loadBoard = async () => {
-    if (!token) return;
-    setStatusMsg("Loading board...");
-    try {
-      const res = await api.get(`/boards/${boardId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setBoardTitle(res.data.title || "Untitled Board");
-      if (res.data.segments) {
-        setInitialSegments(res.data.segments);
-      }
-      setStatusMsg("");
-    } catch (e) {
-      setStatusMsg("Failed to load board.");
-    }
-  };
+  // Fetch board title on mount
+  useEffect(() => {
+    if (!token || !boardId) return;
+    api.get(`/boards/${boardId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => setBoardTitle(res.data.title || "Untitled Board"))
+      .catch(() => setBoardTitle("Untitled Board"));
+  }, [boardId, token]);
 
   const handleTitleSave = async () => {
     if (!tempTitle.trim()) {
@@ -56,53 +45,69 @@ function WhiteboardPage() {
         { title: tempTitle },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setStatusMsg("Title updated ✅");
-      setTimeout(() => setStatusMsg(""), 1500);
+      if (socket?.connected) {
+        socket.emit("board:update-title", { boardId, title: tempTitle });
+      }
     } catch (e) {
-      setStatusMsg("Failed to update title");
-      loadBoard();
+      // Revert on failure
+      api.get(`/boards/${boardId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => setBoardTitle(res.data.title || "Untitled Board"));
     }
   };
 
-  // wire up the realtime connection
+  // Wire up the realtime connection
   useEffect(() => {
-    // grab the right url for the websocket
     const socketUrl = API_URL.replace("/api", "");
 
-    const socket = io(socketUrl, {
+    const newSocket = io(socketUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,
     });
-    socketRef.current = socket;
+    setSocket(newSocket);
 
-    socket.on("connect", () => {
-      socket.emit("joinBoard", {
+    newSocket.on("connect", () => {
+      newSocket.emit("joinBoard", {
         boardId,
         user: { name: me?.name || "User" },
       });
     });
 
-    loadBoard();
+    newSocket.on("board:title-updated", ({ title }) => {
+      setBoardTitle(title);
+    });
 
     return () => {
-      socket.disconnect();
+      newSocket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
   return (
-    <div className="min-h-screen bg-base-200 flex flex-col">
-      <NavBar />
+    <div className="w-screen h-screen m-0 p-0 overflow-hidden relative font-sans">
+      <TestInfiniteCanvas
+        boardId={boardId}
+        socket={socket}
+        initialSegments={[]}
+        me={me}
+        talkingUserIds={talkingUserIds}
+        renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
+          const topBtnClass = `ui-container flex items-center justify-center bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg pointer-events-auto transition-all rounded-lg ${isDark ? "text-white/70 hover:bg-white/25 hover:text-white" : "text-base-content/80 hover:bg-white/30 hover:text-base-content"}`;
+          return (
+            <>
+              <button
+                className={`${topBtnClass} px-5 py-2 gap-2 active:scale-95`}
+                onClick={() => navigate(`/workspaces/${id}/boards`)}
+              >
+                <ArrowLeft size={18} /> Boards
+              </button>
 
-      <main className="flex-1 pb-10 relative">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
+              {/* Editable board title */}
               {isEditingTitle ? (
-                <div className="flex items-center gap-2">
+                <div className="ui-container flex items-center gap-1 pointer-events-auto">
                   <input
-                    className="input input-sm input-bordered text-lg font-bold"
+                    className={`${topBtnClass} px-3 py-1.5 text-sm font-semibold w-48 outline-none`}
                     value={tempTitle}
                     onChange={(e) => setTempTitle(e.target.value)}
                     autoFocus
@@ -111,48 +116,56 @@ function WhiteboardPage() {
                       if (e.key === "Escape") setIsEditingTitle(false);
                     }}
                   />
-                  <button className="btn btn-sm btn-success btn-square" onClick={handleTitleSave}>
-                    <Check size={16} />
+                  <button className={`${topBtnClass} w-8 h-8 active:scale-95`} onClick={handleTitleSave}>
+                    <Check size={14} />
                   </button>
                 </div>
               ) : (
-                <div
-                  className="flex items-center gap-2 cursor-pointer group p-1 rounded hover:bg-base-300 transition"
+                <span
+                  className={`${topBtnClass} px-4 py-1.5 text-sm font-semibold cursor-pointer active:scale-95`}
                   onClick={() => {
                     setTempTitle(boardTitle);
                     setIsEditingTitle(true);
                   }}
                 >
-                  <h1 className="text-2xl font-bold">{boardTitle}</h1>
-                  <Edit2 size={16} className="text-neutral-400 opacity-0 group-hover:opacity-100 transition" />
-                </div>
+                  {boardTitle}
+                </span>
               )}
-            </div>
 
-            <div className="flex items-center gap-2">
-              {statusMsg && <span className="text-sm text-neutral-500 mr-2">{statusMsg}</span>}
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/workspaces/${id}/boards`)}>
-                Back to boards
-              </button>
-            </div>
-          </div>
+              <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto flex items-center">
+                <summary className={`${topBtnClass} w-10 h-10 list-none cursor-pointer active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
+                <ul className={`dropdown-content z-50 menu p-3 shadow-2xl rounded-2xl w-64 mt-4 border backdrop-blur-xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white" : "bg-base-100 border-base-200"}`}>
+                  <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 pb-2`}>Background</li>
+                  <li><a onClick={() => setBgMode("white")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Solid</a></li>
+                  <li><a onClick={() => setBgMode("dots")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Dotted Grid</a></li>
+                  <li><a onClick={() => setBgMode("grid")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Infinite Grid</a></li>
 
-          <WhiteboardCanvas
-            boardId={boardId}
-            socket={socketRef.current}
-            initialSegments={initialSegments}
-            me={me}
-            bgColor={bgMode === "dark" ? "#1a1a2e" : "#ffffff"}
-          />
+                  <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                  <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Theme</li>
+                  <li className="px-4 py-2">
+                    <div className="flex items-center justify-between gap-4 p-0 hover:bg-transparent">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold">{isDark ? "Dark Mode" : "Light Mode"}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary toggle-sm"
+                        checked={isDark}
+                        onChange={(e) => setIsDark(e.target.checked)}
+                      />
+                    </div>
+                  </li>
 
-          <PersonalNotes
-            boardId={boardId}
-            token={token}
-          />
-
-          <VoiceChat roomId={boardId} />
-        </div>
-      </main>
+                  <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                  <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Danger</li>
+                  <li><a onClick={clearBoard} className="text-error hover:bg-error/10 font-bold py-2.5 px-4 rounded-xl"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
+                </ul>
+              </details>
+            </>
+          );
+        }}
+      />
+      <VoiceChat roomId={boardId} autoJoin={false} onSpeakingChange={setTalkingUserIds} />
     </div>
   );
 }

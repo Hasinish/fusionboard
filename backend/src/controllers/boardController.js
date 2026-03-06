@@ -30,7 +30,6 @@ export async function createBoard(req, res) {
     const board = await Board.create({
       workspace: workspaceId,
       title: title || "Untitled Board",
-      segments: [],
     });
 
     // tell everyone else about it

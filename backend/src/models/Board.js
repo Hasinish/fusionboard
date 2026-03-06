@@ -1,29 +1,12 @@
 import mongoose from "mongoose";
 
-const pointSchema = new mongoose.Schema(
-  { x: Number, y: Number },
-  { _id: false }
-);
-
-const strokeSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true },
-    points: { type: [pointSchema], default: [] },
-    color: { type: String, default: "#000000" },
-    width: { type: Number, default: 2 },
-    isEraser: { type: Boolean, default: false },
-    undone: { type: Boolean, default: false },
-  },
-  { _id: false }
-);
-
-// Elements: sticky notes, rect, ellipse, triangle, arrow
+// Elements: sticky notes, rect, ellipse, triangle, arrow, text, path, code, video
 const elementSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
     type: {
       type: String,
-      enum: ["sticky", "rect", "ellipse", "triangle", "arrow", "path", "code", "video"],
+      enum: ["sticky", "rect", "ellipse", "triangle", "arrow", "text", "path", "code", "video"],
       required: true
     },
     x: { type: Number, default: 0 },
@@ -44,7 +27,7 @@ const elementSchema = new mongoose.Schema(
     textVerticalAlign: { type: String, enum: ["top", "middle", "bottom"], default: "top" },
 
     // Path element specific
-    points: { type: [pointSchema], default: undefined },
+    points: { type: [{ x: Number, y: Number, pressure: Number }], default: undefined },
 
     // Video element specific
     url: { type: String },
@@ -71,7 +54,6 @@ const boardSchema = new mongoose.Schema(
       required: true,
     },
     title: { type: String, default: "Untitled Board" },
-    strokes: { type: [strokeSchema], default: [] },
     elements: { type: [elementSchema], default: [] },
   },
   { timestamps: true }

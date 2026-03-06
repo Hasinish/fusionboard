@@ -189,7 +189,8 @@ export const setupSocket = (io) => {
             }
         });
 
-        // real-time whiteboard drawing stuff
+        // ─── Whiteboard ─────────────────────────────────────────────────────────────
+
         socket.on("joinBoard", async ({ boardId, user }) => {
             if (!boardId) return;
             const name = user?.name ? String(user.name) : socket.userName || "User";
@@ -197,14 +198,12 @@ export const setupSocket = (io) => {
             const color = pickColor(socket.id);
             let workspaceId = null;
             let boardTitle = "Unknown Board";
-            let existingStrokes = [];
             let existingElements = [];
             try {
-                const board = await Board.findById(boardId).select("workspace title strokes elements");
+                const board = await Board.findById(boardId).select("workspace title elements");
                 if (board) {
                     workspaceId = board.workspace;
                     boardTitle = board.title;
-                    existingStrokes = (board.strokes || []).filter(s => !s.undone);
                     existingElements = board.elements || [];
                 }
             } catch (e) { /* ignore non-ObjectId boardIds */ }
@@ -226,56 +225,11 @@ export const setupSocket = (io) => {
                 .filter(Boolean);
 
             socket.emit("boardParticipants", participants);
-            socket.emit("boardStrokes", existingStrokes);
             socket.emit("boardElements", existingElements);
             socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
         });
 
-        socket.on("strokeStart", ({ boardId, stroke }) => {
-            if (!boardId || !stroke) return;
-            socket.to(`board:${boardId}`).emit("strokeStarted", stroke);
-        });
-
-        socket.on("strokeUpdate", ({ boardId, strokeId, point }) => {
-            if (!boardId || !strokeId || !point) return;
-            socket.to(`board:${boardId}`).emit("strokeUpdated", { strokeId, point });
-        });
-
-        socket.on("strokeEnd", async ({ boardId, stroke }) => {
-            if (!boardId || !stroke) return;
-            const meta = socketMeta.get(socket.id);
-            if (meta) meta.hasEdited = true;
-            // Broadcast final stroke to ensure everyone has the full data
-            socket.to(`board:${boardId}`).emit("strokeFinished", stroke);
-            // Persist to DB
-            try {
-                await Board.findByIdAndUpdate(boardId, { $push: { strokes: stroke } });
-            } catch (e) { /* non-ObjectId boardId — ignore */ }
-        });
-
-        socket.on("undoStroke", async ({ boardId, strokeId }) => {
-            if (!boardId || !strokeId) return;
-            // Broadcast immediately for real-time feel
-            io.to(`board:${boardId}`).emit("strokeUndone", { strokeId });
-            try {
-                await Board.findOneAndUpdate(
-                    { _id: boardId, "strokes.id": strokeId },
-                    { $set: { "strokes.$.undone": true } }
-                );
-            } catch (e) { /* ignore */ }
-        });
-
-        socket.on("redoStroke", async ({ boardId, stroke }) => {
-            if (!boardId || !stroke) return;
-            // Broadcast immediately
-            io.to(`board:${boardId}`).emit("strokeRedone", stroke);
-            try {
-                await Board.findOneAndUpdate(
-                    { _id: boardId, "strokes.id": stroke.id },
-                    { $set: { "strokes.$.undone": false } }
-                );
-            } catch (e) { /* ignore */ }
-        });
+        // ─── Live pen stroke preview (vector) ───────────────────────────────────────
 
         socket.on("draw:stroke-progress", ({ boardId, stroke }) => {
             if (!boardId) return;
@@ -294,6 +248,8 @@ export const setupSocket = (io) => {
             });
         });
 
+        // ─── Cursors ────────────────────────────────────────────────────────────────
+
         socket.on("cursorMove", ({ boardId, x, y }) => {
             if (!boardId) return;
             const meta = socketMeta.get(socket.id);
@@ -308,21 +264,31 @@ export const setupSocket = (io) => {
             });
         });
 
-        // ─── Elements (sticky notes, shapes) ───────────────────────────────────────
+        socket.on("camera:update", ({ boardId, userId, camera }) => {
+            if (!boardId) return;
+            const meta = socketMeta.get(socket.id);
+            if (!meta) return;
+            if (String(meta.boardId) !== String(boardId)) return;
+            socket.to(`board:${boardId}`).emit("camera:update", {
+                userId,
+                camera,
+            });
+        });
+
+        // ─── Elements (sticky notes, shapes, paths, text, code, video) ──────────────
 
         socket.on("addElement", async ({ boardId, element }) => {
             if (!boardId || !element) return;
             socket.to(`board:${boardId}`).emit("elementAdded", element);
             try {
                 await Board.findByIdAndUpdate(boardId, { $push: { elements: element } });
-            } catch (e) { /* ignore non-ObjectId boardIds */ }
+            } catch (e) { /* ignore */ }
         });
 
         socket.on("updateElement", async ({ boardId, element }) => {
             if (!boardId || !element?.id) return;
             socket.to(`board:${boardId}`).emit("elementUpdated", element);
             try {
-                // Use $set with the entire object to ensure all fields are persisted
                 await Board.findOneAndUpdate(
                     { _id: boardId, "elements.id": element.id },
                     { $set: { "elements.$": element } }
@@ -360,10 +326,17 @@ export const setupSocket = (io) => {
             try {
                 const meta = socketMeta.get(socket.id);
                 if (meta) meta.hasEdited = true;
-                await Board.findByIdAndUpdate(boardId, { $set: { strokes: [], elements: [] } });
+                await Board.findByIdAndUpdate(boardId, { $set: { elements: [] } });
             } catch (e) {
                 console.error("clearBoard error:", e);
             }
+        });
+
+        socket.on("board:update-title", ({ boardId, title }) => {
+            if (!boardId) return;
+            const meta = socketMeta.get(socket.id);
+            if (meta) meta.boardTitle = title;
+            socket.to(`board:${boardId}`).emit("board:title-updated", { title });
         });
 
         const leaveCursor = async () => {

@@ -266,9 +266,39 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
     const [cursors, setCursors] = useState({});
     const [participants, setParticipants] = useState([]);
+    const [followedUserIdState, setFollowedUserIdState] = useState(null);
+    const followedUserIdRef = useRef(null);
+    const setFollowedUserId = useCallback((id) => {
+        const nextId = typeof id === 'function' ? id(followedUserIdRef.current) : id;
+        followedUserIdRef.current = nextId;
+        setFollowedUserIdState(nextId);
+    }, []);
+    const followedUserId = followedUserIdState;
+
     const lastCursorEmitRef = useRef(0);
+    const lastCameraEmitRef = useRef(0);
     const socketRef = useRef(socket);
     useEffect(() => { socketRef.current = socket; }, [socket]);
+
+    // Broadcast our camera continuously when it changes
+    useEffect(() => {
+        if (!socket?.connected) return;
+        if (followedUserId) return; // Don't broadcast our camera when we're just following someone else
+
+        const now = Date.now();
+        if (now - lastCameraEmitRef.current > 50) {
+            socket.emit("camera:update", { boardId, userId: me?.userId || me?.id, camera });
+            lastCameraEmitRef.current = now;
+        } else {
+            const timer = setTimeout(() => {
+                if (!followedUserIdRef.current) {
+                    socket.emit("camera:update", { boardId, userId: me?.userId || me?.id, camera });
+                    lastCameraEmitRef.current = Date.now();
+                }
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [camera, socket, boardId, me, followedUserId]);
 
     // elements (sticky notes, shapes, and now path strokes)
     const [elements, setElementsState] = useState([]);
@@ -637,6 +667,12 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     return next;
                 });
             });
+
+            socket.on("camera:update", ({ userId, camera: remoteCamera }) => {
+                if (followedUserIdRef.current === userId) {
+                    setCamera(remoteCamera);
+                }
+            });
         }
 
         return () => {
@@ -648,6 +684,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 socket.off("boardElements");
                 socket.off("draw:stroke-progress");
                 socket.off("draw:stroke-end");
+                socket.off("camera:update");
             }
         };
     }, [socket, drawMinimap]);
@@ -683,6 +720,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             // Regular scroll panning (also prevented default to avoid browser back/forward or page scroll)
             e.preventDefault();
+            setFollowedUserId(null);
             setCamera(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY, z: prev.z }));
         };
 
@@ -717,6 +755,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         const onMidDown = (e) => {
             if (e.button !== 1) return;
             e.preventDefault();
+            setFollowedUserId(null);
             isPanningRef.current = true;
             lastPointRef.current = { x: e.clientX, y: e.clientY };
         };
@@ -776,8 +815,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 setElements(prev => [...prev, action.element]);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
                 break;
+            case "DELETE_ELEMENTS":
             case "ERASE_ELEMENTS":
-                // Re-add all erased elements
+                // Re-add all erased/deleted elements
                 setElements(prev => [...prev, ...action.elements]);
                 for (const el of action.elements) {
                     if (socket?.connected) socket.emit("addElement", { boardId, element: el });
@@ -815,8 +855,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 setElements(prev => prev.filter(e => e.id !== action.element.id));
                 if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
                 break;
+            case "DELETE_ELEMENTS":
             case "ERASE_ELEMENTS":
-                // Re-delete all erased elements
+                // Re-delete all erased/deleted elements
                 setElements(prev => prev.filter(e => !action.elements.find(ae => ae.id === e.id)));
                 for (const el of action.elements) {
                     if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
@@ -903,7 +944,17 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         const sp = getSP(e);
         const wp = screenToWorld(sp.x, sp.y);
         setMousePos(sp);
-        if (e.button === 1 || toolRef.current === "hand") { isPanningRef.current = true; lastPointRef.current = sp; return; }
+        if (e.button === 1 || toolRef.current === "hand") {
+            setFollowedUserId(null);
+            isPanningRef.current = true;
+            lastPointRef.current = sp;
+            return;
+        }
+
+        // Any regular drawing/selecting also stops follow mode
+        if (toolRef.current !== "select" || !pointHitsElement(wp.x, wp.y, elementsRef.current)) {
+            setFollowedUserId(null);
+        }
 
         if (["sticky", "rect", "ellipse", "triangle", "arrow"].includes(toolRef.current)) {
             drawingRef.current = true; strokeStartRef.current = wp;
@@ -1375,17 +1426,27 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             </div>
 
             {/* UI overlay container */}
-            <div className="pointer-events-none">
+            <div className="absolute inset-0 pointer-events-none z-30">
+                {/* Follow mode banner */}
+                {followedUserId && (
+                    <div className={`ui-container absolute ${isMobile ? "top-[150px] left-5 translate-x-0" : "top-4 left-1/2 -translate-x-1/2"} z-50 flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg pointer-events-auto transition-all`}>
+                        <span className="text-sm font-semibold">Following {participants.find(p => p.userId === followedUserId)?.name || "User"}</span>
+                        <button className="btn btn-xs btn-circle btn-ghost hover:bg-white/20 text-white border-none ml-1" onClick={() => setFollowedUserId(null)}>
+                            ✕
+                        </button>
+                    </div>
+                )}
                 <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
                     <div className="flex items-center gap-2">
                         {!isMobile && (
-                            <div className="flex -space-x-3 pointer-events-auto mr-2">
+                            <div className="ui-container flex -space-x-3 pointer-events-auto mr-2">
                                 {participants.slice(0, 5).map((p, idx) => (
                                     <div
                                         key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-white"}`}
+                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${followedUserId === p.userId ? "ring-4 ring-blue-500 ring-offset-1 border-white scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-white"}`}
                                         style={{ backgroundColor: p.color || "#ccc" }}
                                         data-tip={p.name}
+                                        onClick={() => setFollowedUserId(prev => prev === p.userId ? null : p.userId)}
                                     >
                                         {getInitials(p.name)}
                                     </div>
@@ -1462,7 +1523,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
                 {/* Dropdown Popups (Moved to top level to avoid nested backdrop-blur) */}
                 {shapesOpen && (
-                    <div id="shapes-popup" className="z-50 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-72 min-w-[280px] pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 58, left: '50%', transform: 'translateX(-50%)' }}>
+                    <div id="shapes-popup" className="ui-container z-50 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-72 min-w-[280px] pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
                         <div className="grid grid-cols-5 gap-3">
                             <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); setShapesOpen(false); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
                             <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("rect"); setLastShapeType("rect"); setShapesOpen(false); }} data-tip="Rectangle (R)"><Square className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
@@ -1474,7 +1535,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 )}
 
                 {plusOpen && (
-                    <div id="plus-popup" className="z-50 p-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 58, left: '50%', transform: 'translateX(-50%)' }}>
+                    <div id="plus-popup" className="ui-container z-50 p-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
                         <div className="flex gap-2">
                             <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("code"); setPlusOpen(false); }} data-tip="Code (C)">
                                 <Terminal className="w-5 h-5" />
@@ -1487,7 +1548,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 )}
 
                 {colorOpen && (
-                    <div id="color-popup" data-ui="color-menu" className="z-40 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-56 pointer-events-auto" style={{ position: 'fixed', bottom: toolbarHeight + 106, left: colorRef.current ? colorRef.current.getBoundingClientRect().left + colorRef.current.offsetWidth / 2 : '50%', transform: 'translateX(-50%)' }}>
+                    <div id="color-popup" data-ui="color-menu" className="ui-container z-40 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-56 pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 112, left: colorRef.current ? colorRef.current.getBoundingClientRect().left + colorRef.current.offsetWidth / 2 : '50%', transform: 'translateX(-50%)' }}>
                         <div className="grid grid-cols-4 gap-3">
                             {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
                                 <button key={c} className={`w-10 h-10 rounded-full border transition-all hover:scale-110 active:scale-90 ${isDark ? "border-white/10" : "border-base-300"}`} style={{ backgroundColor: c }} onClick={() => { setColor(c); setColorOpen(false); }} />
@@ -1525,13 +1586,14 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                             })}
                         </div>
                         {isMobile && (
-                            <div className="absolute top-5 left-5 mt-20 flex -space-x-3 z-50 pointer-events-auto">
+                            <div className="ui-container absolute top-5 left-5 mt-20 flex -space-x-3 z-50 pointer-events-auto">
                                 {participants.slice(0, 5).map((p, idx) => (
                                     <div
                                         key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : ""}`}
+                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${followedUserId === p.userId ? "ring-4 ring-blue-400 ring-offset-1 border-white scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : ""}`}
                                         style={{ backgroundColor: p.color || "#ccc" }}
                                         data-tip={p.name}
+                                        onClick={() => setFollowedUserId(prev => prev === p.userId ? null : p.userId)}
                                     >
                                         {getInitials(p.name)}
                                     </div>
@@ -1549,7 +1611,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 {tool === "pen" && (
                     <div
                         className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
-                        style={{ bottom: toolbarHeight + 36 }} // 24px (bottom-6) + height + 12px gap
+                        style={{ bottom: toolbarHeight + 42 }} // Offset above the toolbar
                     >
                         <div className="relative pointer-events-auto" ref={colorRef}>
                             <button
