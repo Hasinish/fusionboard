@@ -5,7 +5,8 @@ export default function WhiteboardCanvas({
   boardId,
   socket,
   initialSegments,
-  me
+  me,
+  bgColor = "#ffffff"
 }) {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -32,12 +33,12 @@ export default function WhiteboardCanvas({
   }, [initialSegments]);
 
   // --- handy drawing functions ---
-  const fillWhiteBackground = () => {
+  const fillWhiteBackground = (color = bgColor) => {
     const canvas = canvasRef.current;
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
     ctx.save();
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = color;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   };
@@ -58,7 +59,7 @@ export default function WhiteboardCanvas({
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    fillWhiteBackground();
+    fillWhiteBackground(bgColor);
     for (const seg of segmentsRef.current) drawSegment(seg);
   };
 
@@ -286,7 +287,8 @@ export default function WhiteboardCanvas({
         <div className="card-body p-1 relative">
           <canvas
             ref={canvasRef}
-            className="w-full border border-base-200 rounded-md touch-none bg-white cursor-crosshair"
+            className="w-full border border-base-200 rounded-md touch-none cursor-crosshair"
+            style={{ backgroundColor: bgColor }}
             onMouseDown={onPointerDown}
             onMouseMove={onPointerMove}
             onMouseUp={onPointerUp}

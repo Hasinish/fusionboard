@@ -20,6 +20,7 @@ function WhiteboardPage() {
   const [tempTitle, setTempTitle] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
   const [initialSegments, setInitialSegments] = useState([]);
+  const [bgMode, setBgMode] = useState("white");
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -141,6 +142,7 @@ function WhiteboardPage() {
             socket={socketRef.current}
             initialSegments={initialSegments}
             me={me}
+            bgColor={bgMode === "dark" ? "#1a1a2e" : "#ffffff"}
           />
 
           <PersonalNotes

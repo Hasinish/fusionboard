@@ -52,28 +52,49 @@ function TestWhiteboardPage() {
                 initialSegments={[]}
                 me={me}
                 talkingUserIds={talkingUserIds}
-                renderTopLeftUI={({ setBgMode, clearBoard }) => (
-                    <>
-                        <button
-                            className="ui-container btn btn-neutral shadow-lg gap-2 pointer-events-auto"
-                            onClick={() => navigate('/dashboard')}
-                        >
-                            <ArrowLeft size={20} /> Dashboard
-                        </button>
-                        <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto">
-                            <summary className="btn btn-neutral shadow-lg btn-circle list-none"><Settings2 className="w-5 h-5" /></summary>
-                            <ul className="dropdown-content z-50 menu p-3 shadow-xl bg-base-100 rounded-box w-60 mt-4 border border-base-200">
-                                <li className="menu-title text-sm px-4">Background</li>
-                                <li><a onClick={() => setBgMode("white")}>Solid White</a></li>
-                                <li><a onClick={() => setBgMode("dots")}>Dotted Grid</a></li>
-                                <li><a onClick={() => setBgMode("grid")}>Infinite Grid</a></li>
-                                <div className="divider my-1" />
-                                <li className="menu-title text-sm px-4">Actions</li>
-                                <li><a onClick={clearBoard} className="text-error"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
-                            </ul>
-                        </details>
-                    </>
-                )}
+                renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
+                    const topBtnClass = `ui-container flex items-center justify-center border shadow-lg pointer-events-auto transition-all ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/70 hover:bg-white/10 hover:text-white" : "bg-base-100/95 border-base-200 text-base-content hover:bg-base-200"}`;
+                    return (
+                        <>
+                            <button
+                                className={`${topBtnClass} rounded-full px-5 py-2 gap-2 backdrop-blur-md active:scale-95`}
+                                onClick={() => navigate('/dashboard')}
+                            >
+                                <ArrowLeft size={18} /> Dashboard
+                            </button>
+                            <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto flex items-center">
+                                <summary className={`${topBtnClass} w-10 h-10 rounded-full list-none cursor-pointer backdrop-blur-md active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
+                                <ul className={`dropdown-content z-50 menu p-3 shadow-2xl rounded-2xl w-64 mt-4 border backdrop-blur-xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white" : "bg-base-100 border-base-200"}`}>
+                                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 pb-2`}>Background</li>
+                                    <li><a onClick={() => setBgMode("white")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Solid White</a></li>
+                                    <li><a onClick={() => setBgMode("dots")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Dotted Grid</a></li>
+                                    <li><a onClick={() => setBgMode("grid")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Infinite Grid</a></li>
+
+                                    <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Theme</li>
+                                    <li className="px-4 py-2">
+                                        <div className="flex items-center justify-between gap-4 p-0 hover:bg-transparent">
+                                            <div className="flex items-center gap-2">
+                                                <span role="img" aria-label="moon">{isDark ? "🌙" : "☀️"}</span>
+                                                <span className="text-sm font-bold">{isDark ? "Dark Mode" : "Light Mode"}</span>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                className="toggle toggle-primary toggle-sm"
+                                                checked={isDark}
+                                                onChange={(e) => setIsDark(e.target.checked)}
+                                            />
+                                        </div>
+                                    </li>
+
+                                    <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                                    <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Danger</li>
+                                    <li><a onClick={clearBoard} className="text-error hover:bg-error/10 font-bold py-2.5 px-4 rounded-xl"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
+                                </ul>
+                            </details>
+                        </>
+                    );
+                }}
             />
             <VoiceChat roomId="infinite-test-room" autoJoin={false} onSpeakingChange={setTalkingUserIds} />
         </div>

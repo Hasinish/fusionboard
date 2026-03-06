@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { Mic, MicOff, Phone, PhoneOff, Users } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Users, Settings } from "lucide-react";
 import { getUser } from "../lib/auth";
 import { API_URL } from "../lib/api";
 
@@ -39,6 +39,9 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
   const [isMuted, setIsMuted] = useState(true);
   const [participants, setParticipants] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [inputGain, setInputGain] = useState(1.5);
+  const [noiseReduction, setNoiseReduction] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const socket = useRef(null);
   const isMutedRef = useRef(isMuted);
@@ -46,6 +49,9 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
   const participantsRef = useRef([]);
   useEffect(() => { participantsRef.current = participants; }, [participants]);
   const localStream = useRef(null);
+  const gainNodeRef = useRef(null);
+  const hpFilterRef = useRef(null);
+  const audioDestNode = useRef(null);
   const pcs = useRef(new Map());
   const pendingIce = useRef(new Map());
   const makingOffer = useRef(new Map());
@@ -59,6 +65,18 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
   const token = useMemo(() => {
     return localStorage.getItem("token");
   }, []);
+
+  useEffect(() => {
+    if (gainNodeRef.current && audioContext.current) {
+      gainNodeRef.current.gain.setValueAtTime(inputGain, audioContext.current.currentTime);
+    }
+  }, [inputGain]);
+
+  useEffect(() => {
+    if (hpFilterRef.current && audioContext.current) {
+      hpFilterRef.current.frequency.setValueAtTime(noiseReduction ? 150 : 0, audioContext.current.currentTime);
+    }
+  }, [noiseReduction]);
 
   // --- the scary peer-to-peer stuff ---
   const ensurePendingIceList = (peerId) => {
@@ -91,9 +109,9 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
     try {
       const pc = new RTCPeerConnection(RTC_CONFIG);
 
-      const stream = localStream.current;
+      const stream = audioDestNode.current?.stream || localStream.current;
       if (stream) {
-        for (const track of stream.getTracks()) pc.addTrack(track, stream);
+        for (const track of stream.getAudioTracks()) pc.addTrack(track, stream);
       }
 
       pc.ontrack = (event) => {
@@ -198,6 +216,48 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
         video: false,
       });
 
+      // Setup Audio Processing Graph
+      if (!audioContext.current) {
+        audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioContext.current;
+      const localSource = ctx.createMediaStreamSource(localStream.current);
+
+      // 1. Input Gain (Boost)
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(inputGain, ctx.currentTime);
+      gainNodeRef.current = gainNode;
+
+      // 2. Noise Suppression (Highpass)
+      const hpFilter = ctx.createBiquadFilter();
+      hpFilter.type = "highpass";
+      hpFilter.frequency.setValueAtTime(noiseReduction ? 150 : 0, ctx.currentTime);
+      hpFilterRef.current = hpFilter;
+
+      // 3. Compressor (Leveling)
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, ctx.currentTime);
+      compressor.knee.setValueAtTime(30, ctx.currentTime);
+      compressor.ratio.setValueAtTime(12, ctx.currentTime);
+      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+      compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
+      // 4. Output Destination for Peers
+      const dest = ctx.createMediaStreamDestination();
+      audioDestNode.current = dest;
+
+      // Connect: localSource -> gainNode -> hpFilter -> compressor -> dest
+      localSource.connect(gainNode);
+      gainNode.connect(hpFilter);
+      hpFilter.connect(compressor);
+      compressor.connect(dest);
+
+      // 5. Setup Local Analyser (on processed signal)
+      const localAnalyser = ctx.createAnalyser();
+      localAnalyser.fftSize = 256;
+      compressor.connect(localAnalyser);
+      analysers.current.set("local", localAnalyser);
+
       // Mute the local track immediately
       if (localStream.current.getAudioTracks()[0]) {
         localStream.current.getAudioTracks()[0].enabled = false;
@@ -269,38 +329,6 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
           }
         } catch (e) { /* ignore */ }
       });
-
-      // Start Volume Analysis
-      if (!audioContext.current) {
-        audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-
-      const ctx = audioContext.current;
-      const localSource = ctx.createMediaStreamSource(localStream.current);
-
-      // 1. Noise Suppression: Highpass filter to remove low rumble (fans/AC)
-      const hpFilter = ctx.createBiquadFilter();
-      hpFilter.type = "highpass";
-      hpFilter.frequency.value = 150;
-
-      // 2. Auto-Leveling: Compressor to normalize voice volume
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.setValueAtTime(-24, ctx.currentTime);
-      compressor.knee.setValueAtTime(30, ctx.currentTime);
-      compressor.ratio.setValueAtTime(12, ctx.currentTime);
-      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
-      compressor.release.setValueAtTime(0.25, ctx.currentTime);
-
-      // 3. Analysis: Monitor the processed signal
-      const localAnalyser = ctx.createAnalyser();
-      localAnalyser.fftSize = 256;
-
-      // Connect: Source -> Filter -> Compressor -> Analyser
-      localSource.connect(hpFilter);
-      hpFilter.connect(compressor);
-      compressor.connect(localAnalyser);
-
-      analysers.current.set("local", localAnalyser);
 
       let lastSpeakingTime = 0;
       const runAnalysis = () => {
@@ -441,6 +469,36 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       <div id="voice-audio-container" className="hidden" />
 
+      {isSettingsOpen && (
+        <div className="card bg-base-100 shadow-xl border border-base-300 w-64 mb-2">
+          <div className="card-body p-3">
+            <h3 className="font-bold text-sm border-b border-base-200 pb-2 mb-2">Voice Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="label p-0 mb-1">
+                  <span className="label-text text-xs font-bold">Input Volume: {Math.round(inputGain * 100)}%</span>
+                </label>
+                <input
+                  type="range" min="0.5" max="3" step="0.1"
+                  value={inputGain}
+                  onChange={(e) => setInputGain(parseFloat(e.target.value))}
+                  className="range range-xs range-primary"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold">Noise Reduction</span>
+                <input
+                  type="checkbox"
+                  checked={noiseReduction}
+                  onChange={(e) => setNoiseReduction(e.target.checked)}
+                  className="checkbox checkbox-xs checkbox-primary"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isExpanded && (
         <div className="card bg-base-100 shadow-xl border border-base-300 w-64 mb-2">
           <div className="card-body p-3">
@@ -475,6 +533,14 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
           title="Toggle List"
         >
           <Users size={18} />
+        </button>
+
+        <button
+          className={`btn btn-circle btn-sm ${isSettingsOpen ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          title="Voice Settings"
+        >
+          <Settings size={18} />
         </button>
 
         <button

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Pen, Eraser, Hand, ZoomIn, ZoomOut, Settings2, Trash2, Map as MapIcon, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube } from "lucide-react";
-import ElementsLayer, { DEFAULT_ELEMENT_STYLES, pointHitsElement } from "./ElementsLayer";
+import { Pen, Eraser, Hand, ZoomIn, ZoomOut, Settings2, Trash2, Map as MapIcon, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube, Plus } from "lucide-react";
+import ElementsLayer from "./ElementsLayer";
+import { DEFAULT_ELEMENT_STYLES } from "./canvas/constants";
+import { getSvgPathFromStroke, getPathBounds, getElementBounds, pointHitsElement } from "./canvas/geometryUtils";
 import getStroke from "perfect-freehand";
 
 // Tiny unique id generator (no dependency needed)
@@ -8,78 +10,6 @@ function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-// ── perfect-freehand helpers ────────────────────────────────────────────────
-function getSvgPathFromStroke(stroke) {
-    if (!stroke.length) return "";
-    const d = stroke.reduce(
-        (acc, [x0, y0], i, arr) => {
-            const [x1, y1] = arr[(i + 1) % arr.length];
-            acc.push(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
-            return acc;
-        },
-        ["M", ...stroke[0], "Q"]
-    );
-    d.push("Z");
-    return d.join(" ");
-}
-
-function getPathBounds(points) {
-    if (!points || !points.length) return { x: 0, y: 0, w: 0, h: 0 };
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const p of points) {
-        const px = p?.x ?? p?.[0] ?? 0;
-        const py = p?.y ?? p?.[1] ?? 0;
-        if (px < minX) minX = px;
-        if (px > maxX) maxX = px;
-        if (py < minY) minY = py;
-        if (py > maxY) maxY = py;
-    }
-    if (minX === Infinity) return { x: 0, y: 0, w: 0, h: 0 };
-    const pad = 4;
-    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
-}
-
-function getElementBounds(el) {
-    if (!el) return { x: 0, y: 0, w: 0, h: 0 };
-    if (el.type === "path") {
-        return getPathBounds(el.points || []);
-    }
-
-    // For shapes with rotation, calculate the AABB of the rotated corners
-    if (el.rotation) {
-        const rad = (el.rotation * Math.PI) / 180;
-        const cx = el.x + (el.w || 0) / 2;
-        const cy = el.y + (el.h || 0) / 2;
-
-        const corners = [
-            { x: el.x || 0, y: el.y || 0 },
-            { x: (el.x || 0) + (el.w || 0), y: el.y || 0 },
-            { x: el.x || 0, y: (el.y || 0) + (el.h || 0) },
-            { x: (el.x || 0) + (el.w || 0), y: (el.y || 0) + (el.h || 0) }
-        ];
-
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-        corners.forEach(p => {
-            const dx = p.x - cx;
-            const dy = p.y - cy;
-            const rx = cx + (dx * cos - dy * sin);
-            const ry = cy + (dx * sin + dy * cos);
-            minX = Math.min(minX, rx);
-            minY = Math.min(minY, ry);
-            maxX = Math.max(maxX, rx);
-            maxY = Math.max(maxY, ry);
-        });
-
-        if (minX === Infinity) return { x: el.x || 0, y: el.y || 0, w: el.w || 0, h: el.h || 0 };
-        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-    }
-
-    return { x: el.x || 0, y: el.y || 0, w: el.w || 0, h: el.h || 0 };
-}
 
 // ── Line-segment vs AABB intersection (for eraser on shapes) ────────────────
 function lineIntersectsAABB(x1, y1, x2, y2, rx, ry, rw, rh) {
@@ -287,6 +217,20 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const [color, setColor] = useState("#000000");
     const [width, setWidth] = useState(2);
     const [bgMode, setBgMode] = useState("white");
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        if (isDark) {
+            setColor("#ffffff");
+        } else {
+            setColor("#000000");
+        }
+    }, [isDark]);
+
+    const toolbarClass = isDark ? "bg-[#1f1f1f] border-[#333333] text-white/70" : "bg-base-100/95 border-base-200";
+    const ghostBtnClass = isDark ? "btn-ghost text-white/70 hover:text-white hover:bg-white/10" : "btn-ghost";
+
+    const statusMsgRef = useRef(""); // local ref if needed, but we use state below
     const [statusMsg, setStatusMsg] = useState("");
     const [remoteLiveStrokes, setRemoteLiveStrokes] = useState({}); // userId -> stroke object
     const lastEmittedTimeRef = useRef(0);
@@ -355,6 +299,20 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
     const [selectionBox, setSelectionBox] = useState(null);
     const selectionBoxRef = useRef(null);
+
+    const toolbarRef = useRef(null);
+    const [toolbarHeight, setToolbarHeight] = useState(80);
+
+    useEffect(() => {
+        if (!toolbarRef.current) return;
+        const obs = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                setToolbarHeight(entry.target.offsetHeight);
+            }
+        });
+        obs.observe(toolbarRef.current);
+        return () => obs.disconnect();
+    }, []);
 
     const [ghostElement, setGhostElement] = useState(null);
     const [shapeType, setShapeType] = useState("rect");
@@ -918,10 +876,12 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         if (["sticky", "rect", "ellipse", "triangle", "arrow"].includes(toolRef.current)) {
             drawingRef.current = true; strokeStartRef.current = wp;
             const defs = DEFAULT_ELEMENT_STYLES[toolRef.current] || {};
+            const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
             setGhostElement({
                 type: toolRef.current,
                 x: wp.x, y: wp.y, w: 0, h: 0,
                 ...defs,
+                ...darkOverrides,
                 text: "",
                 rotation: 0
             });
@@ -951,10 +911,12 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
         // ── text tool: click to place a text element and start editing immediately ──
         if (toolRef.current === "text") {
+            const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
             const el = {
                 id: uid(), type: "text",
                 x: wp.x, y: wp.y, w: 300, h: 80,
                 ...DEFAULT_ELEMENT_STYLES.text,
+                ...darkOverrides,
             };
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
@@ -1243,16 +1205,41 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     return (
         <div
             className={`relative w-full h-full overflow-hidden select-none touch-none ${tool === "hand" ? "cursor-grab active:cursor-grabbing" : tool === "eraser" ? "cursor-none" : "cursor-crosshair"}`}
-            style={{ backgroundColor: "#ffffff" }}
+            style={{ backgroundColor: isDark ? "#121212" : "#F0F0F0" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerLeave={(e) => { setMousePos({ x: -100, y: -100 }); onPointerUp(e); }}
             onPointerCancel={onPointerUp}
         >
-            {bgMode === "dots" && (
-                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: `radial-gradient(#cbd5e1 1.5px, transparent 1.5px)`, backgroundSize: `${50 * camera.z}px ${50 * camera.z}px`, backgroundPosition: `${camera.x}px ${camera.y}px` }} />
-            )}
+            {bgMode === "dots" && (() => {
+                const z = camera.z; const logZ = Math.log10(z); const floorLogZ = Math.floor(logZ);
+                const scales = [Math.pow(10, -floorLogZ + 1), Math.pow(10, -floorLogZ), Math.pow(10, -floorLogZ - 1)];
+                return (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        {scales.map((s) => {
+                            const step = s * 100; const size = step * z;
+                            let op = 0;
+                            if (size > 10 && size < 1000) {
+                                if (size < 50) op = (size - 10) / 40;
+                                else if (size > 400) op = 1 - (size - 400) / 600;
+                                else op = 1;
+                            }
+                            if (op <= 0) return null;
+                            const gridColor = isDark ? "255,255,255" : "0,0,0";
+                            return (
+                                <div key={s} className="absolute inset-0"
+                                    style={{
+                                        backgroundImage: `radial-gradient(circle at 1.5px 1.5px, rgba(${gridColor}, ${op * (isDark ? 0.4 : 0.3)}) 1.5px, transparent 1.5px)`,
+                                        backgroundSize: `${step * z}px ${step * z}px`,
+                                        backgroundPosition: `${camera.x - 1.5}px ${camera.y - 1.5}px`
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
+                );
+            })()}
             {bgMode === "grid" && (() => {
                 const z = camera.z; const logZ = Math.log10(z); const floorLogZ = Math.floor(logZ);
                 const scales = [Math.pow(10, -floorLogZ + 1), Math.pow(10, -floorLogZ), Math.pow(10, -floorLogZ - 1)];
@@ -1270,10 +1257,11 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                             const majOp = op * 0.15; const minOp = op * 0.05;
                             const bS = `${(step / 5) * z}px ${(step / 5) * z}px`;
                             const bM = `${step * z}px ${step * z}px`;
+                            const gridColor = isDark ? "255,255,255" : "0,0,0";
                             return (
                                 <div key={s} className="absolute inset-0"
                                     style={{
-                                        backgroundImage: `linear-gradient(to right, rgba(0,0,0,${minOp}) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,${minOp}) 1px, transparent 1px), linear-gradient(to right, rgba(0,0,0,${majOp}) 1.5px, transparent 1.5px), linear-gradient(to bottom, rgba(0,0,0,${majOp}) 1.5px, transparent 1.5px)`,
+                                        backgroundImage: `linear-gradient(to right, rgba(${gridColor},${minOp}) 1px, transparent 1px), linear-gradient(to bottom, rgba(${gridColor},${minOp}) 1px, transparent 1px), linear-gradient(to right, rgba(${gridColor},${majOp}) 1.5px, transparent 1.5px), linear-gradient(to bottom, rgba(${gridColor},${majOp}) 1.5px, transparent 1.5px)`,
                                         backgroundSize: `${bS}, ${bS}, ${bM}, ${bM}`,
                                         backgroundPosition: `${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px`
                                     }}
@@ -1321,6 +1309,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             <ElementsLayer
                 tool={tool}
+                bgMode={bgMode}
+                isDark={isDark}
                 elements={elements}
                 camera={camera}
                 boardId={boardId}
@@ -1361,7 +1351,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                             {participants.slice(0, 5).map((p, idx) => (
                                 <div
                                     key={`${p.userId}-${idx}`}
-                                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-base-100"}`}
+                                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : isDark ? "border-[#13131f]" : "border-base-100"}`}
                                     style={{ backgroundColor: p.color || "#ccc" }}
                                     data-tip={p.name}
                                 >
@@ -1369,99 +1359,80 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 </div>
                             ))}
                             {participants.length > 5 && (
-                                <div className="w-10 h-10 rounded-full border-2 border-base-100 bg-base-300 flex items-center justify-center text-base-content text-xs font-bold shadow-sm">
+                                <div className={`w-10 h-10 rounded-full border-2 ${isDark ? "border-[#13131f] bg-slate-800 text-slate-300" : "border-base-100 bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
                                     +{participants.length - 5}
                                 </div>
                             )}
                         </div>
 
-                        <div className="ui-container bg-base-100 rounded-full px-5 py-2 shadow-md flex items-center gap-3 border border-base-200 pointer-events-auto">
-                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                            <span className="text-sm font-semibold text-base-content/70">{statusMsg || "Ready"}</span>
-                            <button className="btn btn-ghost btn-sm btn-circle ml-2" onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
+                        <div className={`ui-container ${toolbarClass} rounded-full px-5 py-2 shadow-lg flex items-center gap-3 border pointer-events-auto backdrop-blur-md`}>
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-pulse"></div>
+                            <span className="text-sm font-semibold opacity-70">{statusMsg || "Ready"}</span>
+                            <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ml-2`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
                         </div>
                     </div>
-                    <div className="ui-container bg-base-100 rounded-xl shadow-md border border-base-200 px-3 py-2 flex items-center gap-2 pointer-events-auto">
-                        <button className="btn btn-sm btn-ghost px-2" title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>
-                        <button className="btn btn-sm btn-ghost font-mono text-sm px-3 hover:bg-base-200" onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
-                        <button className="btn btn-sm btn-ghost px-2" title="Zoom In" onClick={() => setCamera(p => ({ ...p, z: Math.min(p.z * 1.5, 10) }))}><ZoomIn className="w-4 h-4" /></button>
+                    <div className={`ui-container ${toolbarClass} rounded-xl shadow-md border px-3 py-2 flex items-center gap-2 pointer-events-auto backdrop-blur-md`}>
+                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>
+                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} font-mono text-sm px-3 ${isDark ? "hover:bg-white/5" : "hover:bg-base-200"}`} onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
+                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom In" onClick={() => setCamera(p => ({ ...p, z: Math.min(p.z * 1.5, 10) }))}><ZoomIn className="w-4 h-4" /></button>
                     </div>
                     {isMinimapVisible && (
-                        <div className="ui-container bg-base-100 rounded-xl shadow-lg border border-base-200 p-2 pointer-events-auto origin-top-right">
-                            <canvas ref={minimapCanvasRef} className="w-48 h-32 bg-slate-50 rounded border border-base-300 cursor-grab active:cursor-grabbing" onMouseDown={handleMinimapPointer} onMouseMove={handleMinimapPointer} onTouchStart={handleMinimapPointer} onTouchMove={handleMinimapPointer} />
+                        <div className={`ui-container ${toolbarClass} rounded-2xl shadow-xl border p-2 pointer-events-auto origin-top-right backdrop-blur-md`}>
+                            <canvas ref={minimapCanvasRef} className={`w-48 h-32 rounded-xl border cursor-grab active:cursor-grabbing ${isDark ? "border-[#333333]" : "border-base-300"}`} style={{ backgroundColor: isDark ? "#121212" : "#f8fafc" }} onMouseDown={handleMinimapPointer} onMouseMove={handleMinimapPointer} onTouchStart={handleMinimapPointer} onTouchMove={handleMinimapPointer} />
                         </div>
                     )}
                 </div>
 
-                <div className="ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-base-100/95 backdrop-blur rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-base-200 px-4 py-2 z-30 flex items-center gap-3 hover:bg-base-100 max-w-[95vw] flex-wrap justify-center pointer-events-auto">
-                    <div className="join bg-base-200/50 p-1 rounded-xl">
-                        <button className={`btn btn-sm join-item border-none ${tool === "select" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("select")}><MousePointer2 className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "pen" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("pen")}><Pen className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "eraser" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("eraser")}><Eraser className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "text" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("text")} title="Text">
+                <div
+                    ref={toolbarRef}
+                    className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 ${toolbarClass} backdrop-blur rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
+                >
+                    <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
+                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "select" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("select")} data-tip="Select (V)"><MousePointer2 className="w-5 h-5" /></button>
+                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "pen" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("pen")} data-tip="Pen (P)"><Pen className="w-5 h-5" /></button>
+                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "eraser" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("eraser")} data-tip="Eraser (E)"><Eraser className="w-5 h-5" /></button>
+                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "text" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("text")} data-tip="Text (T)">
                             <Type className="w-5 h-5" />
                         </button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "code" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("code")} title="Code Block">
-                            <Terminal className="w-5 h-5" />
-                        </button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "video" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("video")} title="YouTube Video">
-                            <Youtube className="w-5 h-5" />
-                        </button>
-                        <button className={`btn btn-sm join-item border-none ${tool === "hand" ? "bg-primary text-primary-content" : "btn-ghost"}`} onClick={() => setTool("hand")}><Hand className="w-5 h-5" /></button>
+                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "hand" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
                     </div>
-                    <div className="w-px h-8 bg-base-300 rounded-full" />
+                    <div className={`w-px h-8 ${isDark ? "bg-white/20" : "bg-base-300"} rounded-full`} />
                     <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
-                        <summary className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : "btn-ghost"} border-none rounded-xl list-none`}>
+                        <summary className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl list-none`}>
                             <div className="flex items-center gap-2">
                                 {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}
-                                {lastShapeType === "rect" && <Square className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color="black" strokeWidth={2} />}
+                                {lastShapeType === "rect" && <Square className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
                                 <ChevronUp className="w-4 h-4 opacity-50" />
                             </div>
                         </summary>
-                        <div className="dropdown-content z-50 p-4 shadow-xl bg-base-100 rounded-2xl mb-4 border border-base-200 w-72 min-w-[280px]">
+                        <div className={`dropdown-content z-50 p-4 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border w-72 min-w-[280px] backdrop-blur-xl`}>
                             <div className="grid grid-cols-5 gap-3">
-                                <button className="btn btn-sm btn-ghost" onClick={() => { setTool("sticky"); setLastShapeType("sticky"); }}><StickyNote className="w-5 h-5 text-warning" /></button>
-                                <button className="btn btn-sm btn-ghost" onClick={() => { setTool("rect"); setLastShapeType("rect"); }}><Square className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} /></button>
-                                <button className="btn btn-sm btn-ghost" onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); }}><Circle className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} /></button>
-                                <button className="btn btn-sm btn-ghost" onClick={() => { setTool("triangle"); setLastShapeType("triangle"); }}><Triangle className="w-5 h-5" color="black" fill="transparent" strokeWidth={2} /></button>
-                                <button className="btn btn-sm btn-ghost" onClick={() => { setTool("arrow"); setLastShapeType("arrow"); }}><ArrowRight className="w-5 h-5" color="black" strokeWidth={2} /></button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("rect"); setLastShapeType("rect"); }} data-tip="Rectangle (R)"><Square className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); }} data-tip="Ellipse (O)"><Circle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("triangle"); setLastShapeType("triangle"); }} data-tip="Triangle"><Triangle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("arrow"); setLastShapeType("arrow"); }} data-tip="Arrow (A)"><ArrowRight className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={2} /></button>
                             </div>
                         </div>
                     </details>
-                    {["pen", "eraser", "sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) && (
-                        <>
-                            <div className="w-px h-8 bg-base-300 rounded-full" />
-                            <div className="flex items-center gap-4">
-                                {tool !== "eraser" && (
-                                    <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
-                                        <summary className="flex items-center justify-center w-10 h-10 rounded-full shadow-sm cursor-pointer ring-2 ring-offset-2 list-none ring-base-300 hover:ring-primary" style={{ backgroundColor: color }} />
-                                        <div className="dropdown-content z-40 p-4 shadow-xl bg-base-100 rounded-2xl mb-4 border border-base-200 w-56">
-                                            <div className="grid grid-cols-4 gap-3">
-                                                {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
-                                                    <button key={c} className="w-10 h-10 rounded-full border border-base-300 transition-transform hover:scale-110" style={{ backgroundColor: c }} onClick={() => setColor(c)} />
-                                                ))}
-                                            </div>
-                                            <div className="divider my-2" />
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xs font-medium opacity-50 uppercase tracking-wider">Custom</span>
-                                                <input
-                                                    type="color"
-                                                    value={color}
-                                                    onChange={(e) => setColor(e.target.value)}
-                                                    className="w-full h-8 cursor-pointer rounded-lg bg-base-200 p-1 border border-base-300"
-                                                />
-                                            </div>
-                                        </div>
-                                    </details>
-                                )}
-                                <input type="range" min="1" max="20" value={width} onChange={e => setWidth(Number(e.target.value))} className="range range-xs range-primary w-32 ml-3" />
+                    <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
+                        <summary className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl list-none`}>
+                            <Plus className="w-5 h-5" />
+                        </summary>
+                        <div className={`dropdown-content z-50 p-3 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border backdrop-blur-xl`}>
+                            <div className="flex gap-2">
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => setTool("code")} data-tip="Code (C)">
+                                    <Terminal className="w-5 h-5" />
+                                </button>
+                                <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => setTool("video")} data-tip="Video (Y)">
+                                    <Youtube className="w-5 h-5" />
+                                </button>
                             </div>
-                        </>
-                    )}
-                    <div className="w-px h-8 bg-base-300 rounded-full" />
+                        </div>
+                    </details>
                     <div className="flex items-center gap-2 pointer-events-auto">
                         {/* The Settings menu was moved to TestWhiteboardPage via renderTopLeftUI */}
                     </div>
@@ -1471,6 +1442,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 {renderTopLeftUI && (
                     <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3">
                         {renderTopLeftUI({
+                            isDark,
+                            setIsDark,
                             setBgMode,
                             clearBoard: () => {
                                 if (window.confirm("Clear board?")) {
@@ -1483,7 +1456,44 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                         })}
                     </div>
                 )}
+
+                {tool === "pen" && (
+                    <div
+                        className={`ui-container absolute left-1/2 -translate-x-1/2 ${toolbarClass} backdrop-blur rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
+                        style={{ bottom: toolbarHeight + 36 }} // 24px (bottom-6) + height + 12px gap
+                    >
+                        <details className="dropdown dropdown-top dropdown-center pointer-events-auto">
+                            <summary className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg cursor-pointer ring-2 ring-offset-2 list-none ring-base-300 hover:ring-primary transition-all active:scale-95" style={{ backgroundColor: color }} />
+                            <div className={`dropdown-content z-40 p-4 shadow-2xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/90" : "bg-base-100 border-base-200"} rounded-2xl mb-4 border w-56 backdrop-blur-xl`}>
+                                <div className="grid grid-cols-4 gap-3">
+                                    {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
+                                        <button key={c} className={`w-10 h-10 rounded-full border transition-all hover:scale-110 active:scale-90 ${isDark ? "border-white/10" : "border-base-300"}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
+                                    ))}
+                                </div>
+                                <div className={`h-px w-full my-4 ${isDark ? "bg-white/5" : "bg-base-200"}`} />
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-bold uppercase tracking-widest opacity-40">Custom</span>
+                                    <input
+                                        type="color"
+                                        value={color}
+                                        onChange={(e) => setColor(e.target.value)}
+                                        className={`w-full h-9 cursor-pointer rounded-xl ${isDark ? "bg-[#121212]" : "bg-base-200"} p-1 border border-transparent`}
+                                    />
+                                </div>
+                            </div>
+                        </details>
+                        <input
+                            type="range"
+                            min="1"
+                            max="20"
+                            value={width}
+                            onChange={e => setWidth(Number(e.target.value))}
+                            className={`range range-xs range-primary w-32 ml-3 ${isDark ? "bg-white/10" : ""}`}
+                        />
+                    </div>
+                )}
             </div>
+
             {/* Selection Box Visual */}
             {selectionBox && (
                 <div
