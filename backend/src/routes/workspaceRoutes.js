@@ -8,6 +8,8 @@ import {
   inviteMembers,
   updateMemberRole,
   removeMember,
+  updateWorkspace,
+  deleteWorkspace,
 } from "../controllers/workspaceController.js";
 
 const router = express.Router();
@@ -33,5 +35,11 @@ router.patch(
 
 // kick a member
 router.delete("/:id/members/:memberId", authMiddleware, removeMember);
+
+// rename/update a workspace
+router.patch("/:id", authMiddleware, updateWorkspace);
+
+// delete a workspace
+router.delete("/:id", authMiddleware, deleteWorkspace);
 
 export default router;

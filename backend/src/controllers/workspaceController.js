@@ -336,3 +336,55 @@ export async function removeMember(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
+// rename/update a workspace (owner only)
+export async function updateWorkspace(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    const workspace = await Workspace.findById(id).populate("owner", "_id");
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    if (String(workspace.owner._id) !== String(userId)) {
+      return res.status(403).json({ message: "Only owner can update workspace" });
+    }
+
+    if (name) workspace.name = name;
+    if (description !== undefined) workspace.description = description;
+
+    await workspace.save();
+
+    return res.json({ message: "Workspace updated successfully", workspace });
+  } catch (e) {
+    console.error("Error updating workspace:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+// delete a workspace (owner only)
+export async function deleteWorkspace(req, res) {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+
+    const workspace = await Workspace.findById(id).populate("owner", "_id");
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    if (String(workspace.owner._id) !== String(userId)) {
+      return res.status(403).json({ message: "Only owner can delete workspace" });
+    }
+
+    await Workspace.findByIdAndDelete(id);
+
+    return res.json({ message: "Workspace deleted successfully" });
+  } catch (e) {
+    console.error("Error deleting workspace:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}

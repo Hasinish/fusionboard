@@ -4,13 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-black,
+.font-bold,
+.font-extrabold {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* ... keep your existing tailwind imports ... */
 
 /* Tiptap / ProseMirror Editor Styles */
 .ProseMirror {
   outline: none;
   min-height: 120px;
-  color: #1f2937; /* text-gray-800 */
+  color: #1f2937;
+  /* text-gray-800 */
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -50,9 +67,20 @@
 }
 
 /* Note Display Card Styling (Reused) */
-.note-content ul { list-style-type: disc; padding-left: 1.5em; }
-.note-content ol { list-style-type: decimal; padding-left: 1.5em; }
-.note-content blockquote { border-left: 3px solid #ccc; padding-left: 1em; }
+.note-content ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+}
+
+.note-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+}
+
+.note-content blockquote {
+  border-left: 3px solid #ccc;
+  padding-left: 1em;
+}
 
 /* ─── Whiteboard Zoom Fixes ─── */
 

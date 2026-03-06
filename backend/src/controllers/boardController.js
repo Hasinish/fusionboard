@@ -3,7 +3,7 @@ import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
 import Note from "../models/Note.js";
 import Activity from "../models/Activity.js"; // [NEW]
-
+import { getActiveUsersMap } from "../startup/socket.js";
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
     _id: workspaceId,
@@ -90,7 +90,15 @@ export async function listBoards(req, res) {
       .select("_id title updatedAt createdAt")
       .lean();
 
-    return res.json(boards);
+    const boardIds = boards.map((b) => b._id);
+    const usersMap = getActiveUsersMap(boardIds);
+
+    const withUsers = boards.map((b) => ({
+      ...b,
+      activeUsers: usersMap[b._id] || [],
+    }));
+
+    return res.json(withUsers);
   } catch (e) {
     console.error("listBoards error:", e);
     return res.status(500).json({ message: "Server error" });

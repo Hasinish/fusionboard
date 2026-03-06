@@ -125,9 +125,9 @@ function WhiteboardPage() {
             <>
               <button
                 className={`${topBtnClass} px-5 py-2 gap-2 active:scale-95`}
-                onClick={() => navigate(`/workspaces/${id}/boards`)}
+                onClick={() => navigate(`/dashboard?wsId=${id}`)}
               >
-                <ArrowLeft size={18} /> Boards
+                <ArrowLeft size={18} /> Dashboard
               </button>
 
               {/* Editable board title (viewers see read-only) */}

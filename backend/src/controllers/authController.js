@@ -46,7 +46,9 @@ export async function login(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        avatar: user.avatar
+        avatar: user.avatar,
+        contact: user.contact,
+        bio: user.bio
       },
     });
   } catch (e) {
@@ -96,6 +98,8 @@ export async function googleLogin(req, res) {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        contact: user.contact,
+        bio: user.bio,
       },
     });
   } catch (e) {
@@ -108,7 +112,7 @@ export async function googleLogin(req, res) {
 export async function updateMe(req, res) {
   try {
     const userId = req.userId;
-    const { name, email } = req.body;
+    const { name, email, contact, bio } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -122,9 +126,9 @@ export async function updateMe(req, res) {
       user.email = email;
     }
 
-    if (name) {
-      user.name = name;
-    }
+    if (name) user.name = name;
+    if (contact !== undefined) user.contact = contact;
+    if (bio !== undefined) user.bio = bio;
 
     await user.save();
 
@@ -135,6 +139,8 @@ export async function updateMe(req, res) {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        contact: user.contact,
+        bio: user.bio,
       },
     });
   } catch (e) {
@@ -151,6 +157,8 @@ export async function getMe(req, res) {
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      contact: user.contact,
+      bio: user.bio,
     });
   } catch (e) {
     res.status(500).json({ message: "Server error" });

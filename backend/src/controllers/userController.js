@@ -2,8 +2,17 @@ import User from "../models/User.js";
 
 export async function getAllUsers(req, res) {
   try {
-    // just return the basics for lists
-    const users = await User.find({}, "name email").lean();
+    const { q } = req.query;
+    let query = {};
+    if (q) {
+      query = {
+        $or: [
+          { name: { $regex: q, $options: "i" } },
+          { email: { $regex: q, $options: "i" } },
+        ],
+      };
+    }
+    const users = await User.find(query, "name email").limit(10).lean();
     return res.json(users);
   } catch (e) {
     console.error("getAllUsers error:", e);

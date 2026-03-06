@@ -81,11 +81,12 @@ export const setupSocket = (io) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const userId = String(decoded.id);
 
-            const user = await User.findById(userId).select("name email").lean();
+            const user = await User.findById(userId).select("name email avatar").lean();
             if (!user) return next(new Error("User not found"));
 
             socket.userId = userId;
             socket.userName = user.name || "Unknown";
+            socket.userAvatar = user.avatar;
 
             return next();
         } catch {
@@ -247,7 +248,8 @@ export const setupSocket = (io) => {
             socket.join(`board:${boardId}`);
             socketMeta.set(socket.id, {
                 boardId, userId, name, color,
-                workspaceId, boardTitle, hasEdited: false, role
+                workspaceId, boardTitle, hasEdited: false, role,
+                avatar: socket.userAvatar
             });
 
             // Get current participants in this board
@@ -257,7 +259,7 @@ export const setupSocket = (io) => {
                 .map(sid => {
                     const meta = socketMeta.get(sid);
                     if (!meta) return null;
-                    return { userId: meta.userId, name: meta.name, color: meta.color };
+                    return { userId: meta.userId, name: meta.name, color: meta.color, avatar: meta.avatar };
                 })
                 .filter(Boolean);
 
@@ -428,3 +430,27 @@ export const setupSocket = (io) => {
         socket.on("disconnect", leaveCursor);
     });
 };
+
+export function getActiveUsersMap(boardIds) {
+    const res = {};
+    for (const boardId of boardIds) {
+        const unique = [];
+        const seen = new Set();
+
+        // Iterate over all active sockets in socketMeta
+        for (const [sid, meta] of socketMeta) {
+            if (String(meta.boardId) === String(boardId)) {
+                if (!seen.has(String(meta.userId))) {
+                    seen.add(String(meta.userId));
+                    unique.push({
+                        userId: meta.userId,
+                        name: meta.name,
+                        avatar: meta.avatar
+                    });
+                }
+            }
+        }
+        res[boardId] = unique;
+    }
+    return res;
+}
