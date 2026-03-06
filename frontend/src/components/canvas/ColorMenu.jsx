@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { COLORS } from "./constants";
 
 export function ColorMenu({ value, onChange, title, className = "", isDark }) {
@@ -11,14 +12,28 @@ export function ColorMenu({ value, onChange, title, className = "", isDark }) {
 
     const [open, setOpen] = useState(false);
     const wrapperRef = useRef(null);
+    const buttonRef = useRef(null);
+    const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         const handler = (e) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+                // Also check if click is inside the portal-rendered popup
+                const popup = document.getElementById("color-menu-portal");
+                if (popup && popup.contains(e.target)) return;
+                setOpen(false);
+            }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    useEffect(() => {
+        if (open && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setPopupPos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+        }
+    }, [open]);
 
     return (
         <div
@@ -26,9 +41,9 @@ export function ColorMenu({ value, onChange, title, className = "", isDark }) {
             className={`relative ${className}`}
             title={title}
             onPointerDown={e => e.stopPropagation()}
-            onMouseDown={e => e.stopPropagation()}
         >
             <button
+                ref={buttonRef}
                 type="button"
                 className={`btn btn-xs btn-ghost p-0 h-6 w-6 min-h-0 rounded-full border ${isDark ? "border-white/20 shadow-none" : "border-base-200 shadow-sm"} overflow-hidden`}
                 style={{ backgroundColor: (value === "none" ? "transparent" : (value || "#1e1e1e")), position: "relative" }}
@@ -37,12 +52,23 @@ export function ColorMenu({ value, onChange, title, className = "", isDark }) {
                 {value === "none" && <div className="absolute inset-0 bg-base-300" style={{ clipPath: "polygon(0 0, 100% 100%, 100% 90%, 10% 0)" }} />}
                 <div className="absolute inset-0 hover:bg-black/10 transition-colors" />
             </button>
-            {open && (
+            {open && ReactDOM.createPortal(
                 <div
-                    className="absolute bottom-full mb-[18px] left-1/2 -translate-x-1/2 z-[100] p-2 w-40 flex flex-wrap gap-1.5 rounded-lg"
-                    style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+                    id="color-menu-portal"
+                    className="p-2 w-40 flex flex-wrap gap-1.5 rounded-lg z-[9999]"
+                    style={{
+                        position: 'fixed',
+                        top: popupPos.top,
+                        left: popupPos.left,
+                        transform: 'translate(-50%, -100%)',
+                        backdropFilter: 'blur(16px)',
+                        WebkitBackdropFilter: 'blur(16px)',
+                        background: 'rgba(255,255,255,0.15)',
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                        pointerEvents: 'auto'
+                    }}
                     onPointerDown={e => e.stopPropagation()}
-                    onMouseDown={e => e.stopPropagation()}
                 >
                     {COLORS.map(c => (
                         <button
@@ -72,7 +98,8 @@ export function ColorMenu({ value, onChange, title, className = "", isDark }) {
                             className="w-full h-6 cursor-pointer opacity-80 hover:opacity-100 transition-opacity rounded bg-transparent border-none"
                         />
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

@@ -320,6 +320,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const [pendingEditId, setPendingEditId] = useState(null);
     const clearPendingEditId = useCallback(() => setPendingEditId(null), []);
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Dropdown states for custom implementation
     const [shapesOpen, setShapesOpen] = useState(false);
     const [plusOpen, setPlusOpen] = useState(false);
@@ -1369,36 +1376,37 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             {/* UI overlay container */}
             <div className="pointer-events-none">
-                <div className="absolute top-4 right-4 flex flex-col items-end gap-3 z-30 pointer-events-none">
+                <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
                     <div className="flex items-center gap-2">
-                        {/* Participants Bubbles */}
-                        <div className="flex -space-x-3 pointer-events-auto mr-2">
-                            {participants.slice(0, 5).map((p, idx) => (
-                                <div
-                                    key={`${p.userId}-${idx}`}
-                                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : isDark ? "border-[#13131f]" : "border-base-100"}`}
-                                    style={{ backgroundColor: p.color || "#ccc" }}
-                                    data-tip={p.name}
-                                >
-                                    {getInitials(p.name)}
-                                </div>
-                            ))}
-                            {participants.length > 5 && (
-                                <div className={`w-10 h-10 rounded-full border-2 ${isDark ? "border-[#13131f] bg-slate-800 text-slate-300" : "border-base-100 bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
-                                    +{participants.length - 5}
-                                </div>
-                            )}
-                        </div>
+                        {!isMobile && (
+                            <div className="flex -space-x-3 pointer-events-auto mr-2">
+                                {participants.slice(0, 5).map((p, idx) => (
+                                    <div
+                                        key={`${p.userId}-${idx}`}
+                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-white"}`}
+                                        style={{ backgroundColor: p.color || "#ccc" }}
+                                        data-tip={p.name}
+                                    >
+                                        {getInitials(p.name)}
+                                    </div>
+                                ))}
+                                {participants.length > 5 && (
+                                    <div className={`w-10 h-10 rounded-full border-2 border-white ${isDark ? "bg-slate-800 text-slate-300" : "bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
+                                        +{participants.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-5 py-2 flex items-center gap-3 pointer-events-auto`}>
                             <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-pulse"></div>
-                            <span className={`text-sm font-semibold ${isDark ? "text-white opacity-90" : "opacity-60"}`}>{statusMsg || "Ready"}</span>
-                            <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ml-2`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
+                            {!isMobile && <span className={`text-sm font-semibold ${isDark ? "text-white opacity-90" : "opacity-60"}`}>{statusMsg || "Ready"}</span>}
+                            <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ${!isMobile ? "ml-2" : ""}`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
                         </div>
                     </div>
-                    <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-3 py-2 flex items-center gap-2 pointer-events-auto`}>
+                    <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-2"} pointer-events-auto`}>
                         <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>
-                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} font-mono text-sm px-3 ${isDark ? "hover:bg-white/5" : "hover:bg-base-200"}`} onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
+                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} font-mono text-xs px-1 ${isDark ? "hover:bg-white/5" : "hover:bg-base-200"}`} onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
                         <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom In" onClick={() => setCamera(p => ({ ...p, z: Math.min(p.z * 1.5, 10) }))}><ZoomIn className="w-4 h-4" /></button>
                     </div>
                     {isMinimapVisible && (
@@ -1500,20 +1508,41 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
                 {/* Provide the Top Left UI render slot here, floating above everything */}
                 {renderTopLeftUI && (
-                    <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-3">
-                        {renderTopLeftUI({
-                            isDark,
-                            setIsDark,
-                            setBgMode,
-                            clearBoard: () => {
-                                if (window.confirm("Clear board?")) {
-                                    undoStackRef.current = [];
-                                    redoStackRef.current = [];
-                                    setElements([]);
-                                    if (socket?.connected) socket.emit("clearBoard", { boardId });
+                    <div className="relative">
+                        <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-3">
+                            {renderTopLeftUI({
+                                isDark,
+                                setIsDark,
+                                setBgMode,
+                                clearBoard: () => {
+                                    if (window.confirm("Clear board?")) {
+                                        undoStackRef.current = [];
+                                        redoStackRef.current = [];
+                                        setElements([]);
+                                        if (socket?.connected) socket.emit("clearBoard", { boardId });
+                                    }
                                 }
-                            }
-                        })}
+                            })}
+                        </div>
+                        {isMobile && (
+                            <div className="absolute top-5 left-5 mt-20 flex -space-x-3 z-50 pointer-events-auto">
+                                {participants.slice(0, 5).map((p, idx) => (
+                                    <div
+                                        key={`${p.userId}-${idx}`}
+                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-default tooltip tooltip-bottom ${talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : ""}`}
+                                        style={{ backgroundColor: p.color || "#ccc" }}
+                                        data-tip={p.name}
+                                    >
+                                        {getInitials(p.name)}
+                                    </div>
+                                ))}
+                                {participants.length > 5 && (
+                                    <div className={`w-10 h-10 rounded-full border-2 border-white ${isDark ? "bg-slate-800 text-slate-300" : "bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
+                                        +{participants.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
