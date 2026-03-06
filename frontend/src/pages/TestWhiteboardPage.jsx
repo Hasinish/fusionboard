@@ -53,17 +53,17 @@ function TestWhiteboardPage() {
                 me={me}
                 talkingUserIds={talkingUserIds}
                 renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
-                    const topBtnClass = `ui-container flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg pointer-events-auto transition-all text-white/70 hover:bg-white/20 hover:text-white`;
+                    const topBtnClass = `ui-container flex items-center justify-center bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg pointer-events-auto transition-all rounded-lg ${isDark ? "text-white/70 hover:bg-white/25 hover:text-white" : "text-base-content/80 hover:bg-white/30 hover:text-base-content"}`;
                     return (
                         <>
                             <button
-                                className={`${topBtnClass} rounded-full px-5 py-2 gap-2 active:scale-95`}
+                                className={`${topBtnClass} px-5 py-2 gap-2 active:scale-95`}
                                 onClick={() => navigate('/dashboard')}
                             >
                                 <ArrowLeft size={18} /> Dashboard
                             </button>
                             <details className="ui-container dropdown dropdown-bottom dropdown-start pointer-events-auto flex items-center">
-                                <summary className={`${topBtnClass} w-10 h-10 rounded-full list-none cursor-pointer backdrop-blur-md active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
+                                <summary className={`${topBtnClass} w-10 h-10 list-none cursor-pointer active:scale-95`}><Settings2 className="w-5 h-5" /></summary>
                                 <ul className={`dropdown-content z-50 menu p-3 shadow-2xl rounded-2xl w-64 mt-4 border backdrop-blur-xl ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white" : "bg-base-100 border-base-200"}`}>
                                     <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 pb-2`}>Background</li>
                                     <li><a onClick={() => setBgMode("white")} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl`}>Solid White</a></li>
