@@ -1365,19 +1365,19 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                             )}
                         </div>
 
-                        <div className={`ui-container bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-full px-5 py-2 flex items-center gap-3 pointer-events-auto`}>
+                        <div className={`ui-container bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg rounded-full px-5 py-2 flex items-center gap-3 pointer-events-auto`}>
                             <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-pulse"></div>
                             <span className="text-sm font-semibold opacity-70">{statusMsg || "Ready"}</span>
                             <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ml-2`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
                         </div>
                     </div>
-                    <div className={`ui-container bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-xl px-3 py-2 flex items-center gap-2 pointer-events-auto`}>
+                    <div className={`ui-container bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg rounded-xl px-3 py-2 flex items-center gap-2 pointer-events-auto`}>
                         <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>
                         <button className={`btn btn-sm btn-ghost ${ghostBtnClass} font-mono text-sm px-3 ${isDark ? "hover:bg-white/5" : "hover:bg-base-200"}`} onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
                         <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom In" onClick={() => setCamera(p => ({ ...p, z: Math.min(p.z * 1.5, 10) }))}><ZoomIn className="w-4 h-4" /></button>
                     </div>
                     {isMinimapVisible && (
-                        <div className={`ui-container bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl p-2 pointer-events-auto origin-top-right`}>
+                        <div className={`ui-container bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg rounded-2xl p-2 pointer-events-auto origin-top-right`}>
                             <canvas ref={minimapCanvasRef} className={`w-48 h-32 rounded-xl border cursor-grab active:cursor-grabbing ${isDark ? "border-[#333333]" : "border-base-300"}`} style={{ backgroundColor: isDark ? "#121212" : "#f8fafc" }} onMouseDown={handleMinimapPointer} onMouseMove={handleMinimapPointer} onTouchStart={handleMinimapPointer} onTouchMove={handleMinimapPointer} />
                         </div>
                     )}
@@ -1385,7 +1385,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
                 <div
                     ref={toolbarRef}
-                    className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
+                    className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg rounded-2xl px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
                 >
                     <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
                         <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "select" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("select")} data-tip="Select (V)"><MousePointer2 className="w-5 h-5" /></button>
@@ -1459,7 +1459,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
                 {tool === "pen" && (
                     <div
-                        className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg rounded-2xl px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
+                        className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg rounded-2xl px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
                         style={{ bottom: toolbarHeight + 36 }} // 24px (bottom-6) + height + 12px gap
                     >
                         <details className="dropdown dropdown-top dropdown-center pointer-events-auto">

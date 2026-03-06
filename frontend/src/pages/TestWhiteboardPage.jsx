@@ -53,11 +53,11 @@ function TestWhiteboardPage() {
                 me={me}
                 talkingUserIds={talkingUserIds}
                 renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
-                    const topBtnClass = `ui-container flex items-center justify-center border shadow-lg pointer-events-auto transition-all ${isDark ? "bg-[#1f1f1f] border-[#333333] text-white/70 hover:bg-white/10 hover:text-white" : "bg-base-100/95 border-base-200 text-base-content hover:bg-base-200"}`;
+                    const topBtnClass = `ui-container flex items-center justify-center bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg pointer-events-auto transition-all text-white/70 hover:bg-white/20 hover:text-white`;
                     return (
                         <>
                             <button
-                                className={`${topBtnClass} rounded-full px-5 py-2 gap-2 backdrop-blur-md active:scale-95`}
+                                className={`${topBtnClass} rounded-full px-5 py-2 gap-2 active:scale-95`}
                                 onClick={() => navigate('/dashboard')}
                             >
                                 <ArrowLeft size={18} /> Dashboard
