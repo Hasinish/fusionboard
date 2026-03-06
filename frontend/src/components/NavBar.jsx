@@ -84,8 +84,12 @@ function NavBar() {
             onClick={() => navigate("/profile")}
             title="Profile"
           >
-            <div className="w-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
-              <span className="text-lg font-semibold">{initial}</span>
+            <div className="w-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} referrerPolicy="no-referrer" />
+              ) : (
+                <span className="text-lg font-semibold">{initial}</span>
+              )}
             </div>
           </div>
         </div>

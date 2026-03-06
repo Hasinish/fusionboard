@@ -80,12 +80,10 @@ export async function googleLogin(req, res) {
         avatar: picture,
       });
     } else {
-      // tie their existing account to their google login
-      if (!user.googleId) {
-        user.googleId = googleId;
-        if (!user.avatar) user.avatar = picture;
-        await user.save();
-      }
+      // update their info with latest from Google
+      user.googleId = googleId;
+      user.avatar = picture;
+      await user.save();
     }
 
     // mint a fresh local token
