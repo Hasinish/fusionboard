@@ -3,7 +3,8 @@ import { Bold, Italic, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyS
 import { FONTS } from "./constants";
 import { MemoizedColorMenu } from "./ColorMenu";
 
-export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, activeBounds, camera, isDark }) {
+export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, activeBounds, camera, isDark, isViewer = false }) {
+    if (isViewer) return null;
     const toolbarBtnClass = isDark ? "text-white" : "text-base-content/80";
     return (
         <div

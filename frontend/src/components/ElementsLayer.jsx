@@ -17,7 +17,7 @@ import { useElementKeyboard } from "./canvas/useElementKeyboard";
 export default React.memo(function ElementsLayer({
     tool, elements, camera, boardId, socket, isDark,
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
-    pendingEditId, onPendingEditConsumed
+    pendingEditId, onPendingEditConsumed, isViewer = false
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
@@ -47,6 +47,7 @@ export default React.memo(function ElementsLayer({
     const lastEmitRef = useRef({});
 
     const handleChange = useCallback((updated, persist = false, beforeState = null) => {
+        if (isViewer) return;
         onElementsChange(prev => prev.map(e => (e.id === updated.id ? updated : e)));
 
         const now = Date.now();
@@ -69,6 +70,7 @@ export default React.memo(function ElementsLayer({
     }, [boardId, onElementsChange, pushAction]);
 
     const handleDelete = useCallback(() => {
+        if (isViewer) return;
         if (selectedIds.length === 0) return;
         const deletedItems = elements.filter(el => selectedIds.includes(el.id));
         onElementsChange(prev => prev.filter(e => !selectedIds.includes(e.id)));
@@ -94,6 +96,7 @@ export default React.memo(function ElementsLayer({
     useElementKeyboard({ selectedIds, editingId, handleDelete });
 
     const updateStyle = (patch, persist = true) => {
+        if (isViewer) return;
         if (selectedIds.length === 0) return;
         const beforeElements = elements.filter(el => selectedIds.includes(el.id));
         const updatedElements = elements.map(el => {
@@ -187,10 +190,11 @@ export default React.memo(function ElementsLayer({
                         onStartEdit={handleStartEdit}
                         isEditing={el.id === editingId}
                         onEndEdit={handleEndEdit}
+                        isViewer={isViewer}
                     />
                 ))}
 
-                <GhostElement ghost={ghostElement} camera={camera} />
+                <GhostElement ghost={!isViewer ? ghostElement : null} camera={camera} />
 
                 {dragGuide && (() => {
                     const sx1 = dragGuide.x1 * camera.z + camera.x;
@@ -239,7 +243,7 @@ export default React.memo(function ElementsLayer({
             </div>
 
             {/* Selection Toolbar */}
-            {selectedItems.length > 0 && !editingId && groupBounds && (() => {
+            {!isViewer && selectedItems.length > 0 && !editingId && groupBounds && (() => {
                 const activeBounds = tState?.groupBounds || groupBounds;
                 return (
                     <SelectionToolbar

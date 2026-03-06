@@ -206,14 +206,21 @@ function EraserTrailPreview({ eraserPath, camera }) {
     );
 }
 
-export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [] }) {
+export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
     // minimap
     const minimapCanvasRef = useRef(null);
     const minimapCtxRef = useRef(null);
     const [isMinimapVisible, setIsMinimapVisible] = useState(true);
 
     // tool state
-    const [tool, setTool] = useState("pen");
+    const [tool, setTool] = useState(isViewer ? "hand" : "pen");
+
+    // Force hand tool for viewers
+    const isViewerRef = useRef(isViewer);
+    isViewerRef.current = isViewer;
+    useEffect(() => {
+        if (isViewer) setTool("hand");
+    }, [isViewer]);
     const [color, setColor] = useState("#000000");
     const [width, setWidth] = useState(2);
     const [bgMode, setBgMode] = useState("white");
@@ -870,6 +877,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
     useEffect(() => {
         const hkd = (e) => {
+            if (isViewerRef.current) return; // Viewers cannot undo/redo
             if (e.ctrlKey || e.metaKey) {
                 if (["+", "=", "-", "_", "0"].includes(e.key)) { e.preventDefault(); return; }
                 if (e.key.toLowerCase() === "z") {
@@ -887,6 +895,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     // ─── tool shortcuts ───────────────────────────────────────────────────────
     useEffect(() => {
         const handleKeys = (e) => {
+            if (isViewerRef.current) return; // Viewers cannot use tool shortcuts
+
             // Ignore if the user is typing in an input, textarea, or contenteditable
             if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
 
@@ -950,6 +960,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             lastPointRef.current = sp;
             return;
         }
+
+        // Viewers can only pan — block everything else
+        if (isViewerRef.current) return;
 
         // Any regular drawing/selecting also stops follow mode
         if (toolRef.current !== "select" || !pointHitsElement(wp.x, wp.y, elementsRef.current)) {
@@ -1405,6 +1418,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 pushAction={pushAction}
                 pendingEditId={pendingEditId}
                 onPendingEditConsumed={clearPendingEditId}
+                isViewer={isViewer}
             />
 
             {tool === "eraser" && (
@@ -1481,48 +1495,57 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     ref={toolbarRef}
                     className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
                 >
-                    <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
-                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "select" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("select")} data-tip="Select (V)"><MousePointer2 className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "pen" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("pen")} data-tip="Pen (P)"><Pen className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "eraser" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("eraser")} data-tip="Eraser (E)"><Eraser className="w-5 h-5" /></button>
-                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "text" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("text")} data-tip="Text (T)">
-                            <Type className="w-5 h-5" />
-                        </button>
-                        <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "hand" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
-                    </div>
-                    <div className={`w-px h-8 ${isDark ? "bg-white/20" : "bg-base-300"} rounded-full`} />
-                    <div className="relative pointer-events-auto" ref={shapesRef}>
-                        <button
-                            className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
-                            onClick={() => { setShapesOpen(!shapesOpen); setPlusOpen(false); setColorOpen(false); }}
-                        >
-                            <div className="flex items-center gap-2">
-                                {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}
-                                {lastShapeType === "rect" && <Square className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
-                                <ChevronUp className={`w-4 h-4 opacity-50 transition-transform ${shapesOpen ? "rotate-180" : ""}`} />
+                    {isViewer ? (
+                        /* Viewers only see the hand tool */
+                        <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
+                            <button className={`btn btn-sm join-item border-none tooltip tooltip-top bg-primary text-primary-content shadow-lg`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
+                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "select" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("select")} data-tip="Select (V)"><MousePointer2 className="w-5 h-5" /></button>
+                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "pen" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("pen")} data-tip="Pen (P)"><Pen className="w-5 h-5" /></button>
+                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "eraser" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("eraser")} data-tip="Eraser (E)"><Eraser className="w-5 h-5" /></button>
+                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "text" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("text")} data-tip="Text (T)">
+                                    <Type className="w-5 h-5" />
+                                </button>
+                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "hand" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
                             </div>
-                        </button>
-                        {/* Popup moved to top level */}
-                    </div>
-                    <div className="relative pointer-events-auto" ref={plusRef}>
-                        <button
-                            className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl`}
-                            onClick={() => { setPlusOpen(!plusOpen); setShapesOpen(false); setColorOpen(false); }}
-                        >
-                            <Plus className="w-5 h-5" />
-                        </button>
-                        {/* Popup moved to top level */}
-                    </div>
-                    <div className="flex items-center gap-2 pointer-events-auto">
-                        {/* The Settings menu was moved to TestWhiteboardPage via renderTopLeftUI */}
-                    </div>
+                            <div className={`w-px h-8 ${isDark ? "bg-white/20" : "bg-base-300"} rounded-full`} />
+                            <div className="relative pointer-events-auto" ref={shapesRef}>
+                                <button
+                                    className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
+                                    onClick={() => { setShapesOpen(!shapesOpen); setPlusOpen(false); setColorOpen(false); }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}
+                                        {lastShapeType === "rect" && <Square className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                        {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                        {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
+                                        {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
+                                        <ChevronUp className={`w-4 h-4 opacity-50 transition-transform ${shapesOpen ? "rotate-180" : ""}`} />
+                                    </div>
+                                </button>
+                                {/* Popup moved to top level */}
+                            </div>
+                            <div className="relative pointer-events-auto" ref={plusRef}>
+                                <button
+                                    className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl`}
+                                    onClick={() => { setPlusOpen(!plusOpen); setShapesOpen(false); setColorOpen(false); }}
+                                >
+                                    <Plus className="w-5 h-5" />
+                                </button>
+                                {/* Popup moved to top level */}
+                            </div>
+                            <div className="flex items-center gap-2 pointer-events-auto">
+                                {/* The Settings menu was moved to TestWhiteboardPage via renderTopLeftUI */}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Dropdown Popups (Moved to top level to avoid nested backdrop-blur) */}
-                {shapesOpen && (
+                {!isViewer && shapesOpen && (
                     <div id="shapes-popup" className="ui-container z-50 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-72 min-w-[280px] pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
                         <div className="grid grid-cols-5 gap-3">
                             <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); setShapesOpen(false); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
@@ -1534,7 +1557,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     </div>
                 )}
 
-                {plusOpen && (
+                {!isViewer && plusOpen && (
                     <div id="plus-popup" className="ui-container z-50 p-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
                         <div className="flex gap-2">
                             <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("code"); setPlusOpen(false); }} data-tip="Code (C)">
@@ -1547,7 +1570,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     </div>
                 )}
 
-                {colorOpen && (
+                {!isViewer && colorOpen && (
                     <div id="color-popup" data-ui="color-menu" className="ui-container z-40 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-56 pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 112, left: colorRef.current ? colorRef.current.getBoundingClientRect().left + colorRef.current.offsetWidth / 2 : '50%', transform: 'translateX(-50%)' }}>
                         <div className="grid grid-cols-4 gap-3">
                             {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
@@ -1608,7 +1631,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     </div>
                 )}
 
-                {tool === "pen" && (
+                {!isViewer && tool === "pen" && (
                     <div
                         className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
                         style={{ bottom: toolbarHeight + 42 }} // Offset above the toolbar

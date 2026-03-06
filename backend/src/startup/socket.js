@@ -30,15 +30,43 @@ export const setupSocket = (io) => {
             .map((sid) => {
                 const s = io.sockets.sockets.get(sid);
                 if (!s) return null;
+                const meta = socketMeta.get(sid);
+
+                let role = meta?.role;
+                if (!role) {
+                    // Voice socket — look up role by userId from board socketMeta
+                    for (const [, m] of socketMeta) {
+                        if (String(m.userId) === String(s.userId)) {
+                            role = m.role;
+                            break;
+                        }
+                    }
+                }
+                role = role || "viewer";
+
                 return {
                     peerId: sid,
                     userId: s.userId,
                     name: s.userName || "Unknown",
-                    isMuted: !!s.isMuted
+                    isMuted: !!s.isMuted,
+                    role: role
                 };
             })
             .filter(Boolean);
         io.to(roomId).emit("voice:participants:update", { participants });
+    }
+
+    // Helper: check if a socket belongs to a viewer
+    function isViewerSocket(socketId) {
+        const meta = socketMeta.get(socketId);
+        if (meta) return meta.role === "viewer";
+        // Voice sockets have no socketMeta — look up by userId across all board sockets
+        const s = io.sockets.sockets.get(socketId);
+        if (!s?.userId) return true;
+        for (const [, m] of socketMeta) {
+            if (String(m.userId) === String(s.userId)) return m.role === "viewer";
+        }
+        return true;
     }
 
     // make sure socket users actually have a valid token
@@ -199,18 +227,27 @@ export const setupSocket = (io) => {
             let workspaceId = null;
             let boardTitle = "Unknown Board";
             let existingElements = [];
+            let role = "viewer"; // default to most restrictive
             try {
                 const board = await Board.findById(boardId).select("workspace title elements");
                 if (board) {
                     workspaceId = board.workspace;
                     boardTitle = board.title;
                     existingElements = board.elements || [];
+                    // Look up user's role in the workspace
+                    if (workspaceId) {
+                        const ws = await Workspace.findById(workspaceId).select("members").lean();
+                        if (ws && ws.members) {
+                            const member = ws.members.find(m => String(m.user) === String(userId));
+                            if (member) role = member.role || "viewer";
+                        }
+                    }
                 }
             } catch (e) { /* ignore non-ObjectId boardIds */ }
             socket.join(`board:${boardId}`);
             socketMeta.set(socket.id, {
                 boardId, userId, name, color,
-                workspaceId, boardTitle, hasEdited: false
+                workspaceId, boardTitle, hasEdited: false, role
             });
 
             // Get current participants in this board
@@ -233,6 +270,7 @@ export const setupSocket = (io) => {
 
         socket.on("draw:stroke-progress", ({ boardId, stroke }) => {
             if (!boardId) return;
+            if (isViewerSocket(socket.id)) return;
             const meta = socketMeta.get(socket.id);
             socket.to(`board:${boardId}`).emit("draw:stroke-progress", {
                 userId: meta?.userId || socket.userId || socket.id,
@@ -242,6 +280,7 @@ export const setupSocket = (io) => {
 
         socket.on("draw:stroke-end", ({ boardId }) => {
             if (!boardId) return;
+            if (isViewerSocket(socket.id)) return;
             const meta = socketMeta.get(socket.id);
             socket.to(`board:${boardId}`).emit("draw:stroke-end", {
                 userId: meta?.userId || socket.userId || socket.id
@@ -279,6 +318,7 @@ export const setupSocket = (io) => {
 
         socket.on("addElement", async ({ boardId, element }) => {
             if (!boardId || !element) return;
+            if (isViewerSocket(socket.id)) return;
             socket.to(`board:${boardId}`).emit("elementAdded", element);
             try {
                 await Board.findByIdAndUpdate(boardId, { $push: { elements: element } });
@@ -287,6 +327,7 @@ export const setupSocket = (io) => {
 
         socket.on("updateElement", async ({ boardId, element }) => {
             if (!boardId || !element?.id) return;
+            if (isViewerSocket(socket.id)) return;
             socket.to(`board:${boardId}`).emit("elementUpdated", element);
             try {
                 await Board.findOneAndUpdate(
@@ -298,6 +339,7 @@ export const setupSocket = (io) => {
 
         socket.on("updateElements", async ({ boardId, elements }) => {
             if (!boardId || !Array.isArray(elements)) return;
+            if (isViewerSocket(socket.id)) return;
             socket.to(`board:${boardId}`).emit("elementsUpdated", elements);
             try {
                 const ops = elements.map(el => ({
@@ -314,6 +356,7 @@ export const setupSocket = (io) => {
 
         socket.on("deleteElement", async ({ boardId, elementId }) => {
             if (!boardId || !elementId) return;
+            if (isViewerSocket(socket.id)) return;
             io.to(`board:${boardId}`).emit("elementDeleted", { elementId });
             try {
                 await Board.findByIdAndUpdate(boardId, { $pull: { elements: { id: elementId } } });
@@ -322,6 +365,7 @@ export const setupSocket = (io) => {
 
         socket.on("clearBoard", async ({ boardId }) => {
             if (!boardId) return;
+            if (isViewerSocket(socket.id)) return;
             io.to(`board:${boardId}`).emit("cleared");
             try {
                 const meta = socketMeta.get(socket.id);
@@ -334,9 +378,31 @@ export const setupSocket = (io) => {
 
         socket.on("board:update-title", ({ boardId, title }) => {
             if (!boardId) return;
+            if (isViewerSocket(socket.id)) return;
             const meta = socketMeta.get(socket.id);
             if (meta) meta.boardTitle = title;
             socket.to(`board:${boardId}`).emit("board:title-updated", { title });
+        });
+
+        // ─── Voice: grant unmute to a viewer ─────────────────────────────────────
+        socket.on("voice:grant-unmute", ({ targetUserId }) => {
+            if (!targetUserId) return;
+            if (isViewerSocket(socket.id)) return;
+            for (const [sid, s] of io.sockets.sockets) {
+                if (String(s.userId) === String(targetUserId)) {
+                    io.to(sid).emit("voice:grant-unmute", { userId: targetUserId });
+                }
+            }
+        });
+
+        socket.on("voice:revoke-unmute", ({ targetUserId }) => {
+            if (!targetUserId) return;
+            if (isViewerSocket(socket.id)) return;
+            for (const [sid, s] of io.sockets.sockets) {
+                if (String(s.userId) === String(targetUserId)) {
+                    io.to(sid).emit("voice:revoke-unmute", { userId: targetUserId });
+                }
+            }
         });
 
         const leaveCursor = async () => {

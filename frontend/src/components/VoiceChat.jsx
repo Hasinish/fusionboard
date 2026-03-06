@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { Mic, MicOff, Phone, PhoneOff, Users, Settings } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Users, Settings, Unlock, Lock } from "lucide-react";
 import { getUser } from "../lib/auth";
 import { API_URL } from "../lib/api";
 
@@ -32,7 +32,7 @@ const RTC_CONFIG = {
   ],
 };
 
-export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }) {
+export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange, isViewer = false }) {
   const me = getUser();
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
@@ -42,6 +42,8 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
   const [inputGain, setInputGain] = useState(1.5);
   const [noiseReduction, setNoiseReduction] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [unmuteGranted, setUnmuteGranted] = useState(false);
+  const [grantedViewerIds, setGrantedViewerIds] = useState(new Set());
 
   const socket = useRef(null);
   const isMutedRef = useRef(isMuted);
@@ -279,6 +281,29 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
         socket.current.emit("voice:mute-change", { roomId, isMuted: true });
       });
 
+      // Listen for grant-unmute (viewer gets permission to unmute)
+      socket.current.on("voice:grant-unmute", ({ userId }) => {
+        if (String(userId) === String(me?.id)) {
+          setUnmuteGranted(true);
+        }
+      });
+
+      // Listen for revoke-unmute (viewer gets permission revoked)
+      socket.current.on("voice:revoke-unmute", ({ userId }) => {
+        if (String(userId) === String(me?.id)) {
+          setUnmuteGranted(false);
+          // Force mute
+          setIsMuted(true);
+          if (localStream.current) {
+            const track = localStream.current.getAudioTracks()[0];
+            if (track) track.enabled = false;
+          }
+          if (socket.current) {
+            socket.current.emit("voice:mute-change", { roomId, isMuted: true });
+          }
+        }
+      });
+
       socket.current.on("voice:participants:update", async ({ participants }) => {
         const rawList = Array.isArray(participants) ? participants : [];
 
@@ -426,6 +451,8 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
   };
 
   const toggleMute = () => {
+    // Viewers can only unmute if granted permission
+    if (isViewer && !unmuteGranted) return;
     const stream = localStream.current;
     if (!stream) return;
     const track = stream.getAudioTracks()[0];
@@ -516,9 +543,37 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
                   ) : (
                     <Mic size={14} className="text-success" />
                   )}
-                  <span className="truncate max-w-[150px]">
+                  <span className="truncate max-w-[120px]">
                     {p.name} {p.peerId === socket.current?.id ? "(You)" : ""}
                   </span>
+                  {/* Show unlock button for owners/editors next to viewer participants */}
+                  {!isViewer && p.role === "viewer" && p.peerId !== socket.current?.id && (
+                    <button
+                      className="btn btn-ghost btn-xs ml-auto"
+                      title={grantedViewerIds.has(p.userId) ? "Revoke unmute" : "Allow unmute"}
+                      onClick={() => {
+                        if (!socket.current) return;
+                        const isGranted = grantedViewerIds.has(p.userId);
+                        if (isGranted) {
+                          socket.current.emit("voice:revoke-unmute", { targetUserId: p.userId });
+                          setGrantedViewerIds(prev => {
+                            const next = new Set(prev);
+                            next.delete(p.userId);
+                            return next;
+                          });
+                        } else {
+                          socket.current.emit("voice:grant-unmute", { targetUserId: p.userId });
+                          setGrantedViewerIds(prev => {
+                            const next = new Set(prev);
+                            next.add(p.userId);
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      {grantedViewerIds.has(p.userId) ? <Lock size={12} /> : <Unlock size={12} />}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -544,9 +599,10 @@ export default function VoiceChat({ roomId, autoJoin = false, onSpeakingChange }
         </button>
 
         <button
-          className={`btn btn-circle btn-sm ${isMuted ? 'btn-warning' : 'btn-ghost'}`}
+          className={`btn btn-circle btn-sm ${isMuted ? 'btn-warning' : 'btn-ghost'} ${isViewer && !unmuteGranted ? 'btn-disabled opacity-50' : ''}`}
           onClick={toggleMute}
-          title={isMuted ? "Unmute" : "Mute"}
+          disabled={isViewer && !unmuteGranted}
+          title={isViewer && !unmuteGranted ? "Mic locked — ask an editor to unlock" : (isMuted ? "Unmute" : "Mute")}
         >
           {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
         </button>

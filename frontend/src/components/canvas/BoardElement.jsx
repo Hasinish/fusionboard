@@ -11,7 +11,7 @@ export function uid() {
 }
 
 /** A single rendered element */
-export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, onSelect, onGroupSelect, onChange, onDelete, onDuplicate, onDragGuide, onStartEdit, isEditing, onEndEdit }) {
+export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, onSelect, onGroupSelect, onChange, onDelete, onDuplicate, onDragGuide, onStartEdit, isEditing, onEndEdit, isViewer = false }) {
     const textRef = useRef(null);
     const elRef = useRef(null);
     const [isRunning, setIsRunning] = useState(false);
@@ -25,6 +25,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
     const handlePointerDown = (e) => {
         if (e.button === 1) return; // Allow middle-click to bubble up for panning
         if (e.button !== 0) return;
+        if (isViewer) return; // Viewers cannot drag elements
         if (tool !== "select" || isEditing) return;
 
         // Use the same coordinate logic as the main canvas
@@ -560,7 +561,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 position: "absolute", left: sx, top: sy, width: sw, height: sh,
                 transform: `rotate(${el.rotation || 0}deg)`,
                 transformOrigin: "center center",
-                cursor: isEditing ? "text" : "move",
+                cursor: isEditing ? "text" : (isViewer ? "default" : "move"),
                 userSelect: isEditing ? "text" : "none",
                 zIndex: isSelected ? 20 : 10,
                 boxSizing: "border-box",
@@ -569,6 +570,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
             }}
             onPointerDown={handlePointerDown}
             onDoubleClick={(e) => {
+                if (isViewer) return; // Viewers cannot edit text
                 // Precision check for double click too
                 const rect = e.currentTarget.parentElement.getBoundingClientRect();
                 const scx = e.clientX - rect.left;
@@ -855,12 +857,12 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ border: "1.5px dashed #94a3b8", zIndex: 3 }} />
             )}
             {/* Only show individual resize/rotate handles when NOT multi-selected */}
-            {isSelected && !isEditing && !isMultiSelected && el.type !== "arrow" && handles.map(h => (
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && handles.map(h => (
                 <div key={h.id} onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, h.id); }}
                     className="ui-container"
                     style={{ position: "absolute", width: 9, height: 9, background: "#fff", border: "2px solid #2563eb", borderRadius: 2, cursor: h.cursor, zIndex: 4, ...h, pointerEvents: "auto" }} />
             ))}
-            {isSelected && !isEditing && !isMultiSelected && el.type !== "arrow" && (
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && (
                 <div onPointerDown={(e) => { e.stopPropagation(); handleRotateStart(e); }} title="Rotate"
                     className="ui-container"
                     style={{ position: "absolute", top: -30, left: "calc(50% - 8px)", width: 16, height: 16, borderRadius: "50%", background: "#2563eb", cursor: "grab", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto" }}>
@@ -869,7 +871,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
             )}
 
             {/* Custom Arrow Endpoint Handles */}
-            {isSelected && !isEditing && !isMultiSelected && el.type === "arrow" && (
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type === "arrow" && (
                 <>
                     <div
                         onPointerDown={(e) => handleArrowResizeStart(e, "start")}
