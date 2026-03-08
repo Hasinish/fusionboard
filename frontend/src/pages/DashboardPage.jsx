@@ -60,6 +60,7 @@ function DashboardPage() {
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
   const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [inviteFocused, setInviteFocused] = useState(false);
 
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [workspaceFiles, setWorkspaceFiles] = useState([]);
@@ -1362,15 +1363,17 @@ function DashboardPage() {
                       value={inviteEmail}
                       onChange={e => setInviteEmail(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleInvite()}
+                      onFocus={() => setInviteFocused(true)}
+                      onBlur={() => { setInviteFocused(false); setSuggestedUsers([]); }}
                       className="w-full bg-white border border-[#E8DDD0] rounded-lg px-3 py-2 text-sm text-[#1A1A2E] placeholder-[#6B6560] outline-none focus:ring-2 focus:ring-[#244e8a]/20"
                     />
                     {/* Autocomplete Dropdown */}
-                    {suggestedUsers.length > 0 && (
+                    {suggestedUsers.length > 0 && inviteFocused && (
                       <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E8DDD0] rounded-xl shadow-xl overflow-hidden z-[70]">
                         {suggestedUsers.map(u => (
                           <div
                             key={u._id}
-                            onClick={() => {
+                            onMouseDown={() => {
                               setInviteEmail(u.email);
                               setSuggestedUsers([]);
                             }}
@@ -1429,36 +1432,69 @@ function DashboardPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {/* Remove button — owner only, can't remove self or other owners */}
+                          {isOwner && m.role !== "owner" && (
+                            <button
+                              onClick={() => handleRemoveMember(m._id)}
+                              className="w-7 h-7 rounded-full hover:bg-red-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 size={13} className="text-red-400" />
+                            </button>
+                          )}
                           {/* Role badge/dropdown */}
                           {isOwner && m.role !== "owner" ? (
-                            <div className="relative">
-                              <select
-                                value={m.role}
-                                onChange={e => handleRoleChange(m._id, e.target.value)}
-                                className="appearance-none text-xs border border-[#E8DDD0] rounded-lg pl-3 pr-8 py-1.5 bg-white text-[#1A1A2E] font-bold outline-none focus:ring-2 focus:ring-[#244e8a]/20 cursor-pointer hover:border-[#244e8a] transition-colors"
+                            <div className="dropdown dropdown-bottom dropdown-end">
+                              <div
+                                tabIndex={0}
+                                role="button"
+                                className={`text-[10px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all shadow-sm ${m.role === "owner" ? "bg-[#244e8a] text-white hover:bg-[#1e3e6e]" :
+                                  m.role === "editor" ? "bg-[#FFD93D] text-[#1A1A2E] hover:bg-[#e6c437]" :
+                                    "bg-[#E8DDD0] text-[#6B6560] hover:bg-[#d8cdc0]"
+                                  }`}
                               >
-                                <option value="viewer">Viewer</option>
-                                <option value="editor">Editor</option>
-                                <option value="owner">Owner</option>
-                              </select>
-                              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6560] pointer-events-none" />
+                                {m.role}
+                                <ChevronDown size={10} className="opacity-70" />
+                              </div>
+                              <ul
+                                tabIndex={0}
+                                className="dropdown-content z-[50] menu p-1.5 shadow-xl bg-white rounded-xl w-36 mt-1 border border-[#E8DDD0] animate-in fade-in zoom-in duration-200"
+                              >
+                                <li>
+                                  <button
+                                    onClick={() => handleRoleChange(m._id, "viewer")}
+                                    className={`flex items-center gap-2 px-3 py-2 text-[10px] font-extrabold rounded-lg ${m.role === "viewer" ? "bg-[#E8DDD0]/30 text-[#6B6560]" : "text-[#6B6560] hover:bg-neutral-50"}`}
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#E8DDD0]" />
+                                    VIEWER
+                                  </button>
+                                </li>
+                                <li>
+                                  <button
+                                    onClick={() => handleRoleChange(m._id, "editor")}
+                                    className={`flex items-center gap-2 px-3 py-2 text-[10px] font-extrabold rounded-lg ${m.role === "editor" ? "bg-[#FFD93D]/20 text-[#1A1A2E]" : "text-[#1A1A2E] hover:bg-neutral-50"}`}
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#FFD93D]" />
+                                    EDITOR
+                                  </button>
+                                </li>
+                                <li>
+                                  <button
+                                    onClick={() => handleRoleChange(m._id, "owner")}
+                                    className={`flex items-center gap-2 px-3 py-2 text-[10px] font-extrabold rounded-lg ${m.role === "owner" ? "bg-[#244e8a]/10 text-[#244e8a]" : "text-[#244e8a] hover:bg-neutral-50"}`}
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#244e8a]" />
+                                    OWNER
+                                  </button>
+                                </li>
+                              </ul>
                             </div>
                           ) : (
-                            <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full ${m.role === "owner" ? "bg-[#244e8a] text-white" :
+                            <span className={`text-[10px] uppercase tracking-wider font-extrabold px-3 py-1.5 rounded-full shadow-sm ${m.role === "owner" ? "bg-[#244e8a] text-white" :
                               m.role === "editor" ? "bg-[#FFD93D] text-[#1A1A2E]" :
                                 "bg-[#E8DDD0] text-[#6B6560]"
                               }`}>
                               {m.role}
                             </span>
-                          )}
-                          {/* Remove button — owner only, can't remove self or other owners */}
-                          {isOwner && m.role !== "owner" && (
-                            <button
-                              onClick={() => handleRemoveMember(m._id)}
-                              className="w-7 h-7 rounded-full hover:bg-red-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all ml-1"
-                            >
-                              <Trash2 size={13} className="text-red-400" />
-                            </button>
                           )}
                         </div>
                       </div>
