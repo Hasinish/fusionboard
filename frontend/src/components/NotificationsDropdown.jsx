@@ -61,7 +61,7 @@ const NotificationsDropdown = ({ onClose }) => {
 
     return (
         <div
-            className="absolute top-full right-0 mt-2 w-96 max-h-[500px] bg-white rounded-2xl shadow-2xl border border-[#E8DDD0] z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
+            className="fixed inset-x-4 top-[80px] md:absolute md:inset-auto md:top-full md:right-0 md:mt-2 md:w-96 max-h-[calc(100vh-140px)] bg-white rounded-2xl shadow-2xl border border-[#E8DDD0] z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
             onClick={(e) => e.stopPropagation()}
         >
             <div className="px-5 py-4 border-b border-[#E8DDD0] flex items-center justify-between bg-white sticky top-0 z-10">

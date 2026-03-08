@@ -59,32 +59,43 @@ export async function login(req, res) {
 // Google Login Logic
 export async function googleLogin(req, res) {
   try {
-    const { credential } = req.body;
+    const { credential, access_token } = req.body;
+    let payload;
 
-    // make sure the token from the frontend is legit
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    if (credential) {
+      // Verify ID Token
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } else if (access_token) {
+      // Verify Access Token by fetching user info
+      const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`);
+      if (!response.ok) throw new Error("Invalid access token");
+      payload = await response.json();
+      // userinfo returns 'sub' as the googleId
+    } else {
+      return res.status(400).json({ message: "No token provided" });
+    }
 
-    const payload = ticket.getPayload();
-    const { email, name, sub: googleId, picture } = payload;
+    const { email, name, sub: googleId, picture: avatar } = payload;
 
     // see if we know this person
     let user = await User.findOne({ email });
 
     if (!user) {
-      // register them (google handles the password)
+      // register them
       user = await User.create({
         name,
         email,
         googleId,
-        avatar: picture,
+        avatar,
       });
     } else {
-      // update their info with latest from Google
+      // update their info
       user.googleId = googleId;
-      user.avatar = picture;
+      if (avatar) user.avatar = avatar;
       await user.save();
     }
 

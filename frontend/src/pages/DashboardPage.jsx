@@ -28,6 +28,7 @@ import {
   Upload,
   CheckCircle,
   Edit2,
+  Menu,
 } from "lucide-react";
 
 function DashboardPage() {
@@ -97,11 +98,23 @@ function DashboardPage() {
 
   // Responsiveness
   const [isCompact, setIsCompact] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   useEffect(() => {
     const checkSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
       // If width is less than half of full screen (usually 1920/2 = 960)
-      setIsCompact(window.innerWidth < (window.screen.width / 2));
+      setIsCompact(width < 960 && width >= 768);
+
+      if (width < 768) {
+        setShowSidebar(false);
+      } else {
+        setShowSidebar(true);
+      }
     };
 
     checkSize();
@@ -616,8 +629,20 @@ function DashboardPage() {
 
   return (
     <div className="w-screen h-screen flex overflow-hidden bg-[#F5EAD8] font-sans">
+      {/* Mobile Overlay */}
+      {isMobile && showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[45]"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Left Sidebar */}
-      <aside className={`bg-white border-r border-[#E8DDD0] flex flex-col py-6 px-4 shrink-0 relative z-10 transition-all duration-300 ${isCompact ? "w-20" : "w-64"}`}>
+      <aside className={`bg-white border-r border-[#E8DDD0] flex flex-col py-6 px-4 shrink-0 transition-all duration-300 
+        ${isMobile ? "fixed h-full z-50 boxShadow-xl" : "relative z-10"} 
+        ${!showSidebar && isMobile ? "-translate-x-full" : "translate-x-0"}
+        ${isCompact ? "w-20" : "w-64"}
+        ${isMobile ? "w-64" : ""}`}>
         <div className={`flex items-center gap-3 px-2 mb-8 ${isCompact ? "justify-center" : ""}`}>
           <div className="w-8 h-8 bg-[#244e8a] rounded-lg flex items-center justify-center shrink-0">
             <Sparkles size={16} className="text-white" />
@@ -675,60 +700,104 @@ function DashboardPage() {
       {/* Main Container */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Top Bar */}
-        <header className="bg-white border-b border-[#E8DDD0] px-8 py-3 flex items-center justify-between shrink-0">
-          <div className="relative">
-            <div
-              className="flex items-center cursor-pointer group"
-              onClick={() => isOwner ? setShowWorkspaceDropdown(!showWorkspaceDropdown) : null}
-            >
-              <span className="text-[#1A1A2E] font-black text-xl">
-                {workspaceName || "Loading..."}
-              </span>
-              {isOwner && (
-                <ChevronDown size={16} className={`text-[#6B6560] ml-1 transition-transform ${showWorkspaceDropdown ? "rotate-180 text-[#1A1A2E]" : "group-hover:text-[#1A1A2E]"}`} />
+        <header className="bg-white border-b border-[#E8DDD0] px-4 md:px-8 py-4 flex items-center justify-between shrink-0 relative">
+          <div className="flex items-center gap-4">
+            {isMobile && (
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="p-2 -ml-1 text-[#1A1A2E] hover:bg-[#F5EAD8] rounded-lg transition-colors"
+              >
+                <Menu size={24} />
+              </button>
+            )}
+            <div className="relative">
+              <div
+                className="flex items-center cursor-pointer group"
+                onClick={() => isOwner ? setShowWorkspaceDropdown(!showWorkspaceDropdown) : null}
+              >
+                <span className="text-[#1A1A2E] font-black text-xl">
+                  {workspaceName || "Loading..."}
+                </span>
+                {isOwner && (
+                  <ChevronDown size={16} className={`text-[#6B6560] ml-1 transition-transform ${showWorkspaceDropdown ? "rotate-180 text-[#1A1A2E]" : "group-hover:text-[#1A1A2E]"}`} />
+                )}
+              </div>
+
+              {/* Workspace Options Dropdown */}
+              {showWorkspaceDropdown && isOwner && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowWorkspaceDropdown(false)}></div>
+                  <div className="absolute left-0 top-full mt-2 w-48 bg-white border border-[#E8DDD0] rounded-xl shadow-xl overflow-hidden z-50 py-1">
+                    <button
+                      onClick={() => {
+                        setShowWorkspaceDropdown(false);
+                        setRenameWsName(workspaceName);
+                        setShowRenameModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm font-semibold text-[#1A1A2E] hover:bg-[#F5EAD8] transition-colors flex items-center gap-2"
+                    >
+                      <Edit2 size={14} className="text-[#6B6560]" />
+                      Rename Workspace
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowWorkspaceDropdown(false);
+                        setDeleteConfirmName("");
+                        setShowDeleteModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 size={14} className="text-red-500" />
+                      Delete Workspace
+                    </button>
+                  </div>
+                </>
               )}
             </div>
-
-            {/* Workspace Options Dropdown */}
-            {showWorkspaceDropdown && isOwner && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowWorkspaceDropdown(false)}></div>
-                <div className="absolute left-0 top-full mt-2 w-48 bg-white border border-[#E8DDD0] rounded-xl shadow-xl overflow-hidden z-50 py-1">
-                  <button
-                    onClick={() => {
-                      setShowWorkspaceDropdown(false);
-                      setRenameWsName(workspaceName);
-                      setShowRenameModal(true);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm font-semibold text-[#1A1A2E] hover:bg-[#F5EAD8] transition-colors flex items-center gap-2"
-                  >
-                    <Edit2 size={14} className="text-[#6B6560]" />
-                    Rename Workspace
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowWorkspaceDropdown(false);
-                      setDeleteConfirmName("");
-                      setShowDeleteModal(true);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 size={14} className="text-red-500" />
-                    Delete Workspace
-                  </button>
-                </div>
-              </>
-            )}
           </div>
 
-          <div className="flex items-center gap-4">
-            {isCompact ? (
-              <button
-                className="w-9 h-9 flex items-center justify-center bg-[#F5EAD8] text-[#1A1A2E] rounded-lg border border-[#E8DDD0] hover:bg-white transition-all"
-                onClick={() => { /* Toggle expansion or focus */ }}
-              >
-                <Search size={18} />
-              </button>
+          <div className="flex items-center gap-2 md:gap-4 ml-auto">
+            {/* Search Bar - Always Outside */}
+            {/* Search Bar - Always Outside */}
+            {isCompact || isMobile ? (
+              <div className="flex items-center">
+                {showMobileSearch ? (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search
+                        size={15}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B6560]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        autoFocus
+                        className="bg-[#F5EAD8] text-[#1A1A2E] placeholder-[#6B6560] rounded-full border border-[#E8DDD0] pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#244e8a]/20 transition-all w-32 sm:w-44"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onBlur={() => {
+                          if (!searchTerm) setShowMobileSearch(false);
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => setShowMobileSearch(false)}
+                      className="p-2 text-[#6B6560] hover:text-[#1A1A2E] transition-colors"
+                      title="Close search"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowMobileSearch(true)}
+                    className="w-9 h-9 flex items-center justify-center bg-[#F5EAD8] text-[#1A1A2E] rounded-lg border border-[#E8DDD0] hover:bg-white transition-all"
+                    title="Search"
+                  >
+                    <Search size={18} />
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="relative">
                 <Search
@@ -738,85 +807,103 @@ function DashboardPage() {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="bg-[#F5EAD8] text-[#1A1A2E] placeholder-[#6B6560] rounded-full border border-[#E8DDD0] pl-9 pr-4 py-2 text-sm w-56 outline-none focus:ring-2 focus:ring-[#244e8a]/20 transition-all"
+                  className="bg-[#F5EAD8] text-[#1A1A2E] placeholder-[#6B6560] rounded-full border border-[#E8DDD0] pl-9 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#244e8a]/20 transition-all w-44 lg:w-56"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             )}
 
-            <button
-              onClick={() => {
-                setFilesError("");
-                setFilesSuccess("");
-                setWorkspaceFiles([]);
-                setFilesWorkspaceData(null);
-                setShowFilesModal(true);
-                fetchFilesWorkspaceData(selectedWorkspaceId);
-                fetchWorkspaceFiles(selectedWorkspaceId);
-              }}
-              className="border border-[#E8DDD0] bg-white text-[#1A1A2E] hover:bg-[#F5EAD8] rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-2 transition-colors h-9"
-              title={isCompact ? "Files" : ""}
-            >
-              <Folder size={16} />
-              {!isCompact && <span>Files</span>}
-            </button>
-
-            <button
-              onClick={() => { setInviteError(""); setInviteSuccess(""); setShowMembersModal(true); }}
-              className="bg-[#244e8a] text-white hover:bg-[#1d3f70] rounded-lg px-3 py-2 text-sm font-bold flex items-center gap-2 transition-colors h-9"
-              title={isCompact ? "Members" : ""}
-            >
-              <Users size={16} />
-              {!isCompact && <span>Members</span>}
-            </button>
-
-            {/* Notifications Button */}
-            <div className="relative" ref={notificationsRef}>
+            {isMobile && (
               <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  if (!showNotifications) {
-                    // When opening, we might want to refresh count later, 
-                    // but the dropdown handles its own fetching.
-                  }
-                }}
-                className={`w-9 h-9 rounded-lg border border-[#E8DDD0] flex items-center justify-center transition-all ${showNotifications ? "bg-[#244e8a] text-white border-[#244e8a]" : "bg-white text-[#1A1A2E] hover:bg-[#F5EAD8]"}`}
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="w-9 h-9 flex items-center justify-center bg-[#F5EAD8] text-[#1A1A2E] rounded-lg border border-[#E8DDD0] hover:bg-white transition-all"
               >
-                <div className="relative">
-                  <Bell size={18} />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </div>
+                <ChevronDown size={18} className={`transition-transform duration-300 ${showMobileMenu ? "rotate-180" : ""}`} />
               </button>
+            )}
 
-              {showNotifications && (
-                <NotificationsDropdown
-                  onClose={() => setShowNotifications(false)}
-                />
-              )}
-            </div>
+            {(!isMobile || showMobileMenu) && (
+              <div className={`${isMobile ? "absolute top-full right-4 mt-3 bg-white border border-[#E8DDD0] rounded-2xl shadow-xl p-6 flex flex-col items-stretch gap-4 z-[100] min-w-[240px]" : "flex items-center gap-4"}`}>
 
-            <div
-              onClick={() => navigate("/profile")}
-              className="w-9 h-9 rounded-full bg-[#E8DDD0] flex items-center justify-center text-sm font-bold cursor-pointer overflow-hidden border-2 border-[#E8DDD0] hover:border-[#244e8a] transition-colors"
-            >
-              {user?.photo ? (
-                <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[#1A1A2E]">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
-              )}
-            </div>
+                <button
+                  onClick={() => {
+                    setFilesError("");
+                    setFilesSuccess("");
+                    setWorkspaceFiles([]);
+                    setFilesWorkspaceData(null);
+                    setShowFilesModal(true);
+                    fetchFilesWorkspaceData(selectedWorkspaceId);
+                    fetchWorkspaceFiles(selectedWorkspaceId);
+                    if (isMobile) setShowMobileMenu(false);
+                  }}
+                  className={`border border-[#E8DDD0] bg-white text-[#1A1A2E] hover:bg-[#F5EAD8] rounded-lg px-3 py-2 text-sm font-semibold flex items-center gap-2 transition-colors h-9 ${isMobile ? "w-full justify-center" : ""}`}
+                  title={(isCompact && !isMobile) ? "Files" : ""}
+                >
+                  <Folder size={16} />
+                  {(!isCompact || isMobile) && <span>Files</span>}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setInviteError("");
+                    setInviteSuccess("");
+                    setShowMembersModal(true);
+                    if (isMobile) setShowMobileMenu(false);
+                  }}
+                  className={`bg-[#244e8a] text-white hover:bg-[#1d3f70] rounded-lg px-3 py-2 text-sm font-bold flex items-center gap-2 transition-colors h-9 ${isMobile ? "w-full justify-center" : ""}`}
+                  title={(isCompact && !isMobile) ? "Members" : ""}
+                >
+                  <Users size={16} />
+                  {(!isCompact || isMobile) && <span>Members</span>}
+                </button>
+
+                <div className="flex items-center justify-center gap-3">
+                  {/* Notifications Button */}
+                  <div className="relative" ref={notificationsRef}>
+                    <button
+                      onClick={() => {
+                        setShowNotifications(!showNotifications);
+                      }}
+                      className={`w-9 h-9 rounded-lg border border-[#E8DDD0] flex items-center justify-center transition-all ${showNotifications ? "bg-[#244e8a] text-white border-[#244e8a]" : "bg-white text-[#1A1A2E] hover:bg-[#F5EAD8]"}`}
+                    >
+                      <div className="relative">
+                        <Bell size={18} />
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {showNotifications && (
+                      <NotificationsDropdown
+                        onClose={() => setShowNotifications(false)}
+                      />
+                    )}
+                  </div>
+
+                  <div
+                    onClick={() => navigate("/profile")}
+                    className="w-9 h-9 rounded-full bg-[#E8DDD0] flex items-center justify-center text-sm font-bold cursor-pointer overflow-hidden border-2 border-[#E8DDD0] hover:border-[#244e8a] transition-colors"
+                  >
+                    {user?.photo ? (
+                      <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[#1A1A2E]">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Boards Area */}
-          <main className="flex-1 overflow-y-auto px-10 py-8 bg-[#F5EAD8]">
+          <main className={`flex-1 overflow-y-auto ${isMobile ? "px-4" : "px-10"} py-8 bg-[#F5EAD8]`}>
             <div className="max-w-5xl mx-auto w-full">
               <div className="flex items-center justify-between">
                 <div>
