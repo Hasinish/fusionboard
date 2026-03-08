@@ -186,7 +186,7 @@ export const setupSocket = (io) => {
                     text: clean,
                 });
                 const full = await Message.findById(msg._id)
-                    .populate("sender", "name email")
+                    .populate("sender", "name email avatar")
                     .lean();
                 io.to(`ws:${workspaceId}`).emit("chat:new", full);
                 const ws = await Workspace.findById(workspaceId).select("name members");

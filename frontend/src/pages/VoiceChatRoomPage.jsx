@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import NavBar from "../components/NavBar";
 import { getUser, isLoggedIn } from "../lib/auth";
 import { API_URL } from "../lib/api";
 
@@ -281,7 +280,6 @@ function VoiceChatRoomPage() {
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
-      <NavBar />
       <main className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
         <div className="mb-5">
           <h1 className="text-2xl font-bold">Voice Chat</h1>

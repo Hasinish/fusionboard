@@ -29,7 +29,7 @@ export async function getWorkspaceMessages(req, res) {
     const msgs = await Message.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate("sender", "name email")
+      .populate("sender", "name email avatar")
       .lean();
 
     return res.json(msgs.reverse());

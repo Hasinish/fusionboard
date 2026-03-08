@@ -1,43 +1,97 @@
-# save as collect_files.py
 from pathlib import Path
 
-def collect_files(root: Path, out_file: Path):
-    SKIP_DIRS  = {"node_modules", ".git"}  
-    SKIP_FILES = {"package-lock.json", "collect_files.py", "data.json", ".git", "all_files.txt",".env" ,".gitignore"}  
-    SKIP_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
-    
-    with out_file.open("w", encoding="utf-8", errors="replace") as out:
-        for path in root.rglob("*"):
-            if path.is_dir() and path.name.lower() in SKIP_DIRS:
-                continue
+def classify(path: Path) -> str | None:
+    FRONTEND_DIRS = {"frontend", "client", "ui", "web", "src/pages", "src/components", "src/views", "src/app"}
+    BACKEND_DIRS  = {"backend", "server", "api", "services", "src/api", "src/server", "src/services"}
+    FRONTEND_EXTS = {".jsx", ".tsx", ".vue", ".css", ".scss", ".sass", ".less", ".html"}
+    BACKEND_EXTS  = {".py", ".go", ".java", ".rb", ".php", ".rs", ".cs"}
+    SHARED_EXTS   = {".ts", ".js", ".json", ".env", ".yaml", ".yml", ".toml", ".md"}
 
-            if not path.is_file():
-                continue
+    parts_lower = [p.lower() for p in path.parts]
 
-            if any(part.lower() in SKIP_DIRS for part in path.parts):
-                continue
+    # Check directory-based classification first
+    for part in parts_lower:
+        if part in FRONTEND_DIRS:
+            return "frontend"
+        if part in BACKEND_DIRS:
+            return "backend"
 
-            if path.name.lower() in SKIP_FILES:
-                continue
+    ext = path.suffix.lower()
 
-            rel = path.relative_to(root)
+    if ext in FRONTEND_EXTS:
+        return "frontend"
+    if ext in BACKEND_EXTS:
+        return "backend"
+    if ext in SHARED_EXTS:
+        # Use filename/path hints to decide
+        name_lower = path.stem.lower()
+        if any(k in name_lower for k in ("component", "page", "view", "style", "layout", "hook", "store", "context")):
+            return "frontend"
+        if any(k in name_lower for k in ("route", "controller", "model", "service", "middleware", "schema", "db", "database", "migration", "seed")):
+            return "backend"
+        # Fall back to extension default
+        return "shared"
 
-            # if it’s an image → only write the name
-            if path.suffix.lower() in SKIP_EXTS:
-                out.write(f"\n===== IMAGE FILE: {rel} =====\n")
-                continue
+    return "other"
 
-            # otherwise, dump contents
-            out.write(f"\n===== FILE: {rel} =====\n")
+
+def collect_files(root: Path, frontend_out: Path, backend_out: Path):
+    SKIP_DIRS  = {"node_modules", ".git", "__pycache__", ".next", "dist", "build", ".venv", "venv"}
+    SKIP_FILES = {"package-lock.json", "collect_files.py", "data.json", "all_files.txt", ".env", ".gitignore"}
+    SKIP_EXTS  = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot"}
+
+    frontend_files = []
+    backend_files  = []
+    shared_files   = []
+
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        if any(part.lower() in SKIP_DIRS for part in path.parts):
+            continue
+        if path.name.lower() in SKIP_FILES:
+            continue
+
+        rel = path.relative_to(root)
+
+        if path.suffix.lower() in SKIP_EXTS:
+            entry = (rel, None)  # image
+        else:
             try:
                 text = path.read_text(encoding="utf-8", errors="replace")
             except Exception as e:
-                text = f"[Could not read file due to: {e}]"
-            out.write(text)
-            out.write("\n")
+                text = f"[Could not read file: {e}]"
+            entry = (rel, text)
+
+        category = classify(rel)
+        if category == "frontend":
+            frontend_files.append(entry)
+        elif category == "backend":
+            backend_files.append(entry)
+        else:
+            shared_files.append(entry)  # shared/other → goes into both
+
+    def write_entries(out_path: Path, primary: list, shared: list, label: str):
+        with out_path.open("w", encoding="utf-8", errors="replace") as out:
+            out.write(f"# {label.upper()} FILES\n")
+            for rel, text in primary + shared:
+                if text is None:
+                    out.write(f"\n===== IMAGE FILE: {rel} =====\n")
+                else:
+                    out.write(f"\n===== FILE: {rel} =====\n")
+                    out.write(text)
+                    out.write("\n")
+        print(f"  {len(primary)} {label} files + {len(shared)} shared -> {out_path}")
+
+    write_entries(frontend_out, frontend_files, shared_files, "frontend")
+    write_entries(backend_out,  backend_files,  shared_files, "backend")
+
 
 if __name__ == "__main__":
-    project_root = Path(".").resolve()
-    output_path = Path("all_files.txt")
-    collect_files(project_root, output_path)
-    print(f"Done. Wrote to {output_path}")
+    project_root  = Path(".").resolve()
+    collect_files(
+        project_root,
+        frontend_out=Path("frontend_files.txt"),
+        backend_out=Path("backend_files.txt"),
+    )
+    print("Done.")

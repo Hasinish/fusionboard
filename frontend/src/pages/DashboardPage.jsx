@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { getUser, isLoggedIn, clearAuth } from "../lib/auth";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getUser, isLoggedIn, clearAuth, saveAuth } from "../lib/auth";
 import api from "../lib/api";
 import WorkspaceChat from "../components/WorkspaceChat";
 import NotificationsDropdown from "../components/NotificationsDropdown";
@@ -33,7 +33,9 @@ import {
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const user = getUser();
+  const [profile, setProfile] = useState(user);
 
   // Existing states
   const [workspaces, setWorkspaces] = useState([]);
@@ -41,10 +43,7 @@ function DashboardPage() {
   const [error, setError] = useState("");
 
   // New states
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("wsId") || null;
-  });
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
   const [workspaceBoards, setWorkspaceBoards] = useState([]);
   const [loadingBoards, setLoadingBoards] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("");
@@ -130,6 +129,26 @@ function DashboardPage() {
     }
   }, [navigate]);
 
+  // refresh profile (avatar) if missing
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        if (!isLoggedIn()) return;
+        if (profile && (profile.avatar || profile.photo)) return;
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+        const fresh = res.data;
+        saveAuth(token, fresh);
+        setProfile(fresh);
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Existing fetch logic
   const fetchWorkspaces = async () => {
     const token = localStorage.getItem("token");
@@ -147,8 +166,7 @@ function DashboardPage() {
       const wsData = Array.isArray(res.data) ? res.data : [];
       setWorkspaces(wsData);
 
-      const params = new URLSearchParams(window.location.search);
-      const urlWsId = params.get("wsId");
+      const urlWsId = searchParams.get("wsId");
 
       if (wsData.length > 0 && !selectedWorkspaceId) {
         if (urlWsId) {
@@ -167,6 +185,14 @@ function DashboardPage() {
   useEffect(() => {
     fetchWorkspaces();
   }, []);
+
+  // Sync selectedWorkspaceId with URL wsId
+  useEffect(() => {
+    const wsId = searchParams.get("wsId");
+    if (wsId && wsId !== selectedWorkspaceId) {
+      setSelectedWorkspaceId(wsId);
+    }
+  }, [searchParams, selectedWorkspaceId]);
 
   // Fetch boards and workspace info when selected workspace changes
   useEffect(() => {
@@ -203,10 +229,9 @@ function DashboardPage() {
 
   // Handle Google Drive OAuth Redirect or deep links
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get("status");
-    const openedFilesModal = params.get("openedFilesModal");
-    const wsId = params.get("wsId");
+    const status = searchParams.get("status");
+    const openedFilesModal = searchParams.get("openedFilesModal");
+    const wsId = searchParams.get("wsId");
 
     // If we have a wsId in the URL, make sure it's selected
     if (wsId && wsId !== selectedWorkspaceId) {
@@ -225,15 +250,20 @@ function DashboardPage() {
         setFilesSuccess("Google Drive connected successfully!");
         setTimeout(() => setFilesSuccess(""), 5000);
       } else if (status === "error") {
-        setFilesError(params.get("message") || "Failed to connect Google Drive.");
+        setFilesError(searchParams.get("message") || "Failed to connect Google Drive.");
       }
     }
 
-    // Clean up URL if we had params
-    if (openedFilesModal || wsId) {
-      window.history.replaceState({}, document.title, window.location.pathname);
+    // Clean up URL if we had params (keeping wsId)
+    if (openedFilesModal || status) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("openedFilesModal");
+      newParams.delete("status");
+      newParams.delete("message");
+      const searchString = newParams.toString();
+      window.history.replaceState({}, document.title, `${window.location.pathname}${searchString ? "?" + searchString : ""}`);
     }
-  }, [selectedWorkspaceId]);
+  }, [searchParams, selectedWorkspaceId]);
 
   // Autocomplete for inviting members
   useEffect(() => {
@@ -657,7 +687,7 @@ function DashboardPage() {
           {workspaces.map((ws) => (
             <div
               key={ws._id}
-              onClick={() => setSelectedWorkspaceId(ws._id)}
+              onClick={() => navigate(`/dashboard?wsId=${ws._id}`)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition mb-1 ${selectedWorkspaceId === ws._id
                 ? "bg-[#F5EAD8] border-l-4 border-[#1A1A2E] font-bold text-[#1A1A2E]"
                 : "text-[#6B6560] hover:bg-[#F5EAD8] hover:text-[#1A1A2E] border-l-4 border-transparent"
@@ -888,11 +918,30 @@ function DashboardPage() {
                   <div
                     onClick={() => navigate("/profile")}
                     className="w-9 h-9 rounded-full bg-[#E8DDD0] flex items-center justify-center text-sm font-bold cursor-pointer overflow-hidden border-2 border-[#E8DDD0] hover:border-[#244e8a] transition-colors"
+                    title={profile?.avatar || profile?.photo || "Profile"}
                   >
-                    {user?.photo ? (
-                      <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                    {(profile?.avatar || profile?.photo) ? (
+                      <img
+                        src={profile.avatar || profile.photo}
+                        alt={profile.name || user?.name}
+                        className="w-full h-full object-cover"
+                        onError={async () => {
+                          // clear and retry once
+                          setProfile((p) => (p ? { ...p, avatar: null, photo: null } : p));
+                          try {
+                            const token = localStorage.getItem("token");
+                            if (!token) return;
+                            const res = await api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+                            const fresh = res.data;
+                            saveAuth(token, fresh);
+                            setProfile(fresh);
+                          } catch (e) {
+                            // ignore
+                          }
+                        }}
+                      />
                     ) : (
-                      <span className="text-[#1A1A2E]">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                      <span className="text-[#1A1A2E]">{(profile?.name || user?.name)?.charAt(0).toUpperCase() || "U"}</span>
                     )}
                   </div>
                 </div>
@@ -1337,7 +1386,7 @@ function DashboardPage() {
         showMembersModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm"
             onClick={() => setShowMembersModal(false)}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-[#E8DDD0]"
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-visible border border-[#E8DDD0]"
               onClick={e => e.stopPropagation()}>
 
               {/* Modal Header */}
@@ -1369,7 +1418,7 @@ function DashboardPage() {
                     />
                     {/* Autocomplete Dropdown */}
                     {suggestedUsers.length > 0 && inviteFocused && (
-                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E8DDD0] rounded-xl shadow-xl overflow-hidden z-[70]">
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E8DDD0] rounded-xl shadow-xl z-[70] max-h-56 overflow-y-auto">
                         {suggestedUsers.map(u => (
                           <div
                             key={u._id}
@@ -1563,7 +1612,7 @@ function DashboardPage() {
                       <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
                         className="bg-[#244e8a] text-white rounded-xl px-6 py-2.5 text-sm font-black hover:bg-[#1d3f70] transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-900/10">
                         {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                        {uploading ? "Uploading..." : "Upload Button"}
+                        {uploading ? "Uploading..." : "Upload File"}
                       </button>
                     </div>
                   </div>

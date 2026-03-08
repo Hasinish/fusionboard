@@ -121,12 +121,20 @@ export default function WorkspaceChat({ workspaceId }) {
               const senderName = m.sender?.name || "Unknown";
               return (
                 <div key={m._id} className="flex items-start gap-3">
-                  <div
-                    className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                    style={{ backgroundColor: getAvatarColor(senderName) }}
-                  >
-                    {senderName.charAt(0).toUpperCase()}
-                  </div>
+                  {m.sender?.avatar ? (
+                    <img
+                      src={m.sender.avatar}
+                      alt={senderName}
+                      className="w-8 h-8 rounded-full object-cover shrink-0 shadow-sm"
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm"
+                      style={{ backgroundColor: getAvatarColor(senderName) }}
+                    >
+                      {senderName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex flex-col max-w-[75%]">
                     <span className="text-xs text-[#6B6560] mb-1 font-medium ml-1">
                       {senderName}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
 import api from "../lib/api";
 import { isLoggedIn } from "../lib/auth";
 
@@ -72,7 +71,7 @@ function NotificationsPage() {
   const handleNotificationClick = (note) => {
     if (note.workspace) {
       // send them to the workspace (which will clear the notif)
-      navigate(`/workspaces/${note.workspace._id}`);
+      navigate(`/dashboard?wsId=${note.workspace._id}`);
     }
   };
 
@@ -80,7 +79,6 @@ function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
-      <NavBar />
 
       <main className="flex-1">
         <div className="max-w-3xl mx-auto px-4 py-6">
