@@ -12,6 +12,12 @@ function bufferToStream(buffer) {
   return stream;
 }
 
+function getMemberRole(workspace, userId) {
+  if (!workspace || !workspace.members) return null;
+  const m = workspace.members.find(mm => String(mm.user) === String(userId));
+  return m ? m.role : null;
+}
+
 export async function uploadFile(req, res) {
   try {
     const { workspaceId } = req.body;
@@ -20,6 +26,10 @@ export async function uploadFile(req, res) {
     // 1. grab the workspace and its gdrive setup
     const workspace = await Workspace.findById(workspaceId).populate("members.user");
     if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+    // viewers are not allowed to upload files
+    const uploaderRole = getMemberRole(workspace, req.userId);
+    if (uploaderRole === "viewer") return res.status(403).json({ message: "Viewers cannot upload files" });
 
     if (!workspace.googleDriveRefreshToken || !workspace.googleDriveFolderId) {
       return res.status(400).json({ message: "Google Drive is not configured for this workspace." });
@@ -102,6 +112,10 @@ export async function listFiles(req, res) {
       return res.json([]); // Return empty list if not configured
     }
 
+    // viewers should not be able to view/download files
+    const listerRole = getMemberRole(workspace, req.userId);
+    if (listerRole === "viewer") return res.status(403).json({ message: "Viewers cannot view or download workspace files" });
+
     const drive = getDriveClient(workspace.googleDriveRefreshToken);
     const FOLDER_ID = workspace.googleDriveFolderId;
 
@@ -130,6 +144,10 @@ export async function deleteFile(req, res) {
     if (!workspace || !workspace.googleDriveRefreshToken) {
       return res.status(400).json({ message: "Workspace Drive not configured" });
     }
+
+    // viewers are not allowed to delete files
+    const deleterRole = getMemberRole(workspace, req.userId);
+    if (deleterRole === "viewer") return res.status(403).json({ message: "Viewers cannot delete workspace files" });
 
     const drive = getDriveClient(workspace.googleDriveRefreshToken);
 
