@@ -10,7 +10,7 @@ export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, act
         <div
             className="ui-container fixed bg-white/15 backdrop-blur-lg border border-white/50 rounded-lg shadow-2xl px-2 py-1.5 flex items-center gap-1 z-50 flex-nowrap shrink-0 animate-in fade-in zoom-in duration-200"
             style={{
-                top: Math.max(80, (activeBounds.y * camera.z + camera.y) - 80),
+                top: Math.max(80, (activeBounds.y * camera.z + camera.y) - 110),
                 left: (activeBounds.x * camera.z + camera.x) + (activeBounds.w * camera.z) / 2,
                 transform: "translateX(-50%)",
                 pointerEvents: "auto",
