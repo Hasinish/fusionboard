@@ -19,6 +19,8 @@ import FollowBanner from "./canvas/overlays/FollowBanner";
 import useCanvasToolState from "../hooks/useCanvasToolState";
 import useCanvasElementsState from "../hooks/useCanvasElementsState";
 import useCanvasUiState from "../hooks/useCanvasUiState";
+import useCanvasCamera from "../hooks/useCanvasCamera";
+import useCanvasRealtime from "../hooks/useCanvasRealtime";
 
 
 
@@ -51,59 +53,42 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         isMobile,
         toolbarRef, toolbarHeight,
         mousePos, setMousePos,
-        statusMsg, setStatusMsg
+        statusMsg, setStatusMsg,
+        ctrlPressed
     } = useCanvasUiState();
 
-    const [remoteLiveStrokes, setRemoteLiveStrokes] = useState({}); // userId -> stroke object
-    const lastEmittedTimeRef = useRef(0);
+    const {
+        camera, setCamera, cameraRef,
+        targetCameraRef, isAnimatingRef,
+        startCameraAnimation,
+        followedUserId, setFollowedUserId, followedUserIdRef,
+        remoteCamerasRef,
+        screenToWorld, worldToScreen
+    } = useCanvasCamera();
 
-    // camera (infinite canvas)
-    const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 });
-    const cameraRef = useRef({ x: 0, y: 0, z: 1 });
-    const targetCameraRef = useRef({ x: 0, y: 0, z: 1 });
-    const isAnimatingRef = useRef(false);
-    const remoteCamerasRef = useRef({}); // userId -> camera object
-
-    const startCameraAnimation = useCallback(() => {
-        if (isAnimatingRef.current) return;
-        isAnimatingRef.current = true;
-        
-        const animate = () => {
-            if (!isAnimatingRef.current) return;
-            
-            setCamera(prev => {
-                const target = targetCameraRef.current;
-                const speed = 0.22;
-                const dx = (target.x - prev.x) * speed;
-                const dy = (target.y - prev.y) * speed;
-                const dz = (target.z - prev.z) * speed;
-                
-                if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05 && Math.abs(dz) < 0.0005) {
-                    isAnimatingRef.current = false;
-                    return target;
-                }
-                
-                requestAnimationFrame(animate);
-                return {
-                    x: prev.x + dx,
-                    y: prev.y + dy,
-                    z: prev.z + dz
-                };
-            });
-        };
-        requestAnimationFrame(animate);
-    }, []);
-
-    useEffect(() => {
-        cameraRef.current = camera;
-        if (!isAnimatingRef.current) {
-            targetCameraRef.current = camera;
-        }
-    }, [camera]);
-
-    // undo/redo
+    // undo/redo refs for realtime domain
     const undoStackRef = useRef([]);
     const redoStackRef = useRef([]);
+
+    const {
+        participants, setParticipants,
+        cursors, setCursors,
+        remoteLiveStrokes, setRemoteLiveStrokes,
+        emitCursorMove, emitCameraUpdate, emitClearBoard
+    } = useCanvasRealtime({
+        boardId, socket, me,
+        setElements, setCamera,
+        followedUserIdRef, remoteCamerasRef,
+        setStatusMsg,
+        undoStackRef, redoStackRef
+    });
+
+    // Broadcast our camera continuously when it changes
+    useEffect(() => {
+        emitCameraUpdate(camera);
+    }, [camera, emitCameraUpdate]);
+
+    const lastEmittedTimeRef = useRef(0);
 
     // in-progress pen stroke (vector preview)
     const [currentPath, setCurrentPath] = useState(null);
@@ -119,59 +104,10 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const isPanningRef = useRef(false);
     const lastPointRef = useRef({ x: 0, y: 0 });
     const strokeStartRef = useRef(null);
-    const [ctrlPressed, setCtrlPressed] = useState(false);
-
-    const [cursors, setCursors] = useState({});
-    const [participants, setParticipants] = useState([]);
-    const [followedUserIdState, setFollowedUserIdState] = useState(null);
-    const followedUserIdRef = useRef(null);
-    const setFollowedUserId = useCallback((id) => {
-        const nextId = typeof id === 'function' ? id(followedUserIdRef.current) : id;
-        followedUserIdRef.current = nextId;
-        setFollowedUserIdState(nextId);
-    }, []);
-    const followedUserId = followedUserIdState;
-
-    const lastCursorEmitRef = useRef(0);
-    const lastCameraEmitRef = useRef(0);
-    const socketRef = useRef(socket);
-    useEffect(() => { socketRef.current = socket; }, [socket]);
-
-    // Broadcast our camera continuously when it changes
-    useEffect(() => {
-        if (!socket?.connected) return;
-        if (followedUserId) return; // Don't broadcast our camera when we're just following someone else
-
-        const now = Date.now();
-        if (now - lastCameraEmitRef.current > 50) {
-            socket.emit("camera:update", { boardId, userId: me?.userId || me?.id, camera });
-            lastCameraEmitRef.current = now;
-        } else {
-            const timer = setTimeout(() => {
-                if (!followedUserIdRef.current) {
-                    socket.emit("camera:update", { boardId, userId: me?.userId || me?.id, camera });
-                    lastCameraEmitRef.current = Date.now();
-                }
-            }, 50);
-            return () => clearTimeout(timer);
-        }
-    }, [camera, socket, boardId, me, followedUserId]);
 
 
 
 
-
-    // ─── coordinate helpers ───────────────────────────────────────────────────
-
-    const screenToWorld = (sx, sy) => ({
-        x: (sx - cameraRef.current.x) / cameraRef.current.z,
-        y: (sy - cameraRef.current.y) / cameraRef.current.z,
-    });
-
-    const worldToScreen = (wx, wy) => ({
-        x: wx * cameraRef.current.z + cameraRef.current.x,
-        y: wy * cameraRef.current.z + cameraRef.current.y,
-    });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
 
@@ -359,10 +295,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     };
 
     // ─── camera sync ─────────────────────────────────────────────────────────
-
-    useEffect(() => {
-        cameraRef.current = camera;
-    }, [camera]);
+    // Handled by emitCameraUpdate in its own effect
 
     // ─── minimap toggle fix ───────────────────────────────────────
 
@@ -373,127 +306,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         }
     }, [isMinimapVisible, drawMinimap]);
 
-    // ─── socket events ────────────────────────────────────────────────────────
+    // ─── window event listeners ──────────────────────────────────────────────
 
     useEffect(() => {
         window.addEventListener("resize", drawMinimap);
+        return () => window.removeEventListener("resize", drawMinimap);
+    }, [drawMinimap]);
 
-        if (socket) {
-            socket.on("boardElements", (els) => setElements(els || []));
-            socket.on("elementAdded", (el) => setElements(prev => [...prev, el]));
-            socket.on("elementUpdated", (el) => setElements(prev => prev.map(e => e.id === el.id ? el : e)));
-            socket.on("elementsUpdated", (newElements) => {
-                if (!Array.isArray(newElements)) return;
-                setElements(prev => {
-                    const map = new Map(prev.map(e => [e.id, e]));
-                    newElements.forEach(el => {
-                        if (el && el.id) map.set(el.id, el);
-                    });
-                    return Array.from(map.values());
-                });
-            });
-            socket.on("elementDeleted", ({ elementId }) => setElements(prev => prev.filter(e => e.id !== elementId)));
-
-            socket.on("cleared", () => {
-                undoStackRef.current = [];
-                redoStackRef.current = [];
-                setElements([]);
-                setStatusMsg("Cleared ✅");
-                setTimeout(() => setStatusMsg(""), 1500);
-            });
-
-            socket.on("saved", () => { setStatusMsg("Saved ✅"); setTimeout(() => setStatusMsg(""), 1500); });
-
-            socket.on("boardParticipants", (p) => {
-                const standardized = (p || []).map(entry => ({
-                    ...entry,
-                    userId: entry.userId ? String(entry.userId) : entry.userId
-                }));
-                setParticipants(standardized);
-            });
-            socket.on("cursorJoin", ({ userId, name, color, avatar }) => {
-                const uid = String(userId);
-                setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x: 0, y: 0, ts: Date.now() } }));
-                setParticipants(prev => {
-                    if (prev.find(p => String(p.userId) === uid)) {
-                        return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
-                    }
-                    return [...prev, { userId: uid, name, color, avatar }];
-                });
-            });
-            socket.on("cursorMove", ({ userId, name, color, avatar, x, y }) => {
-                const uid = String(userId);
-                setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x, y, ts: Date.now() } }));
-                setParticipants(prev => {
-                    if (prev.find(p => String(p.userId) === uid)) {
-                        return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
-                    }
-                    return [...prev, { userId: uid, name, color, avatar }];
-                });
-            });
-            socket.on("cursorLeave", ({ userId }) => {
-                setParticipants(prev => prev.filter(p => (p.userId || p.peerId) !== userId));
-                setCursors(prev => {
-                    const next = { ...prev };
-                    delete next[userId];
-                    return next;
-                });
-                setRemoteLiveStrokes(prev => {
-                    const next = { ...prev };
-                    delete next[userId];
-                    return next;
-                });
-            });
-
-            socket.on("draw:stroke-progress", ({ userId, stroke }) => {
-                setRemoteLiveStrokes(prev => ({
-                    ...prev,
-                    [userId]: stroke
-                }));
-            });
-
-            socket.on("draw:stroke-end", ({ userId }) => {
-                setRemoteLiveStrokes(prev => {
-                    const next = { ...prev };
-                    delete next[userId];
-                    return next;
-                });
-            });
-
-            socket.on("camera:update", ({ userId, camera: remoteCamera }) => {
-                const uid = String(userId);
-                remoteCamerasRef.current[uid] = remoteCamera;
-                if (followedUserIdRef.current && String(followedUserIdRef.current) === uid) {
-                    setCamera(remoteCamera);
-                }
-            });
-        }
-
-        return () => {
-            window.removeEventListener("resize", drawMinimap);
-            if (socket) {
-                socket.off("cleared"); socket.off("saved");
-                socket.off("cursorJoin"); socket.off("cursorMove"); socket.off("cursorLeave");
-                socket.off("elementAdded"); socket.off("elementUpdated"); socket.off("elementDeleted");
-                socket.off("boardElements");
-                socket.off("draw:stroke-progress");
-                socket.off("draw:stroke-end");
-                socket.off("camera:update");
-            }
-        };
-    }, [socket, drawMinimap]);
-
-    useEffect(() => {
-        const t = setInterval(() => {
-            const now = Date.now();
-            setCursors(prev => {
-                const copy = { ...prev }; let changed = false;
-                for (const [uid, c] of Object.entries(copy)) { if (now - c.ts > 8000) { delete copy[uid]; changed = true; } }
-                return changed ? copy : prev;
-            });
-        }, 2000);
-        return () => clearInterval(t);
-    }, []);
 
     // ─── wheel zoom / pan ────────────────────────────────────────────────────
 
@@ -536,25 +355,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         return () => window.removeEventListener("wheel", handleWheel, { capture: true });
     }, []);
 
-    // Global Ctrl key tracking to help with iframe pointer-events
-    useEffect(() => {
-        const handleDown = (e) => { if (e.key === "Control" || e.key === "Meta") setCtrlPressed(true); };
-        const handleUp = (e) => { if (e.key === "Control" || e.key === "Meta") setCtrlPressed(false); };
-        const handleBlur = () => setCtrlPressed(false);
-        window.addEventListener("keydown", handleDown);
-        window.addEventListener("keyup", handleUp);
-        window.addEventListener("blur", handleBlur);
-        return () => {
-            window.removeEventListener("keydown", handleDown);
-            window.removeEventListener("keyup", handleUp);
-            window.removeEventListener("blur", handleBlur);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (ctrlPressed) document.body.classList.add("ctrl-down");
-        else document.body.classList.remove("ctrl-down");
-    }, [ctrlPressed]);
 
     // ─── middle-click panning (window level, works even over elements) ─────
     useEffect(() => {
@@ -733,12 +533,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         return { x: cx - rect.left, y: cy - rect.top };
     };
 
-    const emitCursorMove = (wx, wy) => {
-        if (!socket?.connected) return;
-        const now = Date.now(); if (now - lastCursorEmitRef.current < 30) return;
-        lastCursorEmitRef.current = now;
-        socket.emit("cursorMove", { boardId, x: wx, y: wy });
-    };
 
     const onPointerDown = (e) => {
         // Ignore clicks on UI elements natively without breaking React's onClick
@@ -1423,10 +1217,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 setBgMode,
                                 clearBoard: () => {
                                     if (window.confirm("Clear board?")) {
-                                        undoStackRef.current = [];
-                                        redoStackRef.current = [];
-                                        setElements([]);
-                                        if (socket?.connected) socket.emit("clearBoard", { boardId });
+                                        emitClearBoard();
                                     }
                                 }
                             })}

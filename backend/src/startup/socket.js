@@ -113,7 +113,14 @@ export const setupSocket = (io) => {
     function getActiveBoardUsers(boardId) {
         const seen = new Set();
         const users = [];
-        for (const [, meta] of socketMeta) {
+        for (const [sid, meta] of socketMeta) {
+            // Prune stale sockets that didn't fire disconnect/leave events
+            const s = io.sockets.sockets.get(sid);
+            if (!s || !s.connected) {
+                socketMeta.delete(sid);
+                continue;
+            }
+
             if (String(meta.boardId) === String(boardId) && !seen.has(String(meta.userId))) {
                 seen.add(String(meta.userId));
                 users.push({ userId: meta.userId, name: meta.name, avatar: meta.avatar });
@@ -459,7 +466,12 @@ export const setupSocket = (io) => {
 
         const leaveCursor = async () => {
             const meta = socketMeta.get(socket.id);
-            if (!meta) return;
+            if (!meta) {
+                console.log(`[Socket] No meta found for ${socket.id} on leaveCursor`);
+                return;
+            }
+
+            console.log(`[Socket] ${socket.id} leaving board ${meta.boardId} (workspace ${meta.workspaceId})`);
 
             // Notify canvas participants that user left
             if (meta.boardId) {
@@ -485,7 +497,11 @@ export const setupSocket = (io) => {
             // Notify dashboard of updated active users
             if (workspaceId && boardId) {
                 const updatedUsers = getActiveBoardUsers(boardId);
-                io.to(`ws:${workspaceId}`).emit("board:users-updated", { boardId, activeUsers: updatedUsers });
+                console.log(`[Socket] Emitting board:users-updated for board ${boardId} to ws:${workspaceId}`);
+                io.to(`ws:${workspaceId}`).emit("board:users-updated", { 
+                    boardId: String(boardId), 
+                    activeUsers: updatedUsers 
+                });
             }
         };
 
@@ -502,6 +518,15 @@ export function getActiveUsersMap(boardIds) {
 
         // Iterate over all active sockets in socketMeta
         for (const [sid, meta] of socketMeta) {
+            // Prune stale sockets
+            if (ioInstance) {
+                const s = ioInstance.sockets.sockets.get(sid);
+                if (!s || !s.connected) {
+                    socketMeta.delete(sid);
+                    continue;
+                }
+            }
+
             if (String(meta.boardId) === String(boardId)) {
                 if (!seen.has(String(meta.userId))) {
                     seen.add(String(meta.userId));

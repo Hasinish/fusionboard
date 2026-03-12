@@ -59,6 +59,27 @@ export function useCanvasUiState() {
     const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
     const [statusMsg, setStatusMsg] = useState("");
 
+    // ctrlPressed state for shortcuts and UI hints
+    const [ctrlPressed, setCtrlPressed] = useState(false);
+    useEffect(() => {
+        const handleDown = (e) => { if (e.key === "Control" || e.key === "Meta") setCtrlPressed(true); };
+        const handleUp = (e) => { if (e.key === "Control" || e.key === "Meta") setCtrlPressed(false); };
+        const handleBlur = () => setCtrlPressed(false);
+        window.addEventListener("keydown", handleDown);
+        window.addEventListener("keyup", handleUp);
+        window.addEventListener("blur", handleBlur);
+        return () => {
+            window.removeEventListener("keydown", handleDown);
+            window.removeEventListener("keyup", handleUp);
+            window.removeEventListener("blur", handleBlur);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (ctrlPressed) document.body.classList.add("ctrl-down");
+        else document.body.classList.remove("ctrl-down");
+    }, [ctrlPressed]);
+
     return {
         shapesOpen, setShapesOpen, shapesRef,
         plusOpen, setPlusOpen, plusRef,
@@ -67,7 +88,8 @@ export function useCanvasUiState() {
         isMobile,
         toolbarRef, toolbarHeight,
         mousePos, setMousePos,
-        statusMsg, setStatusMsg
+        statusMsg, setStatusMsg,
+        ctrlPressed
     };
 }
 
