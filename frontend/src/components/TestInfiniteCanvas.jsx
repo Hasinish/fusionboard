@@ -245,6 +245,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     // camera (infinite canvas)
     const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 });
     const cameraRef = useRef({ x: 0, y: 0, z: 1 });
+    const remoteCamerasRef = useRef({}); // userId -> camera object
 
     // undo/redo
     const undoStackRef = useRef([]);
@@ -631,19 +632,31 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             socket.on("saved", () => { setStatusMsg("Saved ✅"); setTimeout(() => setStatusMsg(""), 1500); });
 
-            socket.on("boardParticipants", (p) => setParticipants(p || []));
-            socket.on("cursorJoin", ({ userId, name, color }) => {
-                setCursors(prev => ({ ...prev, [userId]: { name, color, x: 0, y: 0, ts: Date.now() } }));
+            socket.on("boardParticipants", (p) => {
+                const standardized = (p || []).map(entry => ({
+                    ...entry,
+                    userId: entry.userId ? String(entry.userId) : entry.userId
+                }));
+                setParticipants(standardized);
+            });
+            socket.on("cursorJoin", ({ userId, name, color, avatar }) => {
+                const uid = String(userId);
+                setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x: 0, y: 0, ts: Date.now() } }));
                 setParticipants(prev => {
-                    if (prev.find(p => p.userId === userId)) return prev;
-                    return [...prev, { userId, name, color }];
+                    if (prev.find(p => String(p.userId) === uid)) {
+                        return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
+                    }
+                    return [...prev, { userId: uid, name, color, avatar }];
                 });
             });
-            socket.on("cursorMove", ({ userId, name, color, x, y }) => {
-                setCursors(prev => ({ ...prev, [userId]: { name, color, x, y, ts: Date.now() } }));
+            socket.on("cursorMove", ({ userId, name, color, avatar, x, y }) => {
+                const uid = String(userId);
+                setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x, y, ts: Date.now() } }));
                 setParticipants(prev => {
-                    if (prev.find(p => p.userId === userId)) return prev;
-                    return [...prev, { userId, name, color }];
+                    if (prev.find(p => String(p.userId) === uid)) {
+                        return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
+                    }
+                    return [...prev, { userId: uid, name, color, avatar }];
                 });
             });
             socket.on("cursorLeave", ({ userId }) => {
@@ -676,7 +689,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             });
 
             socket.on("camera:update", ({ userId, camera: remoteCamera }) => {
-                if (followedUserIdRef.current === userId) {
+                const uid = String(userId);
+                remoteCamerasRef.current[uid] = remoteCamera;
+                if (followedUserIdRef.current && String(followedUserIdRef.current) === uid) {
                     setCamera(remoteCamera);
                 }
             });
@@ -965,7 +980,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         if (isViewerRef.current) return;
 
         // Any regular drawing/selecting also stops follow mode
-        if (toolRef.current !== "select" || !pointHitsElement(wp.x, wp.y, elementsRef.current)) {
+        const hitEl = [...elementsRef.current].reverse().find(el => pointHitsElement(wp.x, wp.y, el));
+        if (toolRef.current !== "select" || !hitEl) {
             setFollowedUserId(null);
         }
 
@@ -1457,12 +1473,24 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 {participants.slice(0, 5).map((p, idx) => (
                                     <div
                                         key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${followedUserId === p.userId ? "ring-4 ring-blue-500 ring-offset-1 border-white scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : "border-white"}`}
-                                        style={{ backgroundColor: p.color || "#ccc" }}
+                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${(followedUserId && String(followedUserId) === String(p.userId)) ? "ring-4 ring-blue-500 ring-offset-1 scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse scale-110 z-10" : ""}`}
+                                        style={{ backgroundColor: p.color || "#ccc", borderColor: p.color || "#ccc" }}
                                         data-tip={p.name}
-                                        onClick={() => setFollowedUserId(prev => prev === p.userId ? null : p.userId)}
+                                        onClick={() => {
+                                            setFollowedUserId(prev => {
+                                                const uid = String(p.userId);
+                                                const next = (prev && String(prev) === uid) ? null : uid;
+                                                if (next && remoteCamerasRef.current[next]) {
+                                                    setCamera(remoteCamerasRef.current[next]);
+                                                }
+                                                return next;
+                                            });
+                                        }}
                                     >
-                                        {getInitials(p.name)}
+                                        {p.avatar
+                                            ? <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                                            : getInitials(p.name)
+                                        }
                                     </div>
                                 ))}
                                 {participants.length > 5 && (
@@ -1613,12 +1641,24 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 {participants.slice(0, 5).map((p, idx) => (
                                     <div
                                         key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${followedUserId === p.userId ? "ring-4 ring-blue-400 ring-offset-1 border-white scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse border-white scale-110 z-10" : ""}`}
-                                        style={{ backgroundColor: p.color || "#ccc" }}
+                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${(followedUserId && String(followedUserId) === String(p.userId)) ? "ring-4 ring-blue-500 ring-offset-1 scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse scale-110 z-10" : ""}`}
+                                        style={{ backgroundColor: p.color || "#ccc", borderColor: p.color || "#ccc" }}
                                         data-tip={p.name}
-                                        onClick={() => setFollowedUserId(prev => prev === p.userId ? null : p.userId)}
+                                        onClick={() => {
+                                            setFollowedUserId(prev => {
+                                                const uid = String(p.userId);
+                                                const next = (prev && String(prev) === uid) ? null : uid;
+                                                if (next && remoteCamerasRef.current[next]) {
+                                                    setCamera(remoteCamerasRef.current[next]);
+                                                }
+                                                return next;
+                                            });
+                                        }}
                                     >
-                                        {getInitials(p.name)}
+                                        {p.avatar
+                                            ? <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                                            : getInitials(p.name)
+                                        }
                                     </div>
                                 ))}
                                 {participants.length > 5 && (

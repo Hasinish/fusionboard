@@ -297,7 +297,7 @@ export const setupSocket = (io) => {
             }
             socket.emit("boardParticipants", participants);
             socket.emit("boardElements", existingElements);
-            socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
+            socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color, avatar: socket.userAvatar });
         });
 
         // ─── Live pen stroke preview (vector) ───────────────────────────────────────
@@ -332,6 +332,7 @@ export const setupSocket = (io) => {
                 userId: meta.userId,
                 name: meta.name,
                 color: meta.color,
+                avatar: meta.avatar,
                 x,
                 y,
             });
@@ -343,7 +344,7 @@ export const setupSocket = (io) => {
             if (!meta) return;
             if (String(meta.boardId) !== String(boardId)) return;
             socket.to(`board:${boardId}`).emit("camera:update", {
-                userId,
+                userId: userId || socket.userId,
                 camera,
             });
         });
