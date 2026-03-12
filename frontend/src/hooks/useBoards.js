@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
+import { io } from "socket.io-client";
+import api, { API_URL } from "../lib/api";
 
 export function useBoards(selectedWorkspaceId) {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export function useBoards(selectedWorkspaceId) {
   const [renamingBoard, setRenamingBoard] = useState(false);
   const [targetBoardId, setTargetBoardId] = useState(null);
   const [renameBoardTitle, setRenameBoardTitle] = useState("");
+  const socketRef = useRef(null);
 
   useEffect(() => {
     if (!selectedWorkspaceId) return;
@@ -33,6 +35,36 @@ export function useBoards(selectedWorkspaceId) {
 
     fetchBoards();
 
+    const token = localStorage.getItem("token");
+    if (token) {
+      const socket = io(API_URL.replace("/api", ""), {
+        auth: { token }
+      });
+      socketRef.current = socket;
+
+      socket.emit("workspace:join", { workspaceId: selectedWorkspaceId });
+
+      socket.on("board:created", (board) => {
+        setWorkspaceBoards(prev =>
+          prev.find(b => b._id === board._id) ? prev : [...prev, board]
+        );
+      });
+
+      socket.on("board:renamed", ({ boardId, title }) => {
+        setWorkspaceBoards(prev => prev.map(b => b._id === boardId ? { ...b, title } : b));
+      });
+
+      socket.on("board:deleted", ({ boardId }) => {
+        setWorkspaceBoards(prev => prev.filter(b => b._id !== boardId));
+      });
+
+      socket.on("board:users-updated", ({ boardId, activeUsers }) => {
+        setWorkspaceBoards(prev =>
+          prev.map(b => b._id === boardId ? { ...b, activeUsers } : b)
+        );
+      });
+    }
+
     // Auto-refresh board data to show active users
     const interval = setInterval(async () => {
       const token = localStorage.getItem("token");
@@ -47,7 +79,10 @@ export function useBoards(selectedWorkspaceId) {
       }
     }, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      socketRef.current?.disconnect();
+    };
   }, [selectedWorkspaceId]);
 
   const handleCreateBoard = async () => {

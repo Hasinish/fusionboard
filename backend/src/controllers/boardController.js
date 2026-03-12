@@ -3,7 +3,7 @@ import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
 import Note from "../models/Note.js";
 import Activity from "../models/Activity.js"; // [NEW]
-import { getActiveUsersMap } from "../startup/socket.js";
+import { getActiveUsersMap, emitToUser, emitToWorkspace } from "../startup/socket.js";
 async function ensureMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
     _id: workspaceId,
@@ -69,6 +69,7 @@ export async function createBoard(req, res) {
       details: board.title,
     });
 
+    emitToWorkspace(workspaceId, "board:created", board);
     return res.status(201).json(board);
   } catch (e) {
     console.error("createBoard error:", e);

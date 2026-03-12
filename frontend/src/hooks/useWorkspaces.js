@@ -39,7 +39,7 @@ export function useWorkspaces() {
 
   // Derived State
   const myRole =
-    workspaceMembers.find((m) => String(m._id) === String(user?.id))?.role ||
+    workspaceMembers.find((m) => String(m._id) === String(user?.id ?? user?._id))?.role ||
     "viewer";
   const isOwner = myRole === "owner";
 

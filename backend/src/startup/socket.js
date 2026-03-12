@@ -21,8 +21,24 @@ function pickColor(key) {
 }
 
 const socketMeta = new Map();
+let ioInstance;
+
+export const emitToUser = (userId, event, data) => {
+    if (!ioInstance) return;
+    for (const [sid, socket] of ioInstance.sockets.sockets) {
+        if (String(socket.userId) === String(userId)) {
+            socket.emit(event, data);
+        }
+    }
+};
+
+export const emitToWorkspace = (workspaceId, event, data) => {
+    if (!ioInstance) return;
+    ioInstance.to(`ws:${workspaceId}`).emit(event, data);
+};
 
 export const setupSocket = (io) => {
+    ioInstance = io;
     function broadcastParticipants(roomId) {
         const room = io.sockets.adapter.rooms.get(roomId);
         const socketIds = room ? Array.from(room) : [];
@@ -93,6 +109,18 @@ export const setupSocket = (io) => {
             return next(new Error("Invalid token"));
         }
     });
+
+    function getActiveBoardUsers(boardId) {
+        const seen = new Set();
+        const users = [];
+        for (const [, meta] of socketMeta) {
+            if (String(meta.boardId) === String(boardId) && !seen.has(String(meta.userId))) {
+                seen.add(String(meta.userId));
+                users.push({ userId: meta.userId, name: meta.name, avatar: meta.avatar });
+            }
+        }
+        return users;
+    }
 
     io.on("connection", (socket) => {
         // handling voice chat stuff
@@ -263,6 +291,10 @@ export const setupSocket = (io) => {
                 })
                 .filter(Boolean);
 
+            if (workspaceId) {
+                const updatedUsers = getActiveBoardUsers(boardId);
+                io.to(`ws:${workspaceId}`).emit("board:users-updated", { boardId, activeUsers: updatedUsers });
+            }
             socket.emit("boardParticipants", participants);
             socket.emit("boardElements", existingElements);
             socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color });
@@ -424,6 +456,10 @@ export const setupSocket = (io) => {
                 } catch (e) { console.error("Failed to log board edit", e); }
             }
             socketMeta.delete(socket.id);
+            if (meta.workspaceId && meta.boardId) {
+                const updatedUsers = getActiveBoardUsers(meta.boardId);
+                io.to(`ws:${meta.workspaceId}`).emit("board:users-updated", { boardId: meta.boardId, activeUsers: updatedUsers });
+            }
         };
 
         socket.on("cursorLeave", leaveCursor);

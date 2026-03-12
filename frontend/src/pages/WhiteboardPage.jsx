@@ -44,7 +44,7 @@ function WhiteboardPage() {
       .then(res => {
         const ws = res.data;
         const members = ws.members || [];
-        const member = members.find(m => String(m._id) === String(me?.id));
+        const member = members.find(m => String(m._id) === String(me?.id ?? me?._id));
         setUserRole(member?.role || "viewer");
       })
       .catch(() => setUserRole("viewer")); // fail-safe: restrict to viewer
