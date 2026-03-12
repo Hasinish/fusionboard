@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Plus, LogOut } from "lucide-react";
+import { Sparkles, Plus, LogOut, LayoutGrid, Calendar } from "lucide-react";
 
 export default function Sidebar({
   isMobile,
@@ -13,6 +13,8 @@ export default function Sidebar({
   setShowAddWsModal,
   setWsCreateError,
   setWsCreateSuccess,
+  activeTab,
+  setActiveTab,
 }) {
   const wsColor = (id) => {
     if (!id) return "#4f46e5";
@@ -46,10 +48,11 @@ export default function Sidebar({
       {/* Left Sidebar */}
       <aside
         className={`bg-white border-r border-[#E8DDD0] flex flex-col py-6 px-4 shrink-0 transition-all duration-300 
-        ${isMobile ? "fixed h-full z-50 boxShadow-xl" : "relative z-10"} 
-        ${!showSidebar && isMobile ? "-translate-x-full" : "translate-x-0"}
-        ${isCompact ? "w-20" : "w-64"}
-        ${isMobile ? "w-64" : ""}`}
+        ${isMobile ? "fixed h-full z-50 shadow-2xl" : "relative z-10"} 
+        ${!showSidebar 
+          ? (isMobile ? "-translate-x-full" : "w-0 px-0 opacity-0 overflow-hidden border-none") 
+          : (isCompact && !isMobile ? "w-20" : "w-64")
+        }`}
       >
         <div
           className={`flex items-center gap-3 px-2 mb-8 ${
@@ -64,6 +67,41 @@ export default function Sidebar({
               FusionBoard
             </span>
           )}
+        </div>
+
+        {/* Main Navigation */}
+        <div className="mb-8 space-y-1">
+          {!isCompact && (
+            <p className="text-xs font-bold text-[#6B6560] uppercase tracking-widest px-2 mb-2">
+              Main Menu
+            </p>
+          )}
+          
+          <button
+            onClick={() => setActiveTab("boards")}
+            className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-lg transition mb-1 ${
+              activeTab === "boards"
+                ? "bg-[#F5EAD8] border-l-4 border-[#1A1A2E] font-bold text-[#1A1A2E]"
+                : "text-[#6B6560] hover:bg-[#F5EAD8] hover:text-[#1A1A2E] border-l-4 border-transparent"
+            } ${isCompact ? "justify-center" : ""}`}
+            title={isCompact ? "Boards" : ""}
+          >
+            <LayoutGrid size={18} />
+            {!isCompact && <span className="text-sm">Boards</span>}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-lg transition mb-1 ${
+              activeTab === "calendar"
+                ? "bg-[#F5EAD8] border-l-4 border-[#1A1A2E] font-bold text-[#1A1A2E]"
+                : "text-[#6B6560] hover:bg-[#F5EAD8] hover:text-[#1A1A2E] border-l-4 border-transparent"
+            } ${isCompact ? "justify-center" : ""}`}
+            title={isCompact ? "Calendar" : ""}
+          >
+            <Calendar size={18} />
+            {!isCompact && <span className="text-sm">Calendar</span>}
+          </button>
         </div>
 
         {!isCompact && (

@@ -8,6 +8,7 @@ import userRoutes from "../routes/userRoutes.js";
 import driveRoutes from "../routes/driveRoutes.js";
 import noteRoutes from "../routes/noteRoutes.js";
 import activityRoutes from "../routes/activityRoutes.js";
+import reminderRoutes from "../routes/reminderRoutes.js";
 
 export const registerRoutes = (app) => {
     app.get("/", (req, res) => {
@@ -24,4 +25,5 @@ export const registerRoutes = (app) => {
     app.use("/api/users", userRoutes);
     app.use("/api/drive", driveRoutes);
     app.use("/api/activities", activityRoutes);
+    app.use("/api/reminders", reminderRoutes);
 };

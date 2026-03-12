@@ -17,7 +17,7 @@ import { saveAuth } from "../../lib/auth";
 export default function DashboardHeader({
   isMobile,
   showSidebar,
-  setShowSidebar,
+  onToggleSidebar,
   workspaceName,
   isOwner,
   showWorkspaceDropdown,
@@ -56,14 +56,13 @@ export default function DashboardHeader({
   return (
     <header className="bg-white border-b border-[#E8DDD0] px-4 md:px-8 py-4 flex items-center justify-between shrink-0 relative">
       <div className="flex items-center gap-4">
-        {isMobile && (
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="p-2 -ml-1 text-[#1A1A2E] hover:bg-[#F5EAD8] rounded-lg transition-colors"
-          >
-            <Menu size={24} />
-          </button>
-        )}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 -ml-1 text-[#1A1A2E] hover:bg-[#F5EAD8] rounded-lg transition-colors flex items-center justify-center h-10 w-10"
+          title="Toggle Sidebar"
+        >
+          <Menu size={24} />
+        </button>
         <div className="relative">
           <div
             className="flex items-center cursor-pointer group"

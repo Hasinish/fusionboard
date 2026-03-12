@@ -14,6 +14,7 @@ import Sidebar from "../components/dashboard/Sidebar";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import BoardsGrid from "../components/dashboard/BoardsGrid";
 import FloatingChat from "../components/dashboard/FloatingChat";
+import CalendarView from "../components/dashboard/calendar/CalendarView";
 
 // Modals
 import CreateWorkspaceModal from "../components/dashboard/modals/CreateWorkspaceModal";
@@ -29,6 +30,7 @@ function DashboardPage() {
   const [profile, setProfile] = useState(user);
 
   // Local UI State
+  const [activeTab, setActiveTab] = useState("boards"); // "boards" or "calendar"
   const [viewMode, setViewMode] = useState("grid");
   const [showChat, setShowChat] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -90,15 +92,40 @@ function DashboardPage() {
   useEffect(() => {
     const checkSize = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsCompact(width < 960 && width >= 768);
-      if (width < 768) setShowSidebar(false);
-      else setShowSidebar(true);
+      const mobile = width < 768;
+      const compact = width < 1024 && width >= 768;
+      
+      setIsMobile(mobile);
+      
+      if (mobile) {
+        setShowSidebar(false);
+        setIsCompact(false); // Mobile should never be compact (icons only)
+      } else {
+        setShowSidebar(true);
+        setIsCompact(compact);
+      }
     };
     checkSize();
     window.addEventListener("resize", checkSize);
     return () => window.removeEventListener("resize", checkSize);
   }, []);
+
+  const handleToggleSidebar = () => {
+    if (isMobile) {
+      setShowSidebar(!showSidebar);
+    } else {
+      // Cycle: Full -> Compact -> Hidden -> Full
+      if (!showSidebar) {
+        setShowSidebar(true);
+        setIsCompact(false);
+      } else if (!isCompact) {
+        setIsCompact(true);
+      } else {
+        setIsCompact(false); // Back to full
+        // If you want it to hide, you could do setShowSidebar(false) here
+      }
+    }
+  };
 
   const handleLogout = () => {
     clearAuth();
@@ -140,13 +167,15 @@ function DashboardPage() {
         setShowAddWsModal={setShowAddWsModal}
         setWsCreateError={workspaceData.setWsCreateError}
         setWsCreateSuccess={workspaceData.setWsCreateSuccess}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         <DashboardHeader
           isMobile={isMobile}
           showSidebar={showSidebar}
-          setShowSidebar={setShowSidebar}
+          onToggleSidebar={handleToggleSidebar}
           workspaceName={workspaceData.workspaceName}
           isOwner={workspaceData.isOwner}
           showWorkspaceDropdown={showWorkspaceDropdown}
@@ -189,22 +218,30 @@ function DashboardPage() {
               isMobile ? "px-4" : "px-10"
             } py-8 bg-[#F5EAD8]`}
           >
-            <div className="max-w-5xl mx-auto w-full">
-              <BoardsGrid
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-                handleCreateBoard={boardData.handleCreateBoard}
-                creating={boardData.creating}
-                loadingBoards={boardData.loadingBoards}
-                filteredBoards={filteredBoards}
-                navigate={navigate}
-                selectedWorkspaceId={workspaceData.selectedWorkspaceId}
-                loadingWorkspaces={workspaceData.loadingWorkspaces}
-                setTargetBoardId={boardData.setTargetBoardId}
-                setRenameBoardTitle={boardData.setRenameBoardTitle}
-                setShowBoardRenameModal={setShowBoardRenameModal}
-                handleDeleteBoard={boardData.handleDeleteBoard}
-              />
+            <div className={`max-w-5xl mx-auto w-full ${activeTab === 'calendar' ? 'h-[calc(100vh-140px)]' : ''}`}>
+              {activeTab === "boards" ? (
+                <BoardsGrid
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                  handleCreateBoard={boardData.handleCreateBoard}
+                  creating={boardData.creating}
+                  loadingBoards={boardData.loadingBoards}
+                  filteredBoards={filteredBoards}
+                  navigate={navigate}
+                  selectedWorkspaceId={workspaceData.selectedWorkspaceId}
+                  loadingWorkspaces={workspaceData.loadingWorkspaces}
+                  setTargetBoardId={boardData.setTargetBoardId}
+                  setRenameBoardTitle={boardData.setRenameBoardTitle}
+                  setShowBoardRenameModal={setShowBoardRenameModal}
+                  handleDeleteBoard={boardData.handleDeleteBoard}
+                />
+              ) : (
+                <CalendarView
+                  workspaceId={workspaceData.selectedWorkspaceId}
+                  myRole={workspaceData.myRole}
+                  isDark={false}
+                />
+              )}
             </div>
           </main>
         </div>
