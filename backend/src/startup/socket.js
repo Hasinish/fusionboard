@@ -273,6 +273,23 @@ export const setupSocket = (io) => {
                     }
                 }
             } catch (e) { /* ignore non-ObjectId boardIds */ }
+            // [NEW] If this socket was already in another board, update that board's list first
+            const oldMeta = socketMeta.get(socket.id);
+            if (oldMeta && oldMeta.boardId && String(oldMeta.boardId) !== String(boardId)) {
+                // Remove from old board's room and emit update for old board
+                socket.leave(`board:${oldMeta.boardId}`);
+                socket.to(`board:${oldMeta.boardId}`).emit("cursorLeave", { userId: oldMeta.userId });
+                if (oldMeta.workspaceId) {
+                    // Temporarily delete from socketMeta to get accurate count for old board
+                    socketMeta.delete(socket.id);
+                    const updatedUsersForOldBoard = getActiveBoardUsers(oldMeta.boardId);
+                    io.to(`ws:${oldMeta.workspaceId}`).emit("board:users-updated", {
+                        boardId: oldMeta.boardId,
+                        activeUsers: updatedUsersForOldBoard
+                    });
+                }
+            }
+
             socket.join(`board:${boardId}`);
             socketMeta.set(socket.id, {
                 boardId, userId, name, color,
@@ -443,9 +460,13 @@ export const setupSocket = (io) => {
         const leaveCursor = async () => {
             const meta = socketMeta.get(socket.id);
             if (!meta) return;
+
+            // Notify canvas participants that user left
             if (meta.boardId) {
                 socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
             }
+
+            // Log activity if they edited
             if (meta.hasEdited && meta.workspaceId) {
                 try {
                     await Activity.create({
@@ -454,12 +475,17 @@ export const setupSocket = (io) => {
                         action: "edited_board",
                         details: meta.boardTitle,
                     });
-                } catch (e) { console.error("Failed to log board edit", e); }
+                } catch (e) { /* ignore */ }
             }
+
+            // [FIX] Store IDs before deleting from the map
+            const { workspaceId, boardId } = meta;
             socketMeta.delete(socket.id);
-            if (meta.workspaceId && meta.boardId) {
-                const updatedUsers = getActiveBoardUsers(meta.boardId);
-                io.to(`ws:${meta.workspaceId}`).emit("board:users-updated", { boardId: meta.boardId, activeUsers: updatedUsers });
+
+            // Notify dashboard of updated active users
+            if (workspaceId && boardId) {
+                const updatedUsers = getActiveBoardUsers(boardId);
+                io.to(`ws:${workspaceId}`).emit("board:users-updated", { boardId, activeUsers: updatedUsers });
             }
         };
 

@@ -39,6 +39,7 @@ function TestWhiteboardPage() {
         });
 
         return () => {
+            newSocket.emit("cursorLeave");
             newSocket.disconnect();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

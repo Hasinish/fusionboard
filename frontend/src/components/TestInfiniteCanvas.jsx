@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Pen, Eraser, Hand, ZoomIn, ZoomOut, Settings2, Trash2, Map as MapIcon, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube, Plus } from "lucide-react";
+import { Pen, Eraser, Hand, ZoomIn, ZoomOut, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube, Plus, Map as MapIcon } from "lucide-react";
 import ElementsLayer from "./ElementsLayer";
 import { DEFAULT_ELEMENT_STYLES } from "./canvas/constants";
 import { getSvgPathFromStroke, getPathBounds, getElementBounds, pointHitsElement } from "./canvas/geometryUtils";
@@ -16,41 +16,44 @@ import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
 import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
 
+import useCanvasToolState from "../hooks/useCanvasToolState";
+import useCanvasElementsState from "../hooks/useCanvasElementsState";
+import useCanvasUiState from "../hooks/useCanvasUiState";
+
 
 
 export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
-    // minimap
-    const minimapCanvasRef = useRef(null);
-    const minimapCtxRef = useRef(null);
-    const [isMinimapVisible, setIsMinimapVisible] = useState(true);
+    const {
+        tool, setTool, toolRef,
+        isViewerRef,
+        color, setColor,
+        width, setWidth,
+        bgMode, setBgMode,
+        isDark, setIsDark,
+        shapeType, setShapeType,
+        lastShapeType, setLastShapeType,
+        toolbarClass, ghostBtnClass
+    } = useCanvasToolState(isViewer);
 
-    // tool state
-    const [tool, setTool] = useState(isViewer ? "hand" : "pen");
+    const {
+        elements, setElements, elementsRef,
+        selectedIds, setSelectedIds, selectedIdsRef,
+        selectionBox, setSelectionBox, selectionBoxRef,
+        ghostElement, setGhostElement,
+        pendingEditId, setPendingEditId, clearPendingEditId
+    } = useCanvasElementsState(tool);
 
-    // Force hand tool for viewers
-    const isViewerRef = useRef(isViewer);
-    isViewerRef.current = isViewer;
-    useEffect(() => {
-        if (isViewer) setTool("hand");
-    }, [isViewer]);
-    const [color, setColor] = useState("#000000");
-    const [width, setWidth] = useState(2);
-    const [bgMode, setBgMode] = useState("white");
-    const [isDark, setIsDark] = useState(false);
+    const {
+        shapesOpen, setShapesOpen, shapesRef,
+        plusOpen, setPlusOpen, plusRef,
+        colorOpen, setColorOpen, colorRef,
+        isMinimapVisible, setIsMinimapVisible, minimapCanvasRef, minimapCtxRef,
+        isMobile,
+        toolbarRef, toolbarHeight,
+        mousePos, setMousePos,
+        statusMsg, setStatusMsg
+    } = useCanvasUiState();
 
-    useEffect(() => {
-        if (isDark) {
-            setColor("#ffffff");
-        } else {
-            setColor("#000000");
-        }
-    }, [isDark]);
-
-    const toolbarClass = isDark ? "bg-[#1f1f1f] border-[#333333] text-white/70" : "bg-base-100/95 border-base-200";
-    const ghostBtnClass = isDark ? "btn-ghost text-white/90 hover:text-white hover:bg-white/10" : "btn-ghost";
-
-    const statusMsgRef = useRef(""); // local ref if needed, but we use state below
-    const [statusMsg, setStatusMsg] = useState("");
     const [remoteLiveStrokes, setRemoteLiveStrokes] = useState({}); // userId -> stroke object
     const lastEmittedTimeRef = useRef(0);
 
@@ -118,11 +121,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const strokeStartRef = useRef(null);
     const [ctrlPressed, setCtrlPressed] = useState(false);
 
-    // custom eraser cursor
-    const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
-    const toolRef = useRef(tool);
-    useEffect(() => { toolRef.current = tool; }, [tool]);
-
     const [cursors, setCursors] = useState({});
     const [participants, setParticipants] = useState([]);
     const [followedUserIdState, setFollowedUserIdState] = useState(null);
@@ -159,86 +157,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         }
     }, [camera, socket, boardId, me, followedUserId]);
 
-    // elements (sticky notes, shapes, and now path strokes)
-    const [elements, setElementsState] = useState([]);
-    const elementsRef = useRef(elements);
-    // Standard setter that also updates ref immediately
-    const setElements = useCallback((updater) => {
-        setElementsState(current => {
-            const next = typeof updater === "function" ? updater(current) : updater;
-            elementsRef.current = next;
-            return next;
-        });
-    }, []);
 
-    const [selectedIds, setSelectedIdsState] = useState([]);
-    const selectedIdsRef = useRef(selectedIds);
-    // Standard setter that also updates ref immediately
-    const setSelectedIds = useCallback((updater) => {
-        setSelectedIdsState(current => {
-            const next = typeof updater === "function" ? updater(current) : updater;
-            selectedIdsRef.current = next;
-            return next;
-        });
-    }, []);
 
-    useEffect(() => {
-        if (tool !== "select") setSelectedIds([]);
-    }, [tool]);
 
-    const [selectionBox, setSelectionBox] = useState(null);
-    const selectionBoxRef = useRef(null);
-
-    const toolbarRef = useRef(null);
-    const [toolbarHeight, setToolbarHeight] = useState(80);
-
-    useEffect(() => {
-        if (!toolbarRef.current) return;
-        const obs = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                setToolbarHeight(entry.target.offsetHeight);
-            }
-        });
-        obs.observe(toolbarRef.current);
-        return () => obs.disconnect();
-    }, []);
-
-    const [ghostElement, setGhostElement] = useState(null);
-    const [shapeType, setShapeType] = useState("rect");
-    const [lastShapeType, setLastShapeType] = useState("rect");
-    const [pendingEditId, setPendingEditId] = useState(null);
-    const clearPendingEditId = useCallback(() => setPendingEditId(null), []);
-
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 640);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Dropdown states for custom implementation
-    const [shapesOpen, setShapesOpen] = useState(false);
-    const [plusOpen, setPlusOpen] = useState(false);
-    const [colorOpen, setColorOpen] = useState(false);
-
-    const shapesRef = useRef(null);
-    const plusRef = useRef(null);
-    const colorRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            const shapesPopup = document.getElementById('shapes-popup');
-            if (shapesRef.current && !shapesRef.current.contains(e.target) && (!shapesPopup || !shapesPopup.contains(e.target))) setShapesOpen(false);
-
-            const plusPopup = document.getElementById('plus-popup');
-            if (plusRef.current && !plusRef.current.contains(e.target) && (!plusPopup || !plusPopup.contains(e.target))) setPlusOpen(false);
-
-            const colorPopup = document.getElementById('color-popup');
-            if (colorRef.current && !colorRef.current.contains(e.target) && (!colorPopup || !colorPopup.contains(e.target))) setColorOpen(false);
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
     // ─── coordinate helpers ───────────────────────────────────────────────────
 
@@ -1569,6 +1490,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     </div>
                 )}
             </div>
+
+            {/* Status Messages */}
+            {statusMsg && (
+                <div className="absolute bottom-5 left-5 z-50 bg-success text-success-content px-4 py-2 rounded-full shadow-lg opacity-90 transition-opacity">
+                    {statusMsg}
+                </div>
+            )}
 
             {/* Selection Box Visual */}
             <SelectionMarquee selectionBox={selectionBox} camera={camera} />
