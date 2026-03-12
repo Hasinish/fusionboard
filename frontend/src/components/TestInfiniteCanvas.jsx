@@ -3,208 +3,20 @@ import { Pen, Eraser, Hand, ZoomIn, ZoomOut, Settings2, Trash2, Map as MapIcon, 
 import ElementsLayer from "./ElementsLayer";
 import { DEFAULT_ELEMENT_STYLES } from "./canvas/constants";
 import { getSvgPathFromStroke, getPathBounds, getElementBounds, pointHitsElement } from "./canvas/geometryUtils";
-import getStroke from "perfect-freehand";
 
-// Tiny unique id generator (no dependency needed)
-function uid() {
-    return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
+import { uid } from "./canvas/utils/ids";
+import { eraserHitsElement } from "./canvas/utils/eraserMath";
+import { getInitials } from "./canvas/utils/participantUtils";
 
-
-// ── Line-segment vs AABB intersection (for eraser on shapes) ────────────────
-function lineIntersectsAABB(x1, y1, x2, y2, rx, ry, rw, rh) {
-    const INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
-    const code = (x, y) => {
-        let c = INSIDE;
-        if (x < rx) c |= LEFT; else if (x > rx + rw) c |= RIGHT;
-        if (y < ry) c |= TOP; else if (y > ry + rh) c |= BOTTOM;
-        return c;
-    };
-    let c1 = code(x1, y1), c2 = code(x2, y2);
-    while (true) {
-        if (!(c1 | c2)) return true;
-        if (c1 & c2) return false;
-        const cout = c1 || c2;
-        let x, y;
-        if (cout & BOTTOM) { x = x1 + (x2 - x1) * (ry + rh - y1) / (y2 - y1); y = ry + rh; }
-        else if (cout & TOP) { x = x1 + (x2 - x1) * (ry - y1) / (y2 - y1); y = ry; }
-        else if (cout & RIGHT) { y = y1 + (y2 - y1) * (rx + rw - x1) / (x2 - x1); x = rx + rw; }
-        else { y = y1 + (y2 - y1) * (rx - x1) / (x2 - x1); x = rx; }
-        if (cout === c1) { x1 = x; y1 = y; c1 = code(x1, y1); }
-        else { x2 = x; y2 = y; c2 = code(x2, y2); }
-    }
-}
-
-// ── Minimum distance from point to a line segment ───────────────────────────
-function pointToSegmentDist(px, py, ax, ay, bx, by) {
-    const dx = bx - ax, dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-    let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
-    t = Math.max(0, Math.min(1, t));
-    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-
-// ── Minimum distance between two line segments ──────────────────────────────
-function segmentToSegmentDist(ax, ay, bx, by, cx, cy, dx2, dy2) {
-    // Check if segments actually intersect (distance = 0)
-    const d1x = bx - ax, d1y = by - ay;
-    const d2x = dx2 - cx, d2y = dy2 - cy;
-    const denom = d1x * d2y - d1y * d2x;
-    if (Math.abs(denom) > 1e-10) {
-        const t = ((cx - ax) * d2y - (cy - ay) * d2x) / denom;
-        const u = ((cx - ax) * d1y - (cy - ay) * d1x) / denom;
-        if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return 0;
-    }
-    // Otherwise compute min distance of endpoints to opposite segment
-    return Math.min(
-        pointToSegmentDist(ax, ay, cx, cy, dx2, dy2),
-        pointToSegmentDist(bx, by, cx, cy, dx2, dy2),
-        pointToSegmentDist(cx, cy, ax, ay, bx, by),
-        pointToSegmentDist(dx2, dy2, ax, ay, bx, by)
-    );
-}
-
-// ── Check if eraser segment hits an element ─────────────────────────────────
-function eraserHitsElement(ex1, ey1, ex2, ey2, el) {
-    if (el.type === "path" && el.points && el.points.length >= 2) {
-        // For path elements, test against each actual polyline segment
-        const tolerance = Math.max(8, (el.width || 2) * 1.5);
-        for (let i = 0; i < el.points.length - 1; i++) {
-            const a = el.points[i], b = el.points[i + 1];
-            const dist = segmentToSegmentDist(ex1, ey1, ex2, ey2, a.x, a.y, b.x, b.y);
-            if (dist <= tolerance) return true;
-        }
-        return false;
-    }
-
-    const { x, y, w, h } = el;
-    const sW = el.strokeWidth || 2;
-    const tol = Math.max(8, sW * 1.5);
-
-    // Account for rotation by transforming the eraser segment into the element's local space
-    let lex1 = ex1, ley1 = ey1, lex2 = ex2, ley2 = ey2;
-    if (el.rotation) {
-        const rad = (-el.rotation * Math.PI) / 180; // Negative rotation for local space
-        const cx = x + w / 2;
-        const cy = y + h / 2;
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-
-        const tx1 = ex1 - cx, ty1 = ey1 - cy;
-        lex1 = cx + (tx1 * cos - ty1 * sin);
-        ley1 = cy + (tx1 * sin + ty1 * cos);
-
-        const tx2 = ex2 - cx, ty2 = ey2 - cy;
-        lex2 = cx + (tx2 * cos - ty2 * sin);
-        ley2 = cy + (tx2 * sin + ty2 * cos);
-    }
-
-    // For transparent/unfilled shapes, check intersection against the precise perimeter geometry in local space
-    const isUnfilled = el.fill === "transparent" || el.fill === "none";
-    if (isUnfilled) {
-        if (el.type === "rect") {
-            return (
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, x, y, x + w, y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, x, y + h, x + w, y + h) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, x, y, x, y + h) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, x + w, y, x + w, y + h) <= tol
-            );
-        }
-
-        if (el.type === "triangle") {
-            const v1 = { x: x + w / 2, y: y + sW };
-            const v2 = { x: x + w - sW, y: y + h - sW };
-            const v3 = { x: x + sW, y: y + h - sW };
-            return (
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, v1.x, v1.y, v2.x, v2.y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, v2.x, v2.y, v3.x, v3.y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, v3.x, v3.y, v1.x, v1.y) <= tol
-            );
-        }
-
-        if (el.type === "arrow") {
-            const arrowHeadSize = 12;
-            const shaftStart = { x: x + sW, y: y + h / 2 };
-            const shaftEnd = { x: x + w - arrowHeadSize, y: y + h / 2 };
-            const headTip = { x: x + w - sW, y: y + h / 2 };
-            const headUpper = { x: x + w - arrowHeadSize, y: y + h / 2 - arrowHeadSize / 2 };
-            const headLower = { x: x + w - arrowHeadSize, y: y + h / 2 + arrowHeadSize / 2 };
-            return (
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, shaftStart.x, shaftStart.y, shaftEnd.x, shaftEnd.y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, headTip.x, headTip.y, headUpper.x, headUpper.y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, headTip.x, headTip.y, headLower.x, headLower.y) <= tol ||
-                segmentToSegmentDist(lex1, ley1, lex2, ley2, headUpper.x, headUpper.y, headLower.x, headLower.y) <= tol
-            );
-        }
-
-        if (el.type === "ellipse") {
-            const cx = x + w / 2, cy = y + h / 2;
-            const rx = Math.max(0, w / 2 - sW / 2);
-            const ry = Math.max(0, h / 2 - sW / 2);
-            const segments = 32;
-            for (let i = 0; i < segments; i++) {
-                const a1 = (i / segments) * Math.PI * 2;
-                const a2 = ((i + 1) / segments) * Math.PI * 2;
-                const dist = segmentToSegmentDist(lex1, ley1, lex2, ley2,
-                    cx + Math.cos(a1) * rx, cy + Math.sin(a1) * ry,
-                    cx + Math.cos(a2) * rx, cy + Math.sin(a2) * ry
-                );
-                if (dist <= tol) return true;
-            }
-            return false;
-        }
-    }
-
-    // For solid shapes (or sticky notes), use full footprint/AABB intersection in local space
-    return lineIntersectsAABB(lex1, ley1, lex2, ley2, x, y, w, h);
-}
+import LivePathOverlay from "./canvas/overlays/LivePathOverlay";
+import EraserTrailOverlay from "./canvas/overlays/EraserTrailOverlay";
+import RemoteLiveStrokesOverlay from "./canvas/overlays/RemoteLiveStrokesOverlay";
+import CursorOverlay from "./canvas/overlays/CursorOverlay";
+import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
+import EraserCursor from "./canvas/overlays/EraserCursor";
+import FollowBanner from "./canvas/overlays/FollowBanner";
 
 
-// ── Live preview SVG component for the pen stroke being drawn ──────────────
-function LivePathPreview({ currentPath, camera }) {
-    if (!currentPath || !currentPath.points || currentPath.points.length === 0) return null;
-
-    const outlinePoints = getStroke(currentPath.points.map(p => [p.x, p.y, p.pressure || 0.5]), {
-        size: currentPath.width * 2,
-        thinning: 0.5,
-        smoothing: 0.5,
-        streamline: 0.5,
-    });
-
-    const pathData = getSvgPathFromStroke(outlinePoints);
-    if (!pathData) return null;
-
-    return (
-        <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 16, overflow: "visible" }}
-        >
-            <g transform={`translate(${camera.x}, ${camera.y}) scale(${camera.z})`}>
-                <path d={pathData} fill={currentPath.color} stroke="none" opacity={0.85} />
-            </g>
-        </svg>
-    );
-}
-
-// ── Eraser trail SVG ───────────────────────────────────────────────────────
-function EraserTrailPreview({ eraserPath, camera }) {
-    if (!eraserPath || eraserPath.length < 2) return null;
-    const d = eraserPath.map((p, i) => {
-        const sx = p.x * camera.z + camera.x;
-        const sy = p.y * camera.z + camera.y;
-        return `${i === 0 ? "M" : "L"} ${sx} ${sy}`;
-    }).join(" ");
-
-    return (
-        <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 16, overflow: "visible" }}
-        >
-            <path d={d} fill="none" stroke="rgba(239,68,68,0.4)" strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
-        </svg>
-    );
-}
 
 export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
     // minimap
@@ -1356,12 +1168,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         drawingRef.current = false;
     };
 
-    const getInitials = (name) => {
-        if (!name) return "?";
-        const parts = name.trim().split(/\s+/);
-        if (parts.length === 1) return parts[0].substring(0, 1).toUpperCase();
-        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-    };
+
 
     const resetCamera = () => setCamera({ x: 0, y: 0, z: 1 });
 
@@ -1437,38 +1244,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
 
             {/* Live pen stroke preview */}
-            <LivePathPreview currentPath={currentPath} camera={camera} />
+            <LivePathOverlay currentPath={currentPath} camera={camera} />
 
             {/* Eraser trail preview */}
-            <EraserTrailPreview eraserPath={eraserPath} camera={camera} />
+            <EraserTrailOverlay eraserPath={eraserPath} camera={camera} />
 
             {/* Remote live strokes preview */}
-            {Object.keys(remoteLiveStrokes).length > 0 && (
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 9 }}>
-                    <g transform={`translate(${camera.x}, ${camera.y}) scale(${camera.z})`}>
-                        {Object.entries(remoteLiveStrokes).map(([uid, stroke]) => {
-                            if (!stroke || !stroke.points || stroke.points.length === 0) return null;
-                            const outlinePoints = getStroke(stroke.points.map(p => [p.x, p.y, p.pressure || 0.5]), {
-                                size: stroke.width * 2,
-                                thinning: 0.5,
-                                smoothing: 0.5,
-                                streamline: 0.5,
-                            });
-                            const pathData = getSvgPathFromStroke(outlinePoints);
-                            if (!pathData) return null;
-
-                            return (
-                                <path
-                                    key={`remote-live-${uid}`}
-                                    d={pathData}
-                                    fill={stroke.color}
-                                    style={{ opacity: 0.8 }}
-                                />
-                            );
-                        })}
-                    </g>
-                </svg>
-            )}
+            <RemoteLiveStrokesOverlay remoteLiveStrokes={remoteLiveStrokes} camera={camera} />
 
             <ElementsLayer
                 tool={tool}
@@ -1488,35 +1270,19 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 isViewer={isViewer}
             />
 
-            {tool === "eraser" && (
-                <div className="absolute pointer-events-none rounded-full border-2 border-red-400 bg-red-500/10" style={{ width: 24, height: 24, left: mousePos.x, top: mousePos.y, transform: "translate(-50%, -50%)", zIndex: 20 }} />
-            )}
+            <EraserCursor tool={tool} mousePos={mousePos} />
 
-            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 25 }}>
-                {Object.entries(cursors).map(([userId, c]) => {
-                    const sp = worldToScreen(c.x, c.y);
-                    return (
-                        <div key={userId} style={{ position: "absolute", left: sp.x, top: sp.y, transform: "translate(-6px,-6px)", transition: "none" }}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm" style={{ background: c.color }} />
-                                <span className="text-[10px] px-2 py-0.5 rounded-full shadow-md whitespace-nowrap font-bold text-white" style={{ backgroundColor: c.color }}>{c.name}</span>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <CursorOverlay cursors={cursors} worldToScreen={worldToScreen} />
 
             {/* UI overlay container */}
             <div className="absolute inset-0 pointer-events-none z-30">
                 {/* Follow mode banner */}
-                {followedUserId && (
-                    <div className={`ui-container absolute ${isMobile ? "top-[150px] left-5 translate-x-0" : "top-4 left-1/2 -translate-x-1/2"} z-50 flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg pointer-events-auto transition-all`}>
-                        <span className="text-sm font-semibold">Following {participants.find(p => p.userId === followedUserId)?.name || "User"}</span>
-                        <button className="btn btn-xs btn-circle btn-ghost hover:bg-white/20 text-white border-none ml-1" onClick={() => setFollowedUserId(null)}>
-                            ✕
-                        </button>
-                    </div>
-                )}
+                <FollowBanner 
+                    followedUserId={followedUserId} 
+                    participants={participants} 
+                    onStopFollow={() => setFollowedUserId(null)} 
+                    isMobile={isMobile} 
+                />
                 <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
                     <div className="flex items-center gap-2">
                         {!isMobile && (
@@ -1805,18 +1571,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             </div>
 
             {/* Selection Box Visual */}
-            {selectionBox && (
-                <div
-                    className="absolute border border-blue-500 bg-blue-500/10 pointer-events-none"
-                    style={{
-                        left: Math.min(selectionBox.x * camera.z + camera.x, (selectionBox.x + selectionBox.w) * camera.z + camera.x),
-                        top: Math.min(selectionBox.y * camera.z + camera.y, (selectionBox.y + selectionBox.h) * camera.z + camera.y),
-                        width: Math.abs(selectionBox.w * camera.z),
-                        height: Math.abs(selectionBox.h * camera.z),
-                        zIndex: 40
-                    }}
-                />
-            )}
+            <SelectionMarquee selectionBox={selectionBox} camera={camera} />
         </div>
     );
 }
