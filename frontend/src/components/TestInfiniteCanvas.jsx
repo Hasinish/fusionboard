@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Pen, Eraser, Hand, ZoomIn, ZoomOut, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube, Plus, Map as MapIcon } from "lucide-react";
 import ElementsLayer from "./ElementsLayer";
 import { getElementBounds } from "./canvas/geometryUtils";
-
-import { getInitials } from "./canvas/utils/participantUtils";
 
 import LivePathOverlay from "./canvas/overlays/LivePathOverlay";
 import EraserTrailOverlay from "./canvas/overlays/EraserTrailOverlay";
@@ -12,6 +9,17 @@ import CursorOverlay from "./canvas/overlays/CursorOverlay";
 import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
 import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
+
+import CanvasToolbar from "./canvas/ui/CanvasToolbar";
+import ShapeMenu from "./canvas/ui/ShapeMenu";
+import InsertMenu from "./canvas/ui/InsertMenu";
+import ColorPopup from "./canvas/ui/ColorPopup";
+import PenControls from "./canvas/ui/PenControls";
+import ParticipantsStrip from "./canvas/ui/ParticipantsStrip";
+import MobileParticipantsStrip from "./canvas/ui/MobileParticipantsStrip";
+import ZoomControls from "./canvas/ui/ZoomControls";
+import Minimap from "./canvas/ui/Minimap";
+import StatusBadge from "./canvas/ui/StatusBadge";
 
 import useCanvasToolState from "../hooks/useCanvasToolState";
 import useCanvasElementsState from "../hooks/useCanvasElementsState";
@@ -438,213 +446,108 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     onStopFollow={() => setFollowedUserId(null)} 
                     isMobile={isMobile} 
                 />
+                
                 <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
                     <div className="flex items-center gap-2">
-                        {!isMobile && (
-                            <div className="ui-container flex -space-x-3 pointer-events-auto mr-2">
-                                {participants.slice(0, 5).map((p, idx) => (
-                                    <div
-                                        key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${(followedUserId && String(followedUserId) === String(p.userId)) ? "ring-4 ring-blue-500 ring-offset-1 scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse scale-110 z-10" : ""}`}
-                                        style={{ backgroundColor: p.color || "#ccc", borderColor: p.color || "#ccc" }}
-                                        data-tip={p.name}
-                                        onClick={() => {
-                                            setFollowedUserId(prev => {
-                                                const uid = String(p.userId);
-                                                const next = (prev && String(prev) === uid) ? null : uid;
-                                                if (next && remoteCamerasRef.current[next]) {
-                                                    setCamera(remoteCamerasRef.current[next]);
-                                                }
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        {p.avatar
-                                            ? <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                                            : getInitials(p.name)
-                                        }
-                                    </div>
-                                ))}
-                                {participants.length > 5 && (
-                                    <div className={`w-10 h-10 rounded-full border-2 border-white ${isDark ? "bg-slate-800 text-slate-300" : "bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
-                                        +{participants.length - 5}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <ParticipantsStrip 
+                            participants={participants}
+                            followedUserId={followedUserId}
+                            setFollowedUserId={setFollowedUserId}
+                            talkingUserIds={talkingUserIds}
+                            remoteCamerasRef={remoteCamerasRef}
+                            setCamera={setCamera}
+                            isDark={isDark}
+                            isMobile={isMobile}
+                        />
 
-                        <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-5 py-2 flex items-center gap-3 pointer-events-auto`}>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-pulse"></div>
-                            {!isMobile && <span className={`text-sm font-semibold ${isDark ? "text-white opacity-90" : "opacity-60"}`}>{statusMsg || "Ready"}</span>}
-                            <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ${!isMobile ? "ml-2" : ""}`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
-                        </div>
+                        <StatusBadge 
+                            statusMsg={statusMsg}
+                            isMinimapVisible={isMinimapVisible}
+                            setIsMinimapVisible={setIsMinimapVisible}
+                            isDark={isDark}
+                            isMobile={isMobile}
+                            ghostBtnClass={ghostBtnClass}
+                        />
                     </div>
-                    <div className={`ui-container group bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-1"} pointer-events-auto transition-all hover:bg-white/25`}>
-                        <button 
-                            className={`btn btn-sm btn-ghost ${isDark ? "text-white" : "text-base-content"} opacity-70 hover:opacity-100 px-2`} 
-                            title="Zoom Out" 
-                            onClick={() => {
-                                const prev = targetCameraRef.current;
-                                const nZ = Math.max(0.1, prev.z * 0.82);
-                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
-                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
-                                startCameraAnimation();
-                            }}
-                        >
-                            <ZoomOut className="w-4 h-4" />
-                        </button>
 
-                        {!isMobile && (
-                            <div className="flex items-center w-0 opacity-0 group-hover:w-56 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto overflow-hidden">
-                                <input 
-                                    type="range" 
-                                    min="0.1" 
-                                    max="10" 
-                                    step="0.01" 
-                                    value={camera.z} 
-                                    onChange={(e) => {
-                                        const nZ = parseFloat(e.target.value);
-                                        const prev = targetCameraRef.current;
-                                        const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
-                                        targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
-                                        startCameraAnimation();
-                                    }}
-                                    className={`custom-zoom-slider w-52 mx-2 ${isDark ? "dark" : ""}`}
-                                />
-                            </div>
-                        )}
+                    <ZoomControls 
+                        camera={camera}
+                        targetCameraRef={targetCameraRef}
+                        startCameraAnimation={startCameraAnimation}
+                        isDark={isDark}
+                        isMobile={isMobile}
+                    />
 
-                        <button 
-                            className={`btn btn-sm btn-ghost font-mono text-xs px-2 min-h-0 h-7 ${isDark ? "text-white bg-white/10 hover:bg-white/20" : "text-base-content bg-base-200 hover:bg-base-300"}`} 
-                            onClick={() => {
-                                const prev = targetCameraRef.current;
-                                const nZ = 1;
-                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
-                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
-                                startCameraAnimation();
-                            }}
-                        >
-                            {Math.round(camera.z * 100)}%
-                        </button>
-                        
-                        <button 
-                            className={`btn btn-sm btn-ghost ${isDark ? "text-white" : "text-base-content"} opacity-70 hover:opacity-100 px-2`} 
-                            title="Zoom In" 
-                            onClick={() => {
-                                const prev = targetCameraRef.current;
-                                const nZ = Math.min(10, prev.z * 1.25);
-                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
-                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
-                                startCameraAnimation();
-                            }}
-                        >
-                            <ZoomIn className="w-4 h-4" />
-                        </button>
-                    </div>
-                    {isMinimapVisible && (
-                        <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-2 pointer-events-auto origin-top-right`}>
-                            <canvas ref={minimapCanvasRef} className={`w-48 h-32 rounded-xl border cursor-grab active:cursor-grabbing ${isDark ? "border-[#333333]" : "border-base-300"}`} style={{ backgroundColor: isDark ? "#121212" : "#f8fafc" }} onMouseDown={handleMinimapPointer} onMouseMove={handleMinimapPointer} onTouchStart={handleMinimapPointer} onTouchMove={handleMinimapPointer} />
-                        </div>
-                    )}
+                    <Minimap 
+                        isMinimapVisible={isMinimapVisible}
+                        minimapCanvasRef={minimapCanvasRef}
+                        handleMinimapPointer={handleMinimapPointer}
+                        isDark={isDark}
+                    />
                 </div>
 
-                <div
-                    ref={toolbarRef}
-                    className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
+                <CanvasToolbar 
+                    isViewer={isViewer}
+                    tool={tool}
+                    setTool={setTool}
+                    ghostBtnClass={ghostBtnClass}
+                    isDark={isDark}
+                    toolbarRef={toolbarRef}
                 >
-                    {isViewer ? (
-                        /* Viewers only see the hand tool */
-                        <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
-                            <button className={`btn btn-sm join-item border-none tooltip tooltip-top bg-primary text-primary-content shadow-lg`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
-                        </div>
-                    ) : (
+                    {!isViewer && (
                         <>
-                            <div className={`join ${isDark ? "bg-[#121212]/50" : "bg-base-200/50"} p-1 rounded-xl`}>
-                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "select" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("select")} data-tip="Select (V)"><MousePointer2 className="w-5 h-5" /></button>
-                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "pen" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("pen")} data-tip="Pen (P)"><Pen className="w-5 h-5" /></button>
-                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "eraser" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("eraser")} data-tip="Eraser (E)"><Eraser className="w-5 h-5" /></button>
-                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "text" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("text")} data-tip="Text (T)">
-                                    <Type className="w-5 h-5" />
-                                </button>
-                                <button className={`btn btn-sm join-item border-none tooltip tooltip-top ${tool === "hand" ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass}`} onClick={() => setTool("hand")} data-tip="Hand (H)"><Hand className="w-5 h-5" /></button>
-                            </div>
-                            <div className={`w-px h-8 ${isDark ? "bg-white/20" : "bg-base-300"} rounded-full`} />
-                            <div className="relative pointer-events-auto" ref={shapesRef}>
-                                <button
-                                    className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
-                                    onClick={() => { setShapesOpen(!shapesOpen); setPlusOpen(false); setColorOpen(false); }}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}
-                                        {lastShapeType === "rect" && <Square className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                        {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                        {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
-                                        {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
-                                        <ChevronUp className={`w-4 h-4 opacity-50 transition-transform ${shapesOpen ? "rotate-180" : ""}`} />
-                                    </div>
-                                </button>
-                                {/* Popup moved to top level */}
-                            </div>
-                            <div className="relative pointer-events-auto" ref={plusRef}>
-                                <button
-                                    className={`btn btn-sm ${["code", "video"].includes(tool) ? "bg-primary text-primary-content shadow-lg" : ghostBtnClass} border-none rounded-xl`}
-                                    onClick={() => { setPlusOpen(!plusOpen); setShapesOpen(false); setColorOpen(false); }}
-                                >
-                                    <Plus className="w-5 h-5" />
-                                </button>
-                                {/* Popup moved to top level */}
-                            </div>
-                            <div className="flex items-center gap-2 pointer-events-auto">
-                                {/* The Settings menu was moved to TestWhiteboardPage via renderTopLeftUI */}
-                            </div>
+                            <ShapeMenu 
+                                tool={tool}
+                                setTool={setTool}
+                                shapesOpen={shapesOpen}
+                                setShapesOpen={setShapesOpen}
+                                shapesRef={shapesRef}
+                                lastShapeType={lastShapeType}
+                                setLastShapeType={setLastShapeType}
+                                isDark={isDark}
+                                ghostBtnClass={ghostBtnClass}
+                                toolbarHeight={toolbarHeight}
+                            />
+                            <InsertMenu 
+                                tool={tool}
+                                setTool={setTool}
+                                plusOpen={plusOpen}
+                                setPlusOpen={setPlusOpen}
+                                plusRef={plusRef}
+                                ghostBtnClass={ghostBtnClass}
+                                toolbarHeight={toolbarHeight}
+                            />
                         </>
                     )}
-                </div>
+                </CanvasToolbar>
 
-                {/* Dropdown Popups (Moved to top level to avoid nested backdrop-blur) */}
-                {!isViewer && shapesOpen && (
-                    <div id="shapes-popup" className="ui-container z-50 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-72 min-w-[280px] pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
-                        <div className="grid grid-cols-5 gap-3">
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("sticky"); setLastShapeType("sticky"); setShapesOpen(false); }} data-tip="Sticky Note (S)"><StickyNote className="w-5 h-5 text-warning" /></button>
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("rect"); setLastShapeType("rect"); setShapesOpen(false); }} data-tip="Rectangle (R)"><Square className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); setShapesOpen(false); }} data-tip="Ellipse (O)"><Circle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("triangle"); setLastShapeType("triangle"); setShapesOpen(false); }} data-tip="Triangle"><Triangle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("arrow"); setLastShapeType("arrow"); setShapesOpen(false); }} data-tip="Arrow (A)"><ArrowRight className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={2} /></button>
-                        </div>
-                    </div>
-                )}
-
-                {!isViewer && plusOpen && (
-                    <div id="plus-popup" className="ui-container z-50 p-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 64, left: '50%', transform: 'translateX(-50%)' }}>
-                        <div className="flex gap-2">
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("code"); setPlusOpen(false); }} data-tip="Code (C)">
-                                <Terminal className="w-5 h-5" />
-                            </button>
-                            <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("video"); setPlusOpen(false); }} data-tip="Video (Y)">
-                                <Youtube className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {!isViewer && colorOpen && (
-                    <div id="color-popup" data-ui="color-menu" className="ui-container z-40 p-4 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl w-56 pointer-events-auto" style={{ position: 'absolute', bottom: toolbarHeight + 112, left: colorRef.current ? colorRef.current.getBoundingClientRect().left + colorRef.current.offsetWidth / 2 : '50%', transform: 'translateX(-50%)' }}>
-                        <div className="grid grid-cols-4 gap-3">
-                            {["#000000", "#ef4444", "#f97316", "#f59e0b", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#ffffff"].map((c) => (
-                                <button key={c} className={`w-10 h-10 rounded-full border transition-all hover:scale-110 active:scale-90 ${isDark ? "border-white/10" : "border-base-300"}`} style={{ backgroundColor: c }} onClick={() => { setColor(c); setColorOpen(false); }} />
-                            ))}
-                        </div>
-                        <div className={`h-px w-full my-4 bg-white/20`} />
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold uppercase tracking-widest opacity-40">Custom</span>
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => setColor(e.target.value)}
-                                className={`w-full h-9 cursor-pointer rounded-xl bg-white/10 p-1 border border-white/20`}
+                {!isViewer && (
+                    <>
+                        {colorOpen && (
+                            <ColorPopup 
+                                color={color}
+                                setColor={setColor}
+                                setColorOpen={setColorOpen}
+                                isDark={isDark}
+                                toolbarHeight={toolbarHeight}
+                                colorRef={colorRef}
                             />
-                        </div>
-                    </div>
+                        )}
+
+                        <PenControls 
+                            tool={tool}
+                            color={color}
+                            colorRef={colorRef}
+                            colorOpen={colorOpen}
+                            setColorOpen={setColorOpen}
+                            setShapesOpen={setShapesOpen}
+                            setPlusOpen={setPlusOpen}
+                            width={width}
+                            setWidth={setWidth}
+                            isDark={isDark}
+                            toolbarHeight={toolbarHeight}
+                        />
+                    </>
                 )}
 
                 {/* Provide the Top Left UI render slot here, floating above everything */}
@@ -662,72 +565,25 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 }
                             })}
                         </div>
-                        {isMobile && (
-                            <div className="ui-container absolute top-5 left-5 mt-20 flex -space-x-3 z-50 pointer-events-auto">
-                                {participants.slice(0, 5).map((p, idx) => (
-                                    <div
-                                        key={`${p.userId}-${idx}`}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-white text-xs font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer tooltip tooltip-bottom ${(followedUserId && String(followedUserId) === String(p.userId)) ? "ring-4 ring-blue-500 ring-offset-1 scale-110 z-10" : talkingUserIds.includes(p.userId) ? "ring-4 ring-green-400 animate-pulse scale-110 z-10" : ""}`}
-                                        style={{ backgroundColor: p.color || "#ccc", borderColor: p.color || "#ccc" }}
-                                        data-tip={p.name}
-                                        onClick={() => {
-                                            setFollowedUserId(prev => {
-                                                const uid = String(p.userId);
-                                                const next = (prev && String(prev) === uid) ? null : uid;
-                                                if (next && remoteCamerasRef.current[next]) {
-                                                    setCamera(remoteCamerasRef.current[next]);
-                                                }
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        {p.avatar
-                                            ? <img src={p.avatar} alt={p.name} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-                                            : getInitials(p.name)
-                                        }
-                                    </div>
-                                ))}
-                                {participants.length > 5 && (
-                                    <div className={`w-10 h-10 rounded-full border-2 border-white ${isDark ? "bg-slate-800 text-slate-300" : "bg-base-300 text-base-content"} flex items-center justify-center text-xs font-bold shadow-sm`}>
-                                        +{participants.length - 5}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {!isViewer && tool === "pen" && (
-                    <div
-                        className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
-                        style={{ bottom: toolbarHeight + 42 }} // Offset above the toolbar
-                    >
-                        <div className="relative pointer-events-auto" ref={colorRef}>
-                            <button
-                                className="flex items-center justify-center w-10 h-10 rounded-full shadow-lg cursor-pointer ring-2 ring-offset-2 ring-base-300 hover:ring-primary transition-all active:scale-95"
-                                style={{ backgroundColor: color }}
-                                onClick={() => { setColorOpen(!colorOpen); setShapesOpen(false); setPlusOpen(false); }}
-                            />
-                            {/* Popup moved to top level */}
-                        </div>
-                        <input
-                            type="range"
-                            min="1"
-                            max="20"
-                            value={width}
-                            onChange={e => setWidth(Number(e.target.value))}
-                            className={`range range-xs range-primary w-32 ml-3 ${isDark ? "bg-white/10" : ""}`}
+                        <MobileParticipantsStrip 
+                            isMobile={isMobile}
+                            participants={participants}
+                            followedUserId={followedUserId}
+                            setFollowedUserId={setFollowedUserId}
+                            talkingUserIds={talkingUserIds}
+                            remoteCamerasRef={remoteCamerasRef}
+                            setCamera={setCamera}
                         />
                     </div>
                 )}
             </div>
 
-            {/* Status Messages */}
-            {statusMsg && (
+            {/* Status Messages removed as they are now in StatusBadge or could be kept as toast */}
+            {/* statusMsg && (
                 <div className="absolute bottom-5 left-5 z-50 bg-success text-success-content px-4 py-2 rounded-full shadow-lg opacity-90 transition-opacity">
                     {statusMsg}
                 </div>
-            )}
+            )*/}
 
             {/* Selection Box Visual */}
             <SelectionMarquee selectionBox={selectionBox} camera={camera} />
