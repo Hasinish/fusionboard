@@ -30,15 +30,17 @@ export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, act
                             </div>
                         ) : (
                             <>
-                                <div className="flex items-center gap-1 px-1">
-                                    <div className={`flex items-center gap-1.5 bg-white/10 p-1 rounded-lg`}>
-                                        <MemoizedColorMenu value={first.fill} onChange={(f, persist = true) => updateStyle({ fill: f }, persist)} title="Fill Color" isDark={isDark} />
-                                        <MemoizedColorMenu value={first.stroke} onChange={(s, persist = true) => updateStyle({ stroke: s }, persist)} title="Border Color" isDark={isDark} />
+                                {(!isAllSameType || first.type !== "text") && (
+                                    <div className="flex items-center gap-1 px-1">
+                                        <div className={`flex items-center gap-1.5 bg-white/10 p-1 rounded-lg`}>
+                                            <MemoizedColorMenu value={first.fill} onChange={(f, persist = true) => updateStyle({ fill: f }, persist)} title="Fill Color" isDark={isDark} />
+                                            <MemoizedColorMenu value={first.stroke} onChange={(s, persist = true) => updateStyle({ stroke: s }, persist)} title="Border Color" isDark={isDark} />
+                                        </div>
+                                        {(first.strokeWidth !== undefined) && (
+                                            <input type="range" min="0" max="10" value={first.strokeWidth} onChange={e => updateStyle({ strokeWidth: Number(e.target.value) })} className="range range-xs range-primary w-12" title="Border Width" />
+                                        )}
                                     </div>
-                                    {(first.strokeWidth !== undefined) && (
-                                        <input type="range" min="0" max="10" value={first.strokeWidth} onChange={e => updateStyle({ strokeWidth: Number(e.target.value) })} className="range range-xs range-primary w-12" title="Border Width" />
-                                    )}
-                                </div>
+                                )}
 
                                 {first.text !== undefined && (
                                     <>

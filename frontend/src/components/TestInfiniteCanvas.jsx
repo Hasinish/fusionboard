@@ -245,7 +245,46 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     // camera (infinite canvas)
     const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 });
     const cameraRef = useRef({ x: 0, y: 0, z: 1 });
+    const targetCameraRef = useRef({ x: 0, y: 0, z: 1 });
+    const isAnimatingRef = useRef(false);
     const remoteCamerasRef = useRef({}); // userId -> camera object
+
+    const startCameraAnimation = useCallback(() => {
+        if (isAnimatingRef.current) return;
+        isAnimatingRef.current = true;
+        
+        const animate = () => {
+            if (!isAnimatingRef.current) return;
+            
+            setCamera(prev => {
+                const target = targetCameraRef.current;
+                const speed = 0.22;
+                const dx = (target.x - prev.x) * speed;
+                const dy = (target.y - prev.y) * speed;
+                const dz = (target.z - prev.z) * speed;
+                
+                if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05 && Math.abs(dz) < 0.0005) {
+                    isAnimatingRef.current = false;
+                    return target;
+                }
+                
+                requestAnimationFrame(animate);
+                return {
+                    x: prev.x + dx,
+                    y: prev.y + dy,
+                    z: prev.z + dz
+                };
+            });
+        };
+        requestAnimationFrame(animate);
+    }, []);
+
+    useEffect(() => {
+        cameraRef.current = camera;
+        if (!isAnimatingRef.current) {
+            targetCameraRef.current = camera;
+        }
+    }, [camera]);
 
     // undo/redo
     const undoStackRef = useRef([]);
@@ -731,19 +770,31 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             // regardless of where the mouse is.
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
-                setCamera(prev => {
-                    let nZ = prev.z * Math.exp(-e.deltaY * 0.005);
-                    nZ = Math.min(10, Math.max(0.1, nZ));
-                    const sx = e.clientX, sy = e.clientY;
-                    return { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
-                });
+                const zoomFactor = Math.exp(-e.deltaY * 0.005);
+                const currentTarget = targetCameraRef.current;
+                let nZ = currentTarget.z * zoomFactor;
+                nZ = Math.min(10, Math.max(0.1, nZ));
+                
+                const sx = e.clientX, sy = e.clientY;
+                targetCameraRef.current = {
+                    x: sx - (sx - currentTarget.x) * (nZ / currentTarget.z),
+                    y: sy - (sy - currentTarget.y) * (nZ / currentTarget.z),
+                    z: nZ
+                };
+                startCameraAnimation();
                 return;
             }
 
-            // Regular scroll panning (also prevented default to avoid browser back/forward or page scroll)
+            // Regular scroll panning
             e.preventDefault();
             setFollowedUserId(null);
-            setCamera(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY, z: prev.z }));
+            const currentTarget = targetCameraRef.current;
+            targetCameraRef.current = {
+                x: currentTarget.x - e.deltaX,
+                y: currentTarget.y - e.deltaY,
+                z: currentTarget.z
+            };
+            startCameraAnimation();
         };
 
         // Use capture: true to intercept before children stop propagation
@@ -1507,10 +1558,67 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                             <button className={`btn btn-ghost ${ghostBtnClass} btn-sm btn-circle ${!isMobile ? "ml-2" : ""}`} onClick={() => setIsMinimapVisible(!isMinimapVisible)} title="Toggle Minimap"><MapIcon className="w-4 h-4" /></button>
                         </div>
                     </div>
-                    <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-2"} pointer-events-auto`}>
-                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom Out" onClick={() => setCamera(p => ({ ...p, z: Math.max(p.z / 1.5, 0.1) }))}><ZoomOut className="w-4 h-4" /></button>
-                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} font-mono text-xs px-1 ${isDark ? "hover:bg-white/5" : "hover:bg-base-200"}`} onClick={resetCamera}>{Math.round(camera.z * 100)}%</button>
-                        <button className={`btn btn-sm btn-ghost ${ghostBtnClass} px-2`} title="Zoom In" onClick={() => setCamera(p => ({ ...p, z: Math.min(p.z * 1.5, 10) }))}><ZoomIn className="w-4 h-4" /></button>
+                    <div className={`ui-container group bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-1"} pointer-events-auto transition-all hover:bg-white/25`}>
+                        <button 
+                            className={`btn btn-sm btn-ghost ${isDark ? "text-white" : "text-base-content"} opacity-70 hover:opacity-100 px-2`} 
+                            title="Zoom Out" 
+                            onClick={() => {
+                                const prev = targetCameraRef.current;
+                                const nZ = Math.max(0.1, prev.z * 0.82);
+                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
+                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
+                                startCameraAnimation();
+                            }}
+                        >
+                            <ZoomOut className="w-4 h-4" />
+                        </button>
+
+                        {!isMobile && (
+                            <div className="flex items-center w-0 opacity-0 group-hover:w-56 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:pointer-events-auto overflow-hidden">
+                                <input 
+                                    type="range" 
+                                    min="0.1" 
+                                    max="10" 
+                                    step="0.01" 
+                                    value={camera.z} 
+                                    onChange={(e) => {
+                                        const nZ = parseFloat(e.target.value);
+                                        const prev = targetCameraRef.current;
+                                        const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
+                                        targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
+                                        startCameraAnimation();
+                                    }}
+                                    className={`custom-zoom-slider w-52 mx-2 ${isDark ? "dark" : ""}`}
+                                />
+                            </div>
+                        )}
+
+                        <button 
+                            className={`btn btn-sm btn-ghost font-mono text-xs px-2 min-h-0 h-7 ${isDark ? "text-white bg-white/10 hover:bg-white/20" : "text-base-content bg-base-200 hover:bg-base-300"}`} 
+                            onClick={() => {
+                                const prev = targetCameraRef.current;
+                                const nZ = 1;
+                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
+                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
+                                startCameraAnimation();
+                            }}
+                        >
+                            {Math.round(camera.z * 100)}%
+                        </button>
+                        
+                        <button 
+                            className={`btn btn-sm btn-ghost ${isDark ? "text-white" : "text-base-content"} opacity-70 hover:opacity-100 px-2`} 
+                            title="Zoom In" 
+                            onClick={() => {
+                                const prev = targetCameraRef.current;
+                                const nZ = Math.min(10, prev.z * 1.25);
+                                const sx = window.innerWidth / 2, sy = window.innerHeight / 2;
+                                targetCameraRef.current = { x: sx - (sx - prev.x) * (nZ / prev.z), y: sy - (sy - prev.y) * (nZ / prev.z), z: nZ };
+                                startCameraAnimation();
+                            }}
+                        >
+                            <ZoomIn className="w-4 h-4" />
+                        </button>
                     </div>
                     {isMinimapVisible && (
                         <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-2 pointer-events-auto origin-top-right`}>

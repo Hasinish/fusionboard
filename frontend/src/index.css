@@ -92,6 +92,59 @@ body.ctrl-down iframe {
 
 /* Prevent textareas (code blocks) from scrolling when Ctrl is held 
    so the whiteboard zoom takes priority. */
-body.ctrl-down textarea {
-  overflow: hidden !important;
+/* ─── Premium Zoom Slider ─── */
+/* ─── Premium Zoom Slider ─── */
+.custom-zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
+  cursor: pointer;
+  height: 24px; /* Increased to avoid clipping the thumb */
+  display: flex;
+  align-items: center;
+}
+
+/* Thumb Styling - ROUND AND COLORED */
+.custom-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  background-color: #3b82f6 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  margin-top: -6px; /* (track_height/2) - (thumb_height/2) => (4/2) - (16/2) = -6px */
+  position: relative;
+  z-index: 2;
+}
+
+.custom-zoom-slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  background-color: #3b82f6 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Track Styling */
+.custom-zoom-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.1);
+}
+
+.custom-zoom-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.1);
+}
+
+/* Dark mode overrides for track */
+.dark .custom-zoom-slider::-webkit-slider-runnable-track {
+  background: rgba(255,255,255,0.3);
+}
+.dark .custom-zoom-slider::-moz-range-track {
+  background: rgba(255,255,255,0.3);
 }
