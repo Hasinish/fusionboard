@@ -174,6 +174,7 @@ export async function updateBoard(req, res) {
 
     await board.save();
 
+    emitToWorkspace(board.workspace, "board:renamed", { boardId: board._id, title: board.title });
     return res.json({ message: "Board updated", board });
   } catch (e) {
     console.error("updateBoard error:", e);
@@ -207,6 +208,7 @@ export async function deleteBoard(req, res) {
     // actually delete it
     await Board.findByIdAndDelete(boardId);
 
+    emitToWorkspace(board.workspace, "board:deleted", { boardId });
     return res.json({ message: "Board deleted" });
   } catch (e) {
     console.error("deleteBoard error:", e);

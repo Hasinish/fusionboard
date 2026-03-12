@@ -42,7 +42,9 @@ export function useBoards(selectedWorkspaceId) {
       });
       socketRef.current = socket;
 
-      socket.emit("workspace:join", { workspaceId: selectedWorkspaceId });
+      socket.on("connect", () => {
+           socket.emit("workspace:join", { workspaceId: selectedWorkspaceId });
+         });
 
       socket.on("board:created", (board) => {
         setWorkspaceBoards(prev =>
@@ -65,22 +67,7 @@ export function useBoards(selectedWorkspaceId) {
       });
     }
 
-    // Auto-refresh board data to show active users
-    const interval = setInterval(async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const res = await api.get(
-          `/boards/workspace/${selectedWorkspaceId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setWorkspaceBoards(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error("Failed to refresh boards", err);
-      }
-    }, 10000);
-
     return () => {
-      clearInterval(interval);
       socketRef.current?.disconnect();
     };
   }, [selectedWorkspaceId]);
