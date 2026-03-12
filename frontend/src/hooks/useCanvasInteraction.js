@@ -3,6 +3,7 @@ import { uid } from "../components/canvas/utils/ids";
 import { pointHitsElement, getElementBounds, getPathBounds } from "../components/canvas/geometryUtils";
 import { eraserHitsElement } from "../components/canvas/utils/eraserMath";
 import { DEFAULT_ELEMENT_STYLES } from "../components/canvas/constants";
+import { classifyStroke, convertPathToShape } from "../components/canvas/utils/autoShape";
 
 /**
  * useCanvasInteraction
@@ -46,6 +47,16 @@ export default function useCanvasInteraction({
     const [eraserPath, setEraserPath] = useState(null);
     const eraserPathRef = useRef(null);
     const isErasingRef = useRef(false);
+
+    // Auto-shape suggestion state (local-only, never sent to remote users)
+    const [autoShapeSuggestion, setAutoShapeSuggestion] = useState(null);
+    const autoShapeSuggestionRef = useRef(null);
+
+    // Samsung-style Hold-to-Shape state
+    const [autoShapePreview, setAutoShapePreview] = useState(null);
+    const autoShapePreviewRef = useRef(null);
+    const holdTimerRef = useRef(null);
+    const holdStartPosRef = useRef(null);
 
     // Interaction refs
     const drawingRef = useRef(false);
@@ -232,6 +243,11 @@ export default function useCanvasInteraction({
         }
 
         if (toolRef.current === "pen") {
+            // Clear any existing auto-shape suggestion when starting a new stroke
+            if (autoShapeSuggestionRef.current) {
+                autoShapeSuggestionRef.current = null;
+                setAutoShapeSuggestion(null);
+            }
             drawingRef.current = true;
             const pressure = e.pressure || 0.5;
             const path = {
@@ -243,6 +259,12 @@ export default function useCanvasInteraction({
             };
             currentPathRef.current = path;
             setCurrentPath(path);
+            
+            // Start hold-to-shape tracking
+            holdStartPosRef.current = { x: wp.x, y: wp.y };
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = setTimeout(() => triggerAutoShapeHold(), 500);
+
             emitCursorMove(wp.x, wp.y);
             return;
         }
@@ -333,6 +355,27 @@ export default function useCanvasInteraction({
             currentPathRef.current.points.push({ x: p.x, y: p.y, pressure });
             setCurrentPath({ ...currentPathRef.current });
 
+            // Samsung-style hold detection: 
+            // If we moved too far from the point where the timer started, reset it.
+            if (holdStartPosRef.current) {
+                const dx = wp.x - holdStartPosRef.current.x;
+                const dy = wp.y - holdStartPosRef.current.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 12) {
+                    // Reset timer to current position
+                    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+                    holdStartPosRef.current = { x: wp.x, y: wp.y };
+                    
+                    // If we were already showing a preview, clear it (user is drawing again)
+                    if (autoShapePreviewRef.current) {
+                        autoShapePreviewRef.current = null;
+                        setAutoShapePreview(null);
+                    }
+                    
+                    holdTimerRef.current = setTimeout(() => triggerAutoShapeHold(), 500);
+                }
+            }
+
             const now = Date.now();
             if (now - lastEmittedTimeRef.current > 40) {
                 socket?.emit("draw:stroke-progress", { boardId, stroke: currentPathRef.current });
@@ -398,7 +441,27 @@ export default function useCanvasInteraction({
             currentPathRef.current = null;
             setCurrentPath(null);
             drawingRef.current = false;
+
+            // Clear hold timer
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = null;
+
             if (socket?.connected) socket.emit("draw:stroke-end", { boardId });
+
+            // If we have a hold-preview, commit that instead of the raw path
+            if (autoShapePreviewRef.current) {
+                const el = { ...autoShapePreviewRef.current, userId: me?.userId || me?.id };
+                setElements(prev => [...prev, el]);
+                if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+                pushAction({ type: "ADD_ELEMENT", element: el });
+                
+                // Clear preview and suggestion
+                setAutoShapePreview(null);
+                autoShapePreviewRef.current = null;
+                setAutoShapeSuggestion(null);
+                autoShapeSuggestionRef.current = null;
+                return;
+            }
 
             if (path && path.points.length > 0) {
                 const bounds = getPathBounds(path.points);
@@ -411,6 +474,30 @@ export default function useCanvasInteraction({
                 setElements(prev => [...prev, el]);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
+
+                // ── Auto-shape detection (runs after path is fully added) ──
+                // This runs synchronously on the finalized stroke. If the stroke
+                // is recognized as a shape, we store a suggestion for the user.
+                // The original path element remains untouched until the user accepts.
+                try {
+                    const detection = classifyStroke(path.points);
+                    if (detection && detection.kind) {
+                        const proposed = convertPathToShape(el, detection);
+                        if (proposed) {
+                            const suggestion = {
+                                elementId: el.id,
+                                kind: detection.kind,
+                                proposedElement: proposed,
+                                anchorBounds: bounds,
+                                confidence: detection.confidence,
+                            };
+                            autoShapeSuggestionRef.current = suggestion;
+                            setAutoShapeSuggestion(suggestion);
+                        }
+                    }
+                } catch (_) {
+                    // Auto-shape detection is best-effort – never block drawing
+                }
             }
             return;
         }
@@ -444,7 +531,89 @@ export default function useCanvasInteraction({
             return;
         }
         drawingRef.current = false;
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
     }, [selectionBoxRef, setSelectionBox, elementsRef, setSelectedIds, ghostElement, setElements, socket, boardId, pushAction, setTool, me]);
+
+    // ── Auto-shape Hold-to-Shape logic ────────────────────────────────────
+
+    const triggerAutoShapeHold = useCallback(() => {
+        if (!currentPathRef.current || currentPathRef.current.points.length < 10) return;
+        
+        try {
+            const detection = classifyStroke(currentPathRef.current.points);
+            if (detection && detection.kind) {
+                // We use the same conversion logic
+                // But we don't commit it to history yet
+                const el = {
+                    ...currentPathRef.current,
+                    ...getPathBounds(currentPathRef.current.points)
+                };
+                const proposed = convertPathToShape(el, detection);
+                if (proposed) {
+                    autoShapePreviewRef.current = proposed;
+                    setAutoShapePreview(proposed);
+                    
+                    // Haptic feedback feel: slightly dim the current path or hide it?
+                    // We'll let the UI handle showing the preview.
+                }
+            }
+        } catch (e) {
+            console.error("AutoShape hold error", e);
+        }
+    }, [setElements]);
+
+    // ── Auto-shape accept / dismiss callbacks ─────────────────────────────
+
+    /**
+     * Accept the auto-shape suggestion: update the path element in-place
+     * to a native shape via UPDATE_ELEMENT for correct undo/redo.
+     */
+    const acceptAutoShapeSuggestion = useCallback(() => {
+        const suggestion = autoShapeSuggestionRef.current;
+        if (!suggestion) return;
+
+        const originalElement = elementsRef.current.find(e => e.id === suggestion.elementId);
+        if (!originalElement) {
+            // Element was deleted or changed before accept – silently clear
+            autoShapeSuggestionRef.current = null;
+            setAutoShapeSuggestion(null);
+            return;
+        }
+
+        const converted = suggestion.proposedElement;
+
+        // Update element in-place
+        setElements(prev => prev.map(e => e.id === converted.id ? converted : e));
+
+        // Push undo-able action
+        pushAction({
+            type: "UPDATE_ELEMENT",
+            id: converted.id,
+            oldState: originalElement,
+            newState: converted,
+        });
+
+        // Emit socket update
+        if (socket?.connected) {
+            socket.emit("updateElement", { boardId, element: converted });
+        }
+
+        // Keep selection on the same element
+        setSelectedIds([converted.id]);
+
+        // Clear suggestion
+        autoShapeSuggestionRef.current = null;
+        setAutoShapeSuggestion(null);
+    }, [elementsRef, setElements, pushAction, socket, boardId, setSelectedIds]);
+
+    /**
+     * Dismiss the auto-shape suggestion: keep the original path untouched.
+     */
+    const dismissAutoShapeSuggestion = useCallback(() => {
+        autoShapeSuggestionRef.current = null;
+        setAutoShapeSuggestion(null);
+    }, []);
 
     return {
         onPointerDown,
@@ -452,6 +621,12 @@ export default function useCanvasInteraction({
         onPointerUp,
         currentPath,
         eraserPath,
-        handleMinimapPointer
+        handleMinimapPointer,
+        // Auto-shape suggestion API
+        autoShapeSuggestion,
+        acceptAutoShapeSuggestion,
+        dismissAutoShapeSuggestion,
+        // Samsung hold preview
+        autoShapePreview
     };
 }

@@ -9,6 +9,8 @@ import CursorOverlay from "./canvas/overlays/CursorOverlay";
 import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
 import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
+import AutoShapeSuggestionOverlay from "./canvas/overlays/AutoShapeSuggestionOverlay";
+import BoardElement from "./canvas/BoardElement";
 
 import CanvasToolbar from "./canvas/ui/CanvasToolbar";
 import ShapeMenu from "./canvas/ui/ShapeMenu";
@@ -101,7 +103,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     // --- interaction domain ---
     const {
         onPointerDown, onPointerMove, onPointerUp,
-        currentPath, eraserPath, handleMinimapPointer
+        currentPath, eraserPath, handleMinimapPointer,
+        autoShapeSuggestion, acceptAutoShapeSuggestion, dismissAutoShapeSuggestion,
+        autoShapePreview
     } = useCanvasInteraction({
         tool, setTool, toolRef,
         isViewerRef,
@@ -407,7 +411,23 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
 
             {/* Live pen stroke preview */}
-            <LivePathOverlay currentPath={currentPath} camera={camera} />
+            <div style={{ opacity: autoShapePreview ? 0.3 : 1 }}>
+                <LivePathOverlay currentPath={currentPath} camera={camera} />
+            </div>
+
+            {/* Hold-to-shape preview (Samsung style) */}
+            {autoShapePreview && (
+                <div style={{ pointerEvents: "none" }}>
+                    <BoardElement
+                        el={{ ...autoShapePreview, id: "preview-autoshape" }}
+                        camera={camera}
+                        isDark={isDark}
+                        isSelected={false}
+                        onChange={() => {}}
+                        onSelect={() => {}}
+                    />
+                </div>
+            )}
 
             {/* Eraser trail preview */}
             <EraserTrailOverlay eraserPath={eraserPath} camera={camera} />
@@ -439,6 +459,17 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             {/* UI overlay container */}
             <div className="absolute inset-0 pointer-events-none z-30">
+                {/* Auto-shape suggestion overlay (local-only, non-blocking) */}
+                {!isViewer && autoShapeSuggestion && (
+                    <AutoShapeSuggestionOverlay
+                        suggestion={autoShapeSuggestion}
+                        onAccept={acceptAutoShapeSuggestion}
+                        onDismiss={dismissAutoShapeSuggestion}
+                        worldToScreen={worldToScreen}
+                        camera={camera}
+                    />
+                )}
+
                 {/* Follow mode banner */}
                 <FollowBanner 
                     followedUserId={followedUserId} 
