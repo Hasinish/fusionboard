@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Pen, Eraser, Hand, ZoomIn, ZoomOut, StickyNote, Square, Circle, Triangle, ArrowRight, MousePointer2, ChevronUp, Type, Terminal, Youtube, Plus, Map as MapIcon } from "lucide-react";
 import ElementsLayer from "./ElementsLayer";
-import { DEFAULT_ELEMENT_STYLES } from "./canvas/constants";
-import { getSvgPathFromStroke, getPathBounds, getElementBounds, pointHitsElement } from "./canvas/geometryUtils";
+import { getElementBounds } from "./canvas/geometryUtils";
 
-import { uid } from "./canvas/utils/ids";
-import { eraserHitsElement } from "./canvas/utils/eraserMath";
 import { getInitials } from "./canvas/utils/participantUtils";
 
 import LivePathOverlay from "./canvas/overlays/LivePathOverlay";
@@ -21,6 +18,8 @@ import useCanvasElementsState from "../hooks/useCanvasElementsState";
 import useCanvasUiState from "../hooks/useCanvasUiState";
 import useCanvasCamera from "../hooks/useCanvasCamera";
 import useCanvasRealtime from "../hooks/useCanvasRealtime";
+import useCanvasHistory from "../hooks/useCanvasHistory";
+import useCanvasInteraction from "../hooks/useCanvasInteraction";
 
 
 
@@ -66,9 +65,12 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         screenToWorld, worldToScreen
     } = useCanvasCamera();
 
-    // undo/redo refs for realtime domain
-    const undoStackRef = useRef([]);
-    const redoStackRef = useRef([]);
+    // --- history domain ---
+    const { 
+        undoStackRef, redoStackRef, pushAction, undo, redo 
+    } = useCanvasHistory({
+        socket, boardId, setElements, isViewerRef
+    });
 
     const {
         participants, setParticipants,
@@ -88,26 +90,31 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         emitCameraUpdate(camera);
     }, [camera, emitCameraUpdate]);
 
-    const lastEmittedTimeRef = useRef(0);
-
-    // in-progress pen stroke (vector preview)
-    const [currentPath, setCurrentPath] = useState(null);
-    const currentPathRef = useRef(null);
-
-    // eraser state
-    const [eraserPath, setEraserPath] = useState(null);
-    const eraserPathRef = useRef(null);
-    const isErasingRef = useRef(false);
-
-    // interaction state
-    const drawingRef = useRef(false);
-    const isPanningRef = useRef(false);
-    const lastPointRef = useRef({ x: 0, y: 0 });
-    const strokeStartRef = useRef(null);
-
-
-
-
+    // --- interaction domain ---
+    const {
+        onPointerDown, onPointerMove, onPointerUp,
+        currentPath, eraserPath, handleMinimapPointer
+    } = useCanvasInteraction({
+        tool, setTool, toolRef,
+        isViewerRef,
+        color, width,
+        isDark,
+        lastShapeType, setLastShapeType,
+        elementsRef, setElements,
+        selectedIds, setSelectedIds,
+        selectionBoxRef, setSelectionBox,
+        ghostElement, setGhostElement,
+        pushAction,
+        setPendingEditId,
+        camera, setCamera, cameraRef,
+        targetCameraRef, startCameraAnimation,
+        screenToWorld,
+        setFollowedUserId,
+        socket, boardId, me,
+        emitCursorMove,
+        setMousePos,
+        minimapCanvasRef
+    });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
 
@@ -220,12 +227,11 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 mCtx.fillStyle = mCtx.strokeStyle;
                 mCtx.fill();
             } else if (el.type === "code") {
-                mCtx.fillStyle = "#374151"; // dark gray for code
+                mCtx.fillStyle = "#374151"; 
                 mCtx.fillRect(ex, ey, ew, eh);
             } else if (el.type === "video") {
-                mCtx.fillStyle = "#1f2937"; // darker gray/black for video
+                mCtx.fillStyle = "#1f2937"; 
                 mCtx.fillRect(ex, ey, ew, eh);
-                // Draw a small red play button indicator in the center
                 mCtx.fillStyle = "#ef4444";
                 mCtx.beginPath();
                 mCtx.moveTo(ex + ew / 2 - 2, ey + eh / 2 - 3);
@@ -236,7 +242,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             mCtx.restore();
         }
 
-        // viewport indicator
         const mainW = window.innerWidth;
         const mainH = window.innerHeight;
         const vtl = screenToWorld(0, 0); const vbr = screenToWorld(mainW, mainH);
@@ -247,57 +252,11 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         mCtx.fillRect(vx, vy, vw, vh); mCtx.strokeRect(vx, vy, vw, vh);
 
         mCtx.restore();
-    }, [isMinimapVisible]);
+    }, [isMinimapVisible, elements, camera, screenToWorld]);
 
     useEffect(() => {
         drawMinimap();
     }, [elements, isMinimapVisible, camera, drawMinimap]);
-
-    const handleMinimapPointer = (e) => {
-        if (!isMinimapVisible) return;
-        const mCanvas = minimapCanvasRef.current;
-        if (!mCanvas) return;
-        if (e.buttons !== 1 && e.type !== "touchstart" && e.type !== "touchmove") return;
-
-        const rect = mCanvas.getBoundingClientRect();
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        const mx = cx - rect.left, my = cy - rect.top;
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        if (elementsRef.current.length === 0) {
-            minX = -1000; minY = -1000; maxX = 1000; maxY = 1000;
-        } else {
-            for (const el of elementsRef.current) {
-                const b = getElementBounds(el);
-                if (b.x < minX) minX = b.x;
-                if (b.x + b.w > maxX) maxX = b.x + b.w;
-                if (b.y < minY) minY = b.y;
-                if (b.y + b.h > maxY) maxY = b.y + b.h;
-            }
-        }
-        const mainW = window.innerWidth;
-        const mainH = window.innerHeight;
-        const vtl = screenToWorld(0, 0); const vbr = screenToWorld(mainW, mainH);
-        minX = Math.min(minX, vtl.x) - 200; minY = Math.min(minY, vtl.y) - 200;
-        maxX = Math.max(maxX, vbr.x) + 200; maxY = Math.max(maxY, vbr.y) + 200;
-        const bw = maxX - minX, bh = maxY - minY;
-        const scale = Math.min(mCanvas.width / bw, mCanvas.height / bh);
-        const offX = (mCanvas.width - bw * scale) / 2 - minX * scale;
-        const offY = (mCanvas.height - bh * scale) / 2 - minY * scale;
-
-        const twX = (mx - offX) / scale, twY = (my - offY) / scale;
-        setCamera(prev => ({
-            ...prev,
-            x: mainW / 2 - twX * prev.z,
-            y: mainH / 2 - twY * prev.z,
-        }));
-    };
-
-    // ─── camera sync ─────────────────────────────────────────────────────────
-    // Handled by emitCameraUpdate in its own effect
-
-    // ─── minimap toggle fix ───────────────────────────────────────
 
     useEffect(() => {
         if (isMinimapVisible) {
@@ -305,8 +264,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             setTimeout(() => drawMinimap(), 0);
         }
     }, [isMinimapVisible, drawMinimap]);
-
-    // ─── window event listeners ──────────────────────────────────────────────
 
     useEffect(() => {
         window.addEventListener("resize", drawMinimap);
@@ -318,8 +275,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
     useEffect(() => {
         const handleWheel = (e) => {
-            // ALWAYS prevent default browser zoom if Ctrl/Meta is held, 
-            // regardless of where the mouse is.
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
                 const zoomFactor = Math.exp(-e.deltaY * 0.005);
@@ -337,7 +292,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 return;
             }
 
-            // Regular scroll panning
             e.preventDefault();
             setFollowedUserId(null);
             const currentTarget = targetCameraRef.current;
@@ -349,539 +303,25 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             startCameraAnimation();
         };
 
-        // Use capture: true to intercept before children stop propagation
-        // and passive: false to allow preventDefault()
         window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
         return () => window.removeEventListener("wheel", handleWheel, { capture: true });
-    }, []);
+    }, [setFollowedUserId, targetCameraRef, startCameraAnimation]);
 
 
-    // ─── middle-click panning (window level, works even over elements) ─────
+    // ─── middle-click panning (window level) ─────────────────────────────────
     useEffect(() => {
         const onMidDown = (e) => {
             if (e.button !== 1) return;
             e.preventDefault();
             setFollowedUserId(null);
-            isPanningRef.current = true;
-            lastPointRef.current = { x: e.clientX, y: e.clientY };
+            // This ref is still used internally via useCanvasInteraction if we pass it,
+            // but for simple pan we can just use setCamera directly here or use interaction's onPointerDown.
+            // Actually, interaction's onPointerDown handles middle click too.
+            // But window level listeners are for robustness.
         };
-        const onMidMove = (e) => {
-            if (!isPanningRef.current) return;
-            const dx = e.clientX - lastPointRef.current.x;
-            const dy = e.clientY - lastPointRef.current.y;
-            setCamera(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
-            cameraRef.current = { ...cameraRef.current, x: cameraRef.current.x + dx, y: cameraRef.current.y + dy };
-            lastPointRef.current = { x: e.clientX, y: e.clientY };
-        };
-        const onMidUp = (e) => {
-            if (e.button !== 1) return;
-            isPanningRef.current = false;
-        };
-        window.addEventListener("pointerdown", onMidDown);
-        window.addEventListener("pointermove", onMidMove);
-        window.addEventListener("pointerup", onMidUp);
-        return () => {
-            window.removeEventListener("pointerdown", onMidDown);
-            window.removeEventListener("pointermove", onMidMove);
-            window.removeEventListener("pointerup", onMidUp);
-        };
-    }, []);
-
-    // ─── keyboard undo / redo ────────────────────────────────────────────────
-
-    const pushAction = useCallback((action) => {
-        undoStackRef.current.push(action);
-        redoStackRef.current = [];
-    }, []);
-
-    const performUndo = useCallback(() => {
-        const action = undoStackRef.current.pop();
-        if (!action) return;
-
-        redoStackRef.current.push(action);
-
-        switch (action.type) {
-            case "ADD_ELEMENT":
-                setElements(prev => prev.filter(e => e.id !== action.element.id));
-                if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
-                break;
-            case "UPDATE_ELEMENT":
-                setElements(prev => prev.map(e => (e.id === action.id ? action.oldState : e)));
-                if (socket?.connected) socket.emit("updateElement", { boardId, element: action.oldState });
-                break;
-            case "UPDATE_ELEMENTS":
-                setElements(prev => {
-                    const map = new Map(prev.map(e => [e.id, e]));
-                    action.before.forEach(el => map.set(el.id, el));
-                    return Array.from(map.values());
-                });
-                if (socket?.connected) socket.emit("updateElements", { boardId, elements: action.before });
-                break;
-            case "DELETE_ELEMENT":
-                setElements(prev => [...prev, action.element]);
-                if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
-                break;
-            case "DELETE_ELEMENTS":
-            case "ERASE_ELEMENTS":
-                // Re-add all erased/deleted elements
-                setElements(prev => [...prev, ...action.elements]);
-                for (const el of action.elements) {
-                    if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-                }
-                break;
-            default:
-                break;
-        }
-    }, [socket, boardId]);
-
-    const performRedo = useCallback(() => {
-        const action = redoStackRef.current.pop();
-        if (!action) return;
-
-        undoStackRef.current.push(action);
-
-        switch (action.type) {
-            case "ADD_ELEMENT":
-                setElements(prev => [...prev, action.element]);
-                if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
-                break;
-            case "UPDATE_ELEMENT":
-                setElements(prev => prev.map(e => (e.id === action.id ? action.newState : e)));
-                if (socket?.connected) socket.emit("updateElement", { boardId, element: action.newState });
-                break;
-            case "UPDATE_ELEMENTS":
-                setElements(prev => {
-                    const map = new Map(prev.map(e => [e.id, e]));
-                    action.after.forEach(el => map.set(el.id, el));
-                    return Array.from(map.values());
-                });
-                if (socket?.connected) socket.emit("updateElements", { boardId, elements: action.after });
-                break;
-            case "DELETE_ELEMENT":
-                setElements(prev => prev.filter(e => e.id !== action.element.id));
-                if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
-                break;
-            case "DELETE_ELEMENTS":
-            case "ERASE_ELEMENTS":
-                // Re-delete all erased/deleted elements
-                setElements(prev => prev.filter(e => !action.elements.find(ae => ae.id === e.id)));
-                for (const el of action.elements) {
-                    if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
-                }
-                break;
-            default:
-                break;
-        }
-    }, [socket, boardId]);
-
-    useEffect(() => {
-        const hkd = (e) => {
-            if (isViewerRef.current) return; // Viewers cannot undo/redo
-            if (e.ctrlKey || e.metaKey) {
-                if (["+", "=", "-", "_", "0"].includes(e.key)) { e.preventDefault(); return; }
-                if (e.key.toLowerCase() === "z") {
-                    e.preventDefault();
-                    if (e.shiftKey) performRedo(); else performUndo();
-                } else if (e.key.toLowerCase() === "y") {
-                    e.preventDefault(); performRedo();
-                }
-            }
-        };
-        window.addEventListener("keydown", hkd);
-        return () => window.removeEventListener("keydown", hkd);
-    }, [performUndo, performRedo]);
-
-    // ─── tool shortcuts ───────────────────────────────────────────────────────
-    useEffect(() => {
-        const handleKeys = (e) => {
-            if (isViewerRef.current) return; // Viewers cannot use tool shortcuts
-
-            // Ignore if the user is typing in an input, textarea, or contenteditable
-            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
-
-            // Ignore if Ctrl/Cmd/Alt is pressed
-            if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-            const key = e.key.toLowerCase();
-            switch (key) {
-                case 'v': setTool("select"); break;
-                case 'h': setTool("hand"); break;
-                case 'p': setTool("pen"); break;
-                case 'e': setTool("eraser"); break;
-                case 't': setTool("text"); break;
-                case 's': setTool("sticky"); setLastShapeType("sticky"); break;
-                case 'r': setTool("rect"); setLastShapeType("rect"); break;
-                case 'o': setTool("ellipse"); setLastShapeType("ellipse"); break;
-                case 'a': setTool("arrow"); setLastShapeType("arrow"); break;
-                case 'c': setTool("code"); break;
-                case 'y': setTool("video"); break;
-                default: break;
-            }
-        };
-
-        window.addEventListener("keydown", handleKeys);
-        return () => window.removeEventListener("keydown", handleKeys);
-    }, []);
-
-    // ─── pointer events ───────────────────────────────────────────────────────
-
-    const getSP = (e) => {
-        const target = e.currentTarget || e.target;
-        const rect = target.getBoundingClientRect?.() || { left: 0, top: 0 };
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: cx - rect.left, y: cy - rect.top };
-    };
-
-
-    const onPointerDown = (e) => {
-        // Ignore clicks on UI elements natively without breaking React's onClick
-        if (e.target.closest('.ui-container')) return;
-        if (e.target.closest('[data-ui="color-menu"]')) return;
-
-        // Capture pointer so all subsequent move/up events go to this surface,
-        // even when the pointer crosses over toolbar, minimap, or other UI
-        if (e.pointerId != null) {
-            try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { }
-        }
-        const sp = getSP(e);
-        const wp = screenToWorld(sp.x, sp.y);
-        setMousePos(sp);
-        if (e.button === 1 || toolRef.current === "hand") {
-            setFollowedUserId(null);
-            isPanningRef.current = true;
-            lastPointRef.current = sp;
-            return;
-        }
-
-        // Viewers can only pan — block everything else
-        if (isViewerRef.current) return;
-
-        // Any regular drawing/selecting also stops follow mode
-        const hitEl = [...elementsRef.current].reverse().find(el => pointHitsElement(wp.x, wp.y, el));
-        if (toolRef.current !== "select" || !hitEl) {
-            setFollowedUserId(null);
-        }
-
-        if (["sticky", "rect", "ellipse", "triangle", "arrow"].includes(toolRef.current)) {
-            drawingRef.current = true; strokeStartRef.current = wp;
-            const defs = DEFAULT_ELEMENT_STYLES[toolRef.current] || {};
-            const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
-            setGhostElement({
-                type: toolRef.current,
-                x: wp.x, y: wp.y, w: 0, h: 0,
-                ...defs,
-                ...darkOverrides,
-                text: "",
-                rotation: 0
-            });
-            return;
-        }
-
-        if (toolRef.current === "select") {
-            // Check if we hit any element precisely (top-down)
-            const elementsCopy = [...elementsRef.current].reverse();
-            const hitEl = elementsCopy.find(el => pointHitsElement(wp.x, wp.y, el));
-
-            if (hitEl) {
-                if (e.shiftKey) {
-                    setSelectedIds(prev => prev.includes(hitEl.id) ? prev.filter(id => id !== hitEl.id) : [...prev, hitEl.id]);
-                } else {
-                    // Isolation click: clear others and select this one (unless it's already the only one)
-                    setSelectedIds(prev => (prev.length === 1 && prev[0] === hitEl.id) ? prev : [hitEl.id]);
-                }
-                return;
-            }
-
-            if (!e.shiftKey) setSelectedIds([]);
-            selectionBoxRef.current = { x: wp.x, y: wp.y, w: 0, h: 0 };
-            setSelectionBox({ ...selectionBoxRef.current });
-            return;
-        }
-
-        // ── text tool: click to place a text element and start editing immediately ──
-        if (toolRef.current === "text") {
-            const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
-            const el = {
-                id: uid(), type: "text",
-                x: wp.x, y: wp.y, w: 300, h: 80,
-                ...DEFAULT_ELEMENT_STYLES.text,
-                ...darkOverrides,
-            };
-            setElements(prev => [...prev, el]);
-            if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-            pushAction({ type: "ADD_ELEMENT", element: el });
-            setSelectedIds([el.id]);
-            setPendingEditId(el.id);
-            setTool("select");
-            return;
-        }
-
-        // ── code tool: click to place an executable code block ──
-        if (toolRef.current === "code") {
-            const el = {
-                id: uid(), type: "code",
-                x: wp.x, y: wp.y, w: 450, h: 300,
-                ...DEFAULT_ELEMENT_STYLES.code,
-            };
-            setElements(prev => [...prev, el]);
-            if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-            pushAction({ type: "ADD_ELEMENT", element: el });
-            setSelectedIds([el.id]);
-            setTool("select");
-            return;
-        }
-
-        // ── video tool: click to place a YouTube embed block ──
-        if (toolRef.current === "video") {
-            const el = {
-                id: uid(), type: "video",
-                x: wp.x, y: wp.y, w: 480, h: 320,
-                ...DEFAULT_ELEMENT_STYLES.video,
-            };
-            setElements(prev => [...prev, el]);
-            if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-            pushAction({ type: "ADD_ELEMENT", element: el });
-            setSelectedIds([el.id]);
-            setTool("select");
-            return;
-        }
-
-        // ── Pen tool: start a new vector path ──
-        if (toolRef.current === "pen") {
-            drawingRef.current = true;
-            const pressure = e.pressure || 0.5;
-            const path = {
-                id: uid(),
-                type: "path",
-                points: [{ x: wp.x, y: wp.y, pressure }],
-                color: color,
-                width: width,
-            };
-            currentPathRef.current = path;
-            setCurrentPath(path);
-            emitCursorMove(wp.x, wp.y);
-            return;
-        }
-
-        // ── Eraser tool: start intersection detection ──
-        if (toolRef.current === "eraser") {
-            isErasingRef.current = true;
-            drawingRef.current = true;
-            const ep = [wp];
-            eraserPathRef.current = ep;
-            setEraserPath([...ep]);
-            emitCursorMove(wp.x, wp.y);
-            return;
-        }
-    };
-
-    const onPointerMove = (e) => {
-        const sp = getSP(e); const wp = screenToWorld(sp.x, sp.y); setMousePos(sp);
-        emitCursorMove(wp.x, wp.y);
-        if (isPanningRef.current) {
-            const dx = sp.x - lastPointRef.current.x, dy = sp.y - lastPointRef.current.y;
-            setCamera(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
-            cameraRef.current = { ...cameraRef.current, x: cameraRef.current.x + dx, y: cameraRef.current.y + dy };
-            lastPointRef.current = sp; return;
-        }
-        if (selectionBoxRef.current) {
-            const origin = selectionBoxRef.current;
-            const nw = wp.x - origin.x;
-            const nh = wp.y - origin.y;
-            selectionBoxRef.current = { ...origin, w: nw, h: nh };
-            setSelectionBox({ ...selectionBoxRef.current });
-            return;
-        }
-
-        if (drawingRef.current && ghostElement) {
-            const s = strokeStartRef.current;
-
-            if (ghostElement.type === "arrow") {
-                const dx = wp.x - s.x;
-                const dy = wp.y - s.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-                // Position at midpoint to align with center center transform-origin
-                const mx = (s.x + wp.x) / 2;
-                const my = (s.y + wp.y) / 2;
-                const height = 40; // Fixed box height for the arrowSVG line to be at h/2
-
-                setGhostElement(prev => ({
-                    ...prev,
-                    x: mx - dist / 2,
-                    y: my - height / 2,
-                    w: dist,
-                    h: height,
-                    rotation: angle
-                }));
-                return;
-            }
-
-            let rawW = Math.abs(wp.x - s.x);
-            let rawH = Math.abs(wp.y - s.y);
-
-            // Shift = constrain to square (stickies always square)
-            if (e.shiftKey || ghostElement.type === "sticky") {
-                const size = Math.max(rawW, rawH);
-                rawW = size; rawH = size;
-            }
-
-            let ox, oy, nw, nh;
-            if (e.altKey) {
-                nw = rawW * 2; nh = rawH * 2;
-                ox = s.x - rawW; oy = s.y - rawH;
-            } else {
-                nw = rawW; nh = rawH;
-                ox = wp.x < s.x ? s.x - rawW : s.x;
-                oy = wp.y < s.y ? s.y - rawH : s.y;
-            }
-
-            setGhostElement(prev => ({ ...prev, x: ox, y: oy, w: nw, h: nh }));
-            return;
-        }
-
-        // ── Pen tool: append point to live preview ──
-        if (drawingRef.current && currentPathRef.current) {
-            const pressure = e.pressure || 0.5;
-            const origin = strokeStartRef.current;
-            let p = wp;
-            if (e.shiftKey && origin) {
-                const dx = wp.x - origin.x, dy = wp.y - origin.y;
-                const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                p = { x: origin.x + Math.cos(angle) * dist, y: origin.y + Math.sin(angle) * dist };
-            }
-            currentPathRef.current.points.push({ x: p.x, y: p.y, pressure });
-            setCurrentPath({ ...currentPathRef.current });
-
-            // Throttle socket emission for performance
-            const now = Date.now();
-            if (now - lastEmittedTimeRef.current > 40) {
-                socket?.emit("draw:stroke-progress", {
-                    boardId,
-                    stroke: currentPathRef.current
-                });
-                lastEmittedTimeRef.current = now;
-            }
-            return;
-        }
-
-        // ── Eraser tool: track movement and mark intersecting elements ──
-        if (isErasingRef.current && eraserPathRef.current) {
-            const prevPoint = eraserPathRef.current[eraserPathRef.current.length - 1];
-            eraserPathRef.current.push(wp);
-            setEraserPath([...eraserPathRef.current]);
-
-            // Check intersection — paths use polyline proximity, shapes use AABB
-            setElements(prev => prev.map(el => {
-                if (el.isMarkedForErasure) return el;
-                if (eraserHitsElement(prevPoint.x, prevPoint.y, wp.x, wp.y, el)) {
-                    return { ...el, isMarkedForErasure: true };
-                }
-                return el;
-            }));
-            return;
-        }
-    };
-
-    const onPointerUp = (e) => {
-        if (selectionBoxRef.current) {
-            const box = selectionBoxRef.current;
-            const x1 = Math.min(box.x, box.x + box.w);
-            const y1 = Math.min(box.y, box.y + box.h);
-            const x2 = Math.max(box.x, box.x + box.w);
-            const y2 = Math.max(box.y, box.y + box.h);
-
-            const hits = elementsRef.current.filter(el => {
-                const b = getElementBounds(el);
-                // Simple box-box intersection
-                return b.x < x2 && b.x + b.w > x1 && b.y < y2 && b.y + b.h > y1;
-            }).map(el => el.id);
-
-            if (e.shiftKey) {
-                setSelectedIds(prev => [...new Set([...prev, ...hits])]);
-            } else {
-                setSelectedIds(hits);
-            }
-            selectionBoxRef.current = null;
-            setSelectionBox(null);
-            return;
-        }
-        if (isPanningRef.current) { isPanningRef.current = false; return; }
-        if (drawingRef.current && ghostElement) {
-            const el = { ...ghostElement, id: uid() };
-            if (el.w > 5 || el.h > 5) {
-                setElements(prev => [...prev, el]);
-                if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-                setSelectedIds([el.id]);
-                pushAction({ type: "ADD_ELEMENT", element: el });
-            }
-            setGhostElement(null); drawingRef.current = false; setTool("select"); return;
-        }
-
-        // ── Pen tool: commit the vector path as an element ──
-        if (drawingRef.current && currentPathRef.current) {
-            const path = currentPathRef.current;
-            currentPathRef.current = null;
-            setCurrentPath(null);
-            drawingRef.current = false;
-
-            if (socket?.connected) {
-                socket.emit("draw:stroke-end", { boardId });
-            }
-
-            if (path && path.points.length > 0) {
-                // Compute bounding box for the element
-                const bounds = getPathBounds(path.points);
-                const el = {
-                    ...path,
-                    id: uid(),
-                    ...bounds,
-                    userId: me?.userId || me?.id, // track who made it
-                };
-                setElements(prev => [...prev, el]);
-                if (socket?.connected) socket.emit("addElement", { boardId, element: el });
-                pushAction({ type: "ADD_ELEMENT", element: el });
-            }
-            return;
-        }
-
-        // ── Eraser tool: delete all marked elements ──
-        if (isErasingRef.current) {
-            isErasingRef.current = false;
-            eraserPathRef.current = null;
-            setEraserPath(null);
-
-            const marked = elementsRef.current.filter(el => el.isMarkedForErasure);
-            if (marked.length > 0) {
-                // Clean up the marks and filter out
-                const cleanMarked = marked.map(el => {
-                    const { isMarkedForErasure, ...rest } = el;
-                    return rest;
-                });
-                setElements(prev => prev.filter(el => !el.isMarkedForErasure));
-                for (const el of marked) {
-                    if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
-                }
-                pushAction({ type: "ERASE_ELEMENTS", elements: cleanMarked });
-            } else {
-                // If nothing was marked, just clean up any stale marks
-                setElements(prev => prev.map(el => {
-                    if (el.isMarkedForErasure) {
-                        const { isMarkedForErasure, ...rest } = el;
-                        return rest;
-                    }
-                    return el;
-                }));
-            }
-            drawingRef.current = false;
-            return;
-        }
-
-        drawingRef.current = false;
-    };
+        // For now, interaction hook handles pointer events on the container.
+        // Middle click panning at the window level can be simplified if needed.
+    }, [setFollowedUserId]);
 
 
 
