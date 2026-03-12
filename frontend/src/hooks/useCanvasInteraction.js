@@ -48,10 +48,6 @@ export default function useCanvasInteraction({
     const eraserPathRef = useRef(null);
     const isErasingRef = useRef(false);
 
-    // Auto-shape suggestion state (local-only, never sent to remote users)
-    const [autoShapeSuggestion, setAutoShapeSuggestion] = useState(null);
-    const autoShapeSuggestionRef = useRef(null);
-
     // Samsung-style Hold-to-Shape state
     const [autoShapePreview, setAutoShapePreview] = useState(null);
     const autoShapePreviewRef = useRef(null);
@@ -243,11 +239,6 @@ export default function useCanvasInteraction({
         }
 
         if (toolRef.current === "pen") {
-            // Clear any existing auto-shape suggestion when starting a new stroke
-            if (autoShapeSuggestionRef.current) {
-                autoShapeSuggestionRef.current = null;
-                setAutoShapeSuggestion(null);
-            }
             drawingRef.current = true;
             const pressure = e.pressure || 0.5;
             const path = {
@@ -455,11 +446,9 @@ export default function useCanvasInteraction({
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 
-                // Clear preview and suggestion
+                // Clear preview
                 setAutoShapePreview(null);
                 autoShapePreviewRef.current = null;
-                setAutoShapeSuggestion(null);
-                autoShapeSuggestionRef.current = null;
                 return;
             }
 
@@ -475,29 +464,6 @@ export default function useCanvasInteraction({
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
 
-                // ── Auto-shape detection (runs after path is fully added) ──
-                // This runs synchronously on the finalized stroke. If the stroke
-                // is recognized as a shape, we store a suggestion for the user.
-                // The original path element remains untouched until the user accepts.
-                try {
-                    const detection = classifyStroke(path.points);
-                    if (detection && detection.kind) {
-                        const proposed = convertPathToShape(el, detection);
-                        if (proposed) {
-                            const suggestion = {
-                                elementId: el.id,
-                                kind: detection.kind,
-                                proposedElement: proposed,
-                                anchorBounds: bounds,
-                                confidence: detection.confidence,
-                            };
-                            autoShapeSuggestionRef.current = suggestion;
-                            setAutoShapeSuggestion(suggestion);
-                        }
-                    }
-                } catch (_) {
-                    // Auto-shape detection is best-effort – never block drawing
-                }
             }
             return;
         }
@@ -565,55 +531,6 @@ export default function useCanvasInteraction({
 
     // ── Auto-shape accept / dismiss callbacks ─────────────────────────────
 
-    /**
-     * Accept the auto-shape suggestion: update the path element in-place
-     * to a native shape via UPDATE_ELEMENT for correct undo/redo.
-     */
-    const acceptAutoShapeSuggestion = useCallback(() => {
-        const suggestion = autoShapeSuggestionRef.current;
-        if (!suggestion) return;
-
-        const originalElement = elementsRef.current.find(e => e.id === suggestion.elementId);
-        if (!originalElement) {
-            // Element was deleted or changed before accept – silently clear
-            autoShapeSuggestionRef.current = null;
-            setAutoShapeSuggestion(null);
-            return;
-        }
-
-        const converted = suggestion.proposedElement;
-
-        // Update element in-place
-        setElements(prev => prev.map(e => e.id === converted.id ? converted : e));
-
-        // Push undo-able action
-        pushAction({
-            type: "UPDATE_ELEMENT",
-            id: converted.id,
-            oldState: originalElement,
-            newState: converted,
-        });
-
-        // Emit socket update
-        if (socket?.connected) {
-            socket.emit("updateElement", { boardId, element: converted });
-        }
-
-        // Keep selection on the same element
-        setSelectedIds([converted.id]);
-
-        // Clear suggestion
-        autoShapeSuggestionRef.current = null;
-        setAutoShapeSuggestion(null);
-    }, [elementsRef, setElements, pushAction, socket, boardId, setSelectedIds]);
-
-    /**
-     * Dismiss the auto-shape suggestion: keep the original path untouched.
-     */
-    const dismissAutoShapeSuggestion = useCallback(() => {
-        autoShapeSuggestionRef.current = null;
-        setAutoShapeSuggestion(null);
-    }, []);
 
     return {
         onPointerDown,
@@ -622,10 +539,6 @@ export default function useCanvasInteraction({
         currentPath,
         eraserPath,
         handleMinimapPointer,
-        // Auto-shape suggestion API
-        autoShapeSuggestion,
-        acceptAutoShapeSuggestion,
-        dismissAutoShapeSuggestion,
         // Samsung hold preview
         autoShapePreview
     };

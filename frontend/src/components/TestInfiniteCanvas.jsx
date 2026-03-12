@@ -9,7 +9,6 @@ import CursorOverlay from "./canvas/overlays/CursorOverlay";
 import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
 import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
-import AutoShapeSuggestionOverlay from "./canvas/overlays/AutoShapeSuggestionOverlay";
 import BoardElement from "./canvas/BoardElement";
 
 import CanvasToolbar from "./canvas/ui/CanvasToolbar";
@@ -104,7 +103,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
     const {
         onPointerDown, onPointerMove, onPointerUp,
         currentPath, eraserPath, handleMinimapPointer,
-        autoShapeSuggestion, acceptAutoShapeSuggestion, dismissAutoShapeSuggestion,
         autoShapePreview
     } = useCanvasInteraction({
         tool, setTool, toolRef,
@@ -459,16 +457,6 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
             {/* UI overlay container */}
             <div className="absolute inset-0 pointer-events-none z-30">
-                {/* Auto-shape suggestion overlay (local-only, non-blocking) */}
-                {!isViewer && autoShapeSuggestion && (
-                    <AutoShapeSuggestionOverlay
-                        suggestion={autoShapeSuggestion}
-                        onAccept={acceptAutoShapeSuggestion}
-                        onDismiss={dismissAutoShapeSuggestion}
-                        worldToScreen={worldToScreen}
-                        camera={camera}
-                    />
-                )}
 
                 {/* Follow mode banner */}
                 <FollowBanner 
