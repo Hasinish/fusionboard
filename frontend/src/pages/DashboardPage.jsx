@@ -94,9 +94,9 @@ function DashboardPage() {
       const width = window.innerWidth;
       const mobile = width < 768;
       const compact = width < 1024 && width >= 768;
-      
+
       setIsMobile(mobile);
-      
+
       if (mobile) {
         setShowSidebar(false);
         setIsCompact(false); // Mobile should never be compact (icons only)
@@ -214,9 +214,8 @@ function DashboardPage() {
 
         <div className="flex-1 flex overflow-hidden">
           <main
-            className={`flex-1 overflow-y-auto ${
-              isMobile ? "px-4" : "px-10"
-            } py-8 bg-[#F5EAD8]`}
+            className={`flex-1 overflow-y-auto ${isMobile ? "px-4" : "px-10"
+              } py-8 bg-[#F5EAD8]`}
           >
             <div className={`max-w-5xl mx-auto w-full ${activeTab === 'calendar' ? 'h-[calc(100vh-140px)]' : ''}`}>
               {activeTab === "boards" ? (
