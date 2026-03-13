@@ -466,10 +466,7 @@ export const setupSocket = (io) => {
 
         const leaveCursor = async () => {
             const meta = socketMeta.get(socket.id);
-            if (!meta) {
-                console.log(`[Socket] No meta found for ${socket.id} on leaveCursor`);
-                return;
-            }
+            if (!meta) return;
 
             console.log(`[Socket] ${socket.id} leaving board ${meta.boardId} (workspace ${meta.workspaceId})`);
 
