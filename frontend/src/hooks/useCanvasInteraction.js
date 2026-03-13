@@ -4,6 +4,7 @@ import { pointHitsElement, getElementBounds, getPathBounds } from "../components
 import { eraserHitsElement } from "../components/canvas/utils/eraserMath";
 import { DEFAULT_ELEMENT_STYLES } from "../components/canvas/constants";
 import { classifyStroke, convertPathToShape } from "../components/canvas/utils/autoShape";
+import { createDefaultGraphElement } from "../components/canvas/graph/graphDefaults";
 
 /**
  * useCanvasInteraction
@@ -81,6 +82,7 @@ export default function useCanvasInteraction({
                 case 'a': setTool("arrow"); setLastShapeType("arrow"); break;
                 case 'c': setTool("code"); break;
                 case 'y': setTool("video"); break;
+                case 'g': setTool("graph"); break;
                 default: break;
             }
         };
@@ -230,6 +232,20 @@ export default function useCanvasInteraction({
                 x: wp.x, y: wp.y, w: 480, h: 320,
                 ...DEFAULT_ELEMENT_STYLES.video,
             };
+            setElements(prev => [...prev, el]);
+            if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+            pushAction({ type: "ADD_ELEMENT", element: el });
+            setSelectedIds([el.id]);
+            setTool("select");
+            return;
+        }
+
+        if (toolRef.current === "graph") {
+            const el = createDefaultGraphElement({ 
+                x: wp.x, 
+                y: wp.y, 
+                id: uid() 
+            });
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });

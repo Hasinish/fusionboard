@@ -21,6 +21,7 @@ import MobileParticipantsStrip from "./canvas/ui/MobileParticipantsStrip";
 import ZoomControls from "./canvas/ui/ZoomControls";
 import Minimap from "./canvas/ui/Minimap";
 import StatusBadge from "./canvas/ui/StatusBadge";
+import PropertySidebar from "./canvas/ui/PropertySidebar";
 
 import useCanvasToolState from "../hooks/useCanvasToolState";
 import useCanvasElementsState from "../hooks/useCanvasElementsState";
@@ -64,6 +65,9 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         statusMsg, setStatusMsg,
         ctrlPressed
     } = useCanvasUiState();
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [sidebarElementId, setSidebarElementId] = useState(null);
 
     const {
         camera, setCamera, cameraRef,
@@ -248,6 +252,11 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 mCtx.lineTo(ex + ew / 2 + 4, ey + eh / 2);
                 mCtx.lineTo(ex + ew / 2 - 2, ey + eh / 2 + 3);
                 mCtx.fill();
+            } else if (el.type === "graph") {
+                mCtx.fillStyle = "#dbeafe"; // Light blue
+                mCtx.strokeStyle = "#3b82f6"; // Blue
+                mCtx.fillRect(ex, ey, ew, eh);
+                mCtx.strokeRect(ex, ey, ew, eh);
             }
             mCtx.restore();
         }
@@ -339,7 +348,13 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
 
     return (
         <div
-            className={`relative w-full h-full overflow-hidden select-none touch-none ${tool === "hand" ? "cursor-grab active:cursor-grabbing" : tool === "eraser" ? "cursor-none" : "cursor-crosshair"}`}
+            className={`relative w-full h-full overflow-hidden select-none touch-none ${
+                tool === "hand" ? "cursor-grab active:cursor-grabbing" : 
+                tool === "eraser" ? "cursor-none" : 
+                tool === "select" ? "cursor-default" :
+                tool === "text" ? "cursor-text" :
+                "cursor-crosshair"
+            }`}
             style={{ backgroundColor: isDark ? "#121212" : "#F0F0F0" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -419,7 +434,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     <BoardElement
                         el={{ ...autoShapePreview, id: "preview-autoshape" }}
                         camera={camera}
-                        isDark={isDark}
+                        isDarkMode={isDark}
                         isSelected={false}
                         onChange={() => {}}
                         onSelect={() => {}}
@@ -449,6 +464,10 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 pendingEditId={pendingEditId}
                 onPendingEditConsumed={clearPendingEditId}
                 isViewer={isViewer}
+                onOpenSidebar={setIsSidebarOpen}
+                isSidebarOpen={isSidebarOpen}
+                onSidebarElementIdChange={setSidebarElementId}
+                sidebarElementId={sidebarElementId}
             />
 
             <EraserCursor tool={tool} mousePos={mousePos} />
@@ -502,6 +521,12 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                         minimapCanvasRef={minimapCanvasRef}
                         handleMinimapPointer={handleMinimapPointer}
                         isDark={isDark}
+                        onSettingsClick={() => {
+                            if (selectedItems.length === 1) {
+                                setSidebarElementId(selectedItems[0].id);
+                                setIsSidebarOpen(true);
+                            }
+                        }}
                     />
                 </div>
 
@@ -598,11 +623,26 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
             </div>
 
             {/* Status Messages removed as they are now in StatusBadge or could be kept as toast */}
-            {/* statusMsg && (
-                <div className="absolute bottom-5 left-5 z-50 bg-success text-success-content px-4 py-2 rounded-full shadow-lg opacity-90 transition-opacity">
-                    {statusMsg}
-                </div>
-            )*/}
+            
+            <PropertySidebar 
+                isOpen={isSidebarOpen}
+                setIsOpen={(val) => {
+                    setIsSidebarOpen(val);
+                    if (!val) setSidebarElementId(null);
+                }}
+                element={elements.find(el => el.id === sidebarElementId)}
+                onChange={(updates) => {
+                    const elId = sidebarElementId;
+                    setElements(prev => prev.map(el => el.id === elId ? { ...el, ...updates } : el));
+                    // Emit update to others
+                    const updatedEl = elements.find(el => el.id === elId);
+                    if (updatedEl && socket?.connected) {
+                        socket.emit("updateElement", { boardId, element: { ...updatedEl, ...updates } });
+                    }
+                }}
+                isDark={isDark}
+                zoom={camera.z}
+            />
 
             {/* Selection Box Visual */}
             <SelectionMarquee selectionBox={selectionBox} camera={camera} />

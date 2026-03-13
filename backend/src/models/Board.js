@@ -6,7 +6,7 @@ const elementSchema = new mongoose.Schema(
     id: { type: String, required: true },
     type: {
       type: String,
-      enum: ["sticky", "rect", "ellipse", "triangle", "arrow", "text", "path", "code", "video"],
+      enum: ["sticky", "rect", "ellipse", "triangle", "arrow", "text", "path", "code", "video", "graph"],
       required: true
     },
     x: { type: Number, default: 0 },

@@ -17,7 +17,8 @@ import { useElementKeyboard } from "./canvas/useElementKeyboard";
 export default React.memo(function ElementsLayer({
     tool, elements, camera, boardId, socket, isDark,
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
-    pendingEditId, onPendingEditConsumed, isViewer = false
+    pendingEditId, onPendingEditConsumed, isViewer = false,
+    onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
@@ -42,6 +43,21 @@ export default React.memo(function ElementsLayer({
     }, [pendingEditId, setSelectedIds, onPendingEditConsumed]);
 
     const selectedItems = useMemo(() => elements.filter(e => selectedIds.includes(e.id)), [elements, selectedIds]);
+
+    // Sync sidebar element ID with selection for graphs
+    useEffect(() => {
+        if (selectedIds.length === 1) {
+            const el = elements.find(e => e.id === selectedIds[0]);
+            if (el && el.type === "graph") {
+                onSidebarElementIdChange(el.id);
+            } else if (!isSidebarOpen) {
+                onSidebarElementIdChange(null);
+            }
+        } else if (selectedIds.length === 0 && !isSidebarOpen) {
+            onSidebarElementIdChange(null);
+        }
+    }, [selectedIds, elements, onSidebarElementIdChange, isSidebarOpen]);
+
     const isMultiSelect = selectedIds.length > 1;
 
     const lastEmitRef = useRef({});
@@ -191,6 +207,11 @@ export default React.memo(function ElementsLayer({
                         isEditing={el.id === editingId}
                         onEndEdit={handleEndEdit}
                         isViewer={isViewer}
+                        isDarkMode={isDark}
+                        onOpenSidebar={onOpenSidebar}
+                        sidebarElementId={sidebarElementId}
+                        onSidebarElementIdChange={onSidebarElementIdChange}
+                        isSidebarOpen={isSidebarOpen}
                     />
                 ))}
 
@@ -253,6 +274,12 @@ export default React.memo(function ElementsLayer({
                         activeBounds={activeBounds}
                         camera={camera}
                         isDark={isDark}
+                        onSettingsClick={() => {
+                            if (selectedItems.length === 1) {
+                                onSidebarElementIdChange(selectedItems[0].id);
+                                onOpenSidebar(true);
+                            }
+                        }}
                     />
                 );
             })()}

@@ -9,7 +9,11 @@ export default function ZoomControls({
     isMobile 
 }) {
     return (
-        <div className={`ui-container group bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-1"} pointer-events-auto transition-all hover:bg-white/25`}>
+        <div className={`ui-container group bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg ${isMobile ? "flex flex-col items-center gap-1 px-2 py-2" : "px-3 py-2 flex items-center gap-1"} pointer-events-auto transition-all hover:bg-white/25`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+        >
             <button 
                 className={`btn btn-sm btn-ghost ${isDark ? "text-white" : "text-base-content"} opacity-70 hover:opacity-100 px-2`} 
                 title="Zoom Out" 

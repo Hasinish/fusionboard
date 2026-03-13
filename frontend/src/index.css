@@ -8,6 +8,10 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+.ui-container {
+  cursor: default !important;
+}
+
 h1,
 h2,
 h3,

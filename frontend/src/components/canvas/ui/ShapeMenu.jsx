@@ -14,10 +14,19 @@ export default function ShapeMenu({
     toolbarHeight 
 }) {
     return (
-        <div className="relative pointer-events-auto" ref={shapesRef}>
+        <div className="relative pointer-events-auto" ref={shapesRef}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+        >
             <button
                 className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
-                onClick={(e) => { e.stopPropagation(); setShapesOpen(!shapesOpen); }}
+                onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const nextOpen = !shapesOpen;
+                    setShapesOpen(nextOpen); 
+                    if (nextOpen) setTool("select");
+                }}
             >
                 <div className="flex items-center gap-2">
                     {lastShapeType === "sticky" && <StickyNote className="w-5 h-5 text-warning" />}

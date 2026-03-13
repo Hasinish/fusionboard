@@ -13,6 +13,9 @@ export default function CanvasToolbar({
         <div
             ref={toolbarRef}
             className={`ui-container absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-3 max-w-[95vw] flex-wrap justify-center pointer-events-auto`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
         >
             {isViewer ? (
                 /* Viewers only see the hand tool */

@@ -19,6 +19,9 @@ export default function PenControls({
         <div
             className={`ui-container absolute left-1/2 -translate-x-1/2 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg px-4 py-2 z-30 flex items-center gap-4 pointer-events-auto`}
             style={{ bottom: toolbarHeight + 42 }} // Offset above the toolbar
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
         >
             <div className="relative pointer-events-auto" ref={colorRef}>
                 <button

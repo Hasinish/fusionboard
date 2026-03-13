@@ -3,6 +3,7 @@ import { RotateCcw, Play, Loader2, RefreshCw, Youtube } from "lucide-react";
 import getStroke from "perfect-freehand";
 import { ShapeSVG, PathSVG } from "./ShapeRenderers";
 import { getPathBounds, pointHitsElement } from "./geometryUtils";
+import GraphElement from "./graph/GraphElement";
 
 export { pointHitsElement } from "./geometryUtils";
 
@@ -11,7 +12,7 @@ export function uid() {
 }
 
 /** A single rendered element */
-export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, onSelect, onGroupSelect, onChange, onDelete, onDuplicate, onDragGuide, onStartEdit, isEditing, onEndEdit, isViewer = false }) {
+export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, onSelect, onGroupSelect, onChange, onDelete, onDuplicate, onDragGuide, onStartEdit, isEditing, onEndEdit, isViewer = false, isDarkMode = false, onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen }) {
     const textRef = useRef(null);
     const elRef = useRef(null);
     const [isRunning, setIsRunning] = useState(false);
@@ -561,7 +562,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 position: "absolute", left: sx, top: sy, width: sw, height: sh,
                 transform: `rotate(${el.rotation || 0}deg)`,
                 transformOrigin: "center center",
-                cursor: isEditing ? "text" : (isViewer ? "default" : "move"),
+                cursor: (isEditing && el.type !== "graph") ? "text" : (isViewer ? "default" : "move"),
                 userSelect: isEditing ? "text" : "none",
                 zIndex: isSelected ? 20 : 10,
                 boxSizing: "border-box",
@@ -583,7 +584,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 if (!isHit && !isSelected) return;
 
                 e.stopPropagation();
-                if (el.type !== "path") onStartEdit(el.id);
+                if (el.type !== "path" && el.type !== "graph") onStartEdit(el.id);
             }}
         >
             {el.type === "code" ? (
@@ -782,6 +783,22 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                         )}
                     </div>
                 </div>
+            ) : el.type === "graph" ? (
+                <GraphElement 
+                    element={el} 
+                    onChange={onChange} 
+                    isDark={isDarkMode} 
+                    isSelected={isSelected} 
+                    sw={sw}
+                    sh={sh}
+                    camera={camera}
+                    isViewer={isViewer}
+                    onOpenSidebar={onOpenSidebar}
+                    onStartEdit={() => onStartEdit(el.id)}
+                    sidebarElementId={sidebarElementId}
+                    onSidebarElementIdChange={onSidebarElementIdChange}
+                    isSidebarOpen={isSidebarOpen}
+                />
             ) : el.type === "path" ? (
                 <PathSVG el={el} sw={sw} sh={sh} />
             ) : (

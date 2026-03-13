@@ -1,9 +1,9 @@
 import React from "react";
-import { Bold, Italic, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Trash2 } from "lucide-react";
+import { Bold, Italic, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Trash2, Settings2 } from "lucide-react";
 import { FONTS } from "./constants";
 import { MemoizedColorMenu } from "./ColorMenu";
 
-export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, activeBounds, camera, isDark, isViewer = false }) {
+export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, activeBounds, camera, isDark, isViewer = false, onSettingsClick }) {
     if (isViewer) return null;
     const toolbarBtnClass = isDark ? "text-white" : "text-base-content/80";
     return (
@@ -30,7 +30,7 @@ export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, act
                             </div>
                         ) : (
                             <>
-                                {(!isAllSameType || first.type !== "text") && (
+                                {(!isAllSameType || (first.type !== "text" && first.type !== "graph")) && (
                                     <div className="flex items-center gap-1 px-1">
                                         <div className={`flex items-center gap-1.5 bg-white/10 p-1 rounded-lg`}>
                                             <MemoizedColorMenu value={first.fill} onChange={(f, persist = true) => updateStyle({ fill: f }, persist)} title="Fill Color" isDark={isDark} />
@@ -42,7 +42,7 @@ export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, act
                                     </div>
                                 )}
 
-                                {first.text !== undefined && (
+                                {first.text !== undefined && first.type !== "graph" && (
                                     <>
                                         <div className="w-px h-6 bg-white/20 mx-1" />
                                         <div className="flex items-center gap-1 px-1">
@@ -73,6 +73,15 @@ export function SelectionToolbar({ selectedItems, updateStyle, handleDelete, act
                             </>
                         )}
                         <div className="w-px h-6 bg-white/20 mx-1" />
+                        {selectedItems.length === 1 && (
+                            <button 
+                                className={`btn btn-xs btn-ghost btn-square ${toolbarBtnClass}`} 
+                                onClick={onSettingsClick} 
+                                title="Element Settings"
+                            >
+                                <Settings2 size={12} />
+                            </button>
+                        )}
                         <button className="btn btn-xs btn-ghost btn-square text-red-500 hover:bg-error/10" onClick={handleDelete} title="Delete element"><Trash2 size={12} /></button>
                     </>
                 );

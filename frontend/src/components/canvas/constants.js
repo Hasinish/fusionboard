@@ -9,6 +9,7 @@ export const DEFAULT_ELEMENT_STYLES = {
     text: { fill: "none", stroke: "none", strokeWidth: 0, textColor: "#1e1e1e", fontSize: 20, fontFamily: "Inter", textAlign: "left", textVerticalAlign: "top" },
     code: { fill: "#1e1e2e", stroke: "#313244", strokeWidth: 1, textColor: "#cdd6f4", fontSize: 14, fontFamily: "monospace", language: "javascript", code: "console.log('Hello, World!');", output: "" },
     video: { fill: "#000000", stroke: "#313244", strokeWidth: 1, url: "", videoId: "" },
+    graph: { fill: "#ffffff", stroke: "#d1d5db", strokeWidth: 1 },
 };
 
 export const COLORS = [

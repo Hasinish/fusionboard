@@ -14,7 +14,11 @@ export default function ParticipantsStrip({
     if (isMobile) return null;
 
     return (
-        <div className="ui-container flex -space-x-3 pointer-events-auto mr-2">
+        <div className="ui-container flex -space-x-3 pointer-events-auto mr-2"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+        >
             {participants.slice(0, 5).map((p, idx) => (
                 <div
                     key={`${p.userId}-${idx}`}

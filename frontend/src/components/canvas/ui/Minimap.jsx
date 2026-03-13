@@ -9,7 +9,12 @@ export default function Minimap({
     if (!isMinimapVisible) return null;
 
     return (
-        <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-2 pointer-events-auto origin-top-right`}>
+        <div className={`ui-container bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-2 pointer-events-auto origin-top-right`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+        >
             <canvas 
                 ref={minimapCanvasRef} 
                 className={`w-48 h-32 rounded-xl border cursor-grab active:cursor-grabbing ${isDark ? "border-[#333333]" : "border-base-300"}`} 
