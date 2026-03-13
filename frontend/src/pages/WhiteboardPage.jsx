@@ -25,7 +25,7 @@ function WhiteboardPage() {
   const isViewer = userRole === "viewer";
 
   useEffect(() => {
-    if (!isLoggedIn()) navigate("/login");
+    if (!isLoggedIn()) navigate("/");
   }, [navigate]);
 
   // Fetch board title + workspace role on mount

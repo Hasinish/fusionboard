@@ -186,7 +186,7 @@ function VoiceChatRoomPage() {
   const joinRoom = async () => {
     setError("");
     if (!isLoggedIn() || !token) {
-      navigate("/login");
+      navigate("/");
       return;
     }
     setStatus("connecting");

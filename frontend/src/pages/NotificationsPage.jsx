@@ -15,7 +15,7 @@ function NotificationsPage() {
   const fetchAll = async () => {
     const token = localStorage.getItem("token");
     if (!isLoggedIn() || !token) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 

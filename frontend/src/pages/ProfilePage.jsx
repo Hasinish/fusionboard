@@ -29,13 +29,13 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!isLoggedIn()) {
-      navigate("/login");
+      navigate("/");
     }
   }, [navigate]);
 
   const handleLogout = () => {
     clearAuth();
-    navigate("/login");
+    navigate("/");
   };
 
   const handleUpdate = async (e) => {

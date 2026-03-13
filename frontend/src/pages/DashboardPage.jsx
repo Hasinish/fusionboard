@@ -66,7 +66,7 @@ function DashboardPage() {
   // Auth & Profile Check
   useEffect(() => {
     if (!isLoggedIn()) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 
@@ -129,7 +129,7 @@ function DashboardPage() {
 
   const handleLogout = () => {
     clearAuth();
-    navigate("/login");
+    navigate("/");
   };
 
   const wsColor = (id) => {

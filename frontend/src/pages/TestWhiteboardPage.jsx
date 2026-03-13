@@ -16,7 +16,7 @@ function TestWhiteboardPage() {
     const [talkingUserIds, setTalkingUserIds] = useState([]);
 
     useEffect(() => {
-        if (!isLoggedIn()) navigate("/login");
+        if (!isLoggedIn()) navigate("/");
     }, [navigate]);
 
     // wire up the realtime connection with a dummy board ID

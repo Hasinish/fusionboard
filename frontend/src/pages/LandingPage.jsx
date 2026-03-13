@@ -1,5 +1,6 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { isLoggedIn } from "../lib/auth";
 
 /**
  * Pixel-Perfect Landing Page for FusionBoard
@@ -10,6 +11,15 @@ import { Link } from "react-router-dom";
  * Matches the provided design screenshot using local assets and super cool scroll animations.
  */
 const LandingPage = () => {
+  const navigate = useNavigate();
+
+  // Redirect to dashboard if already logged in
+  React.useEffect(() => {
+    if (isLoggedIn()) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
   // Reveal on scroll logic
   React.useEffect(() => {
     const observerOptions = {
