@@ -602,8 +602,9 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#4ade80' }} />
                             </div>
                             <select
-                                className="bg-[#1e1e2e] text-[#cdd6f4] rounded border border-[#313244] outline-none cursor-pointer"
+                                className="bg-[#1e1e2e] text-[#cdd6f4] rounded border border-[#313244] outline-none cursor-pointer disabled:cursor-default"
                                 value={el.language}
+                                disabled={isViewer}
                                 style={{
                                     marginLeft: 8 * camera.z,
                                     fontSize: 12 * camera.z,
@@ -639,9 +640,10 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 <option value="rust">Rust</option>
                             </select>
                             <button
-                                className="bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] border-none flex items-center justify-center rounded cursor-pointer transition-colors"
+                                className="bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] border-none flex items-center justify-center rounded cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Reset to boilerplate"
                                 onMouseDown={(e) => e.stopPropagation()}
+                                disabled={isViewer}
                                 onClick={() => {
                                     const boilerplates = {
                                         javascript: "console.log('Hello from JS!');",
@@ -666,7 +668,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                             className="bg-green-600 hover:bg-green-500 text-white border-none flex items-center font-semibold rounded cursor-pointer"
                             onMouseDown={(e) => e.stopPropagation()}
                             onClick={handleExecute}
-                            disabled={isRunning}
+                            disabled={isRunning || isViewer}
                             style={{
                                 padding: `${4 * camera.z}px ${10 * camera.z}px`,
                                 fontSize: 12 * camera.z,
@@ -688,6 +690,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 padding: 12 * camera.z,
                             }}
                             value={el.code}
+                            readOnly={isViewer}
                             onChange={(e) => onChange({ ...el, code: e.target.value })}
                             onMouseDown={(e) => e.stopPropagation()}
                             onKeyDown={(e) => e.stopPropagation()}
@@ -764,6 +767,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                         fontSize: 14 * camera.z
                                     }}
                                     value={el.url || ""}
+                                    readOnly={isViewer}
                                     onChange={(e) => {
                                         const url = e.target.value;
                                         let videoId = "";

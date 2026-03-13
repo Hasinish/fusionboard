@@ -49,10 +49,12 @@ function TestWhiteboardPage() {
         <div className="w-screen h-screen m-0 p-0 overflow-hidden relative font-sans">
             <TestInfiniteCanvas
                 boardId={"infinite-test-room"}
+                boardTitle="Infinite Test Room"
                 socket={socket}
                 initialSegments={[]}
                 me={me}
                 talkingUserIds={talkingUserIds}
+                workspaceId="infinite-test"
                 renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
                     const topBtnClass = `ui-container flex items-center justify-center bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg pointer-events-auto transition-all rounded-lg ${isDark ? "text-white/70 hover:bg-white/25 hover:text-white" : "text-base-content/80 hover:bg-white/30 hover:text-base-content"}`;
                     return (

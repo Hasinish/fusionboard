@@ -9,4 +9,5 @@ export const setupMiddleware = (app, allowedOrigins) => {
         })
     );
     app.use(express.json());
+    app.use("/recordings", express.static("uploads/recordings"));
 };

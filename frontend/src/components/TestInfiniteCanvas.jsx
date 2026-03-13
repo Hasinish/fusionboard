@@ -22,6 +22,7 @@ import ZoomControls from "./canvas/ui/ZoomControls";
 import Minimap from "./canvas/ui/Minimap";
 import StatusBadge from "./canvas/ui/StatusBadge";
 import PropertySidebar from "./canvas/ui/PropertySidebar";
+import RecordButton from "./replay/RecordButton";
 
 import useCanvasToolState from "../hooks/useCanvasToolState";
 import useCanvasElementsState from "../hooks/useCanvasElementsState";
@@ -30,10 +31,11 @@ import useCanvasCamera from "../hooks/useCanvasCamera";
 import useCanvasRealtime from "../hooks/useCanvasRealtime";
 import useCanvasHistory from "../hooks/useCanvasHistory";
 import useCanvasInteraction from "../hooks/useCanvasInteraction";
+import useBoardRecording from "../hooks/useBoardRecording";
 
 
 
-export default function TestInfiniteCanvas({ boardId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
+export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard Session", workspaceId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
     const {
         tool, setTool, toolRef,
         isViewerRef,
@@ -78,11 +80,28 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         screenToWorld, worldToScreen
     } = useCanvasCamera();
 
+    const {
+        isRecording,
+        recordingStatus,
+        duration,
+        startRecording,
+        stopRecording,
+        recordEvent
+    } = useBoardRecording({
+        boardId,
+        workspaceId: workspaceId || "unknown",
+        elements,
+        camera,
+        userId: me?._id || me?.id,
+        isDark,
+        bgMode
+    });
+
     // --- history domain ---
     const { 
         undoStackRef, redoStackRef, pushAction, undo, redo 
     } = useCanvasHistory({
-        socket, boardId, setElements, isViewerRef
+        socket, boardId, setElements, isViewerRef, recordEvent
     });
 
     const {
@@ -95,7 +114,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         setElements, setCamera,
         followedUserIdRef, remoteCamerasRef,
         setStatusMsg,
-        undoStackRef, redoStackRef
+        undoStackRef, redoStackRef,
+        recordEvent
     });
 
     // Broadcast our camera continuously when it changes
@@ -127,7 +147,8 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
         socket, boardId, me,
         emitCursorMove,
         setMousePos,
-        minimapCanvasRef
+        minimapCanvasRef,
+        recordEvent
     });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
@@ -468,6 +489,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                 isSidebarOpen={isSidebarOpen}
                 onSidebarElementIdChange={setSidebarElementId}
                 sidebarElementId={sidebarElementId}
+                recordEvent={recordEvent}
             />
 
             <EraserCursor tool={tool} mousePos={mousePos} />
@@ -594,10 +616,30 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                     </>
                 )}
 
-                {/* Provide the Top Left UI render slot here, floating above everything */}
                 {renderTopLeftUI && (
-                    <div className="relative">
-                        <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3 bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg rounded-lg p-3">
+                    <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3">
+                        {!isViewer && (
+                            <div className="flex items-center pointer-events-auto">
+                                <RecordButton 
+                                    isRecording={isRecording}
+                                    status={recordingStatus}
+                                    duration={duration}
+                                    onStart={() => {
+                                        const now = new Date();
+                                        const dateStr = now.toLocaleDateString();
+                                        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        const defaultTitle = `${boardTitle} - ${dateStr} ${timeStr}`;
+                                        
+                                        const title = window.prompt("Recording Title:", defaultTitle);
+                                        if (title !== null) startRecording(title);
+                                    }}
+                                    onStop={stopRecording}
+                                    isDark={isDark}
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-3 pointer-events-auto">
                             {renderTopLeftUI({
                                 isDark,
                                 setIsDark,
@@ -605,6 +647,7 @@ export default function TestInfiniteCanvas({ boardId, socket, initialSegments, m
                                 clearBoard: () => {
                                     if (window.confirm("Clear board?")) {
                                         emitClearBoard();
+                                        recordEvent("board.cleared", null, {});
                                     }
                                 }
                             })}

@@ -9,6 +9,7 @@ import VoiceChatRoomPage from "./pages/VoiceChatRoomPage";
 import WhiteboardPage from "./pages/WhiteboardPage";
 
 import TestWhiteboardPage from "./pages/TestWhiteboardPage";
+import BoardReplayPage from "./pages/BoardReplayPage";
 
 const WorkspaceRedirect = () => {
   const { id } = useParams();
@@ -36,6 +37,7 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         {/* Infinite Canvas Test Route */}
         <Route path="/test-whiteboard" element={<TestWhiteboardPage />} />
+        <Route path="/recordings/:recordingId" element={<BoardReplayPage />} />
       </Routes>
     </div>
   );

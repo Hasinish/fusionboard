@@ -425,6 +425,7 @@ export const setupSocket = (io) => {
         socket.on("clearBoard", async ({ boardId }) => {
             if (!boardId) return;
             if (isViewerSocket(socket.id)) return;
+            console.log(`[Socket] clearBoard triggered for ${boardId} by user ${socket.userId}`);
             io.to(`board:${boardId}`).emit("cleared");
             try {
                 const meta = socketMeta.get(socket.id);

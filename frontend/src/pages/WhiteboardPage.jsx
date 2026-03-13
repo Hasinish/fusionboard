@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { ArrowLeft, Settings2, Trash2, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Settings2, Trash2, Check, Loader2, History } from "lucide-react";
 import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
 import VoiceChat from "../components/VoiceChat";
+import RecordingListModal from "../components/replay/RecordingListModal";
 import { getUser, isLoggedIn } from "../lib/auth";
 import api, { API_URL } from "../lib/api";
 
@@ -19,6 +20,7 @@ function WhiteboardPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
   const [userRole, setUserRole] = useState(null); // null = loading, "owner"/"editor"/"viewer"
+  const [showRecordings, setShowRecordings] = useState(false);
 
   const isViewer = userRole === "viewer";
 
@@ -65,7 +67,7 @@ function WhiteboardPage() {
       if (socket?.connected) {
         socket.emit("board:update-title", { boardId, title: tempTitle });
       }
-    } catch (e) {
+    } catch {
       // Revert on failure
       api.get(`/boards/${boardId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -115,11 +117,13 @@ function WhiteboardPage() {
     <div className="w-screen h-screen m-0 p-0 overflow-hidden relative font-sans">
       <TestInfiniteCanvas
         boardId={boardId}
+        boardTitle={boardTitle}
         socket={socket}
         initialSegments={[]}
         me={me}
         talkingUserIds={talkingUserIds}
         isViewer={isViewer}
+        workspaceId={id}
         renderTopLeftUI={({ setBgMode, clearBoard, isDark, setIsDark }) => {
           const topBtnClass = `ui-container flex items-center justify-center bg-white/15 backdrop-blur-lg border border-white/50 shadow-lg pointer-events-auto transition-all rounded-lg ${isDark ? "text-white/70 hover:bg-white/25 hover:text-white" : "text-base-content/80 hover:bg-white/30 hover:text-base-content"}`;
           return (
@@ -191,6 +195,10 @@ function WhiteboardPage() {
                   {!isViewer && (
                     <>
                       <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
+                      <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Recordings</li>
+                      <li><a onClick={() => setShowRecordings(true)} className={`${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-primary/10"} py-2.5 px-4 rounded-xl flex items-center gap-3`}><History size={18} /> View Recordings</a></li>
+                      
+                      <div className={`h-px my-2 ${isDark ? "bg-white/10" : "bg-base-300"} mx-4`} />
                       <li className={`menu-title text-xs font-bold uppercase tracking-widest ${isDark ? "text-white/60" : "opacity-40"} px-4 py-2`}>Danger</li>
                       <li><a onClick={clearBoard} className="text-error hover:bg-error/10 font-bold py-2.5 px-4 rounded-xl"><Trash2 className="w-5 h-5" /> Clear Canvas</a></li>
                     </>
@@ -202,6 +210,14 @@ function WhiteboardPage() {
         }}
       />
       <VoiceChat roomId={boardId} autoJoin={false} onSpeakingChange={setTalkingUserIds} isViewer={isViewer} />
+      
+      {showRecordings && (
+        <RecordingListModal 
+          boardId={boardId} 
+          onClose={() => setShowRecordings(false)} 
+          isDark={userRole === "viewer" ? true : false /* This logic might need refinement */}
+        />
+      )}
     </div>
   );
 }

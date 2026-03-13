@@ -18,7 +18,8 @@ export default React.memo(function ElementsLayer({
     tool, elements, camera, boardId, socket, isDark,
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
     pendingEditId, onPendingEditConsumed, isViewer = false,
-    onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen
+    onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen,
+    recordEvent
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
@@ -73,11 +74,13 @@ export default React.memo(function ElementsLayer({
             if (beforeState) {
                 pushAction({ type: "UPDATE_ELEMENT", id: updated.id, oldState: beforeState, newState: updated });
             }
+            recordEvent("element.updated", updated.id, { element: updated, persist: true });
             if (socketRef.current?.connected) {
                 socketRef.current.emit("updateElement", { boardId, element: updated });
                 lastEmitRef.current[updated.id] = now;
             }
         } else if (now - lastEmit > 50) {
+            recordEvent("element.updated", updated.id, { element: updated, persist: false });
             if (socketRef.current?.connected) {
                 socketRef.current.emit("updateElement", { boardId, element: updated });
                 lastEmitRef.current[updated.id] = now;
@@ -94,6 +97,7 @@ export default React.memo(function ElementsLayer({
         setEditingId(null);
         pushAction({ type: "DELETE_ELEMENTS", elements: deletedItems });
         deletedItems.forEach(el => {
+            recordEvent("element.deleted", el.id, {});
             if (socketRef.current?.connected) {
                 socketRef.current.emit("deleteElement", { boardId, elementId: el.id });
             }
@@ -107,7 +111,8 @@ export default React.memo(function ElementsLayer({
             socketRef.current.emit("addElement", { boardId, element: clone });
         }
         pushAction({ type: "ADD_ELEMENT", element: clone });
-    }, [boardId, onElementsChange, setSelectedIds, pushAction]);
+        recordEvent("element.created", clone.id, { element: clone });
+    }, [boardId, onElementsChange, setSelectedIds, pushAction, recordEvent]);
 
     useElementKeyboard({ selectedIds, editingId, handleDelete });
 
@@ -131,6 +136,7 @@ export default React.memo(function ElementsLayer({
             });
             selectedIds.forEach(id => {
                 const el = updatedElements.find(e => e.id === id);
+                recordEvent("element.updated", id, { element: el });
                 if (socketRef.current?.connected) {
                     socketRef.current.emit("updateElement", { boardId, element: el });
                 }

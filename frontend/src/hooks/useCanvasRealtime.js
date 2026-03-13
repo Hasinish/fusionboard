@@ -18,7 +18,8 @@ export default function useCanvasRealtime({
     setStatusMsg,
     // Undo/Redo reset
     undoStackRef,
-    redoStackRef
+    redoStackRef,
+    recordEvent
 }) {
     const [participants, setParticipants] = useState([]);
     const [cursors, setCursors] = useState({});
@@ -34,8 +35,14 @@ export default function useCanvasRealtime({
 
         // --- Elements ---
         socket.on("boardElements", (els) => setElements(els || []));
-        socket.on("elementAdded", (el) => setElements(prev => [...prev, el]));
-        socket.on("elementUpdated", (el) => setElements(prev => prev.map(e => e.id === el.id ? el : e)));
+        socket.on("elementAdded", (el) => {
+            setElements(prev => [...prev, el]);
+            recordEvent("element.created", el.id, { element: el });
+        });
+        socket.on("elementUpdated", (el) => {
+            setElements(prev => prev.map(e => e.id === el.id ? el : e));
+            recordEvent("element.updated", el.id, { element: el });
+        });
         socket.on("elementsUpdated", (newElements) => {
             if (!Array.isArray(newElements)) return;
             setElements(prev => {
@@ -46,13 +53,17 @@ export default function useCanvasRealtime({
                 return Array.from(map.values());
             });
         });
-        socket.on("elementDeleted", ({ elementId }) => setElements(prev => prev.filter(e => e.id !== elementId)));
+        socket.on("elementDeleted", ({ elementId }) => {
+            setElements(prev => prev.filter(e => e.id !== elementId));
+            recordEvent("element.deleted", elementId, {});
+        });
 
         socket.on("cleared", () => {
             if (undoStackRef) undoStackRef.current = [];
             if (redoStackRef) redoStackRef.current = [];
             setElements([]);
             setStatusMsg?.("Cleared ✅");
+            recordEvent("board.cleared", null, {});
             setTimeout(() => setStatusMsg?.(""), 1500);
         });
 
@@ -84,6 +95,7 @@ export default function useCanvasRealtime({
         socket.on("cursorMove", ({ userId, name, color, avatar, x, y }) => {
             const uid = String(userId);
             setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x, y, ts: Date.now() } }));
+            recordEvent("cursor.moved", uid, { x, y, name, color, avatar });
             setParticipants(prev => {
                 if (prev.find(p => String(p.userId) === uid)) {
                     return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
@@ -109,14 +121,34 @@ export default function useCanvasRealtime({
 
         // --- Live Drawing ---
         socket.on("draw:stroke-progress", ({ userId, stroke }) => {
-            setRemoteLiveStrokes(prev => ({
-                ...prev,
-                [userId]: stroke
-            }));
+            setRemoteLiveStrokes(prev => {
+                const isNew = !prev[userId];
+                // Record for replay
+                if (isNew) {
+                    recordEvent("path.started", stroke.id, { 
+                        points: stroke.points, 
+                        color: stroke.color, 
+                        width: stroke.width, 
+                        opacity: stroke.opacity 
+                    });
+                } else {
+                    const lastPoint = stroke.points[stroke.points.length - 1];
+                    recordEvent("path.appended", stroke.id, { newPoint: lastPoint });
+                }
+
+                return {
+                    ...prev,
+                    [userId]: stroke
+                };
+            });
         });
 
         socket.on("draw:stroke-end", ({ userId }) => {
             setRemoteLiveStrokes(prev => {
+                const stroke = prev[userId];
+                if (stroke) {
+                    recordEvent("path.finished", stroke.id, {});
+                }
                 const next = { ...prev };
                 delete next[userId];
                 return next;

@@ -38,7 +38,10 @@ export default function useCanvasInteraction({
     setMousePos,
     
     // Minimap Ref for interaction
-    minimapCanvasRef
+    minimapCanvasRef,
+
+    // Recording
+    recordEvent
 }) {
     // In-progress pen stroke (vector preview)
     const [currentPath, setCurrentPath] = useState(null);
@@ -61,6 +64,7 @@ export default function useCanvasInteraction({
     const lastPointRef = useRef({ x: 0, y: 0 });
     const strokeStartRef = useRef(null);
     const lastEmittedTimeRef = useRef(0);
+    const lastCursorRecordRef = useRef(0);
 
     // Tool shortcuts
     useEffect(() => {
@@ -206,6 +210,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
+            recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
             setPendingEditId(el.id);
             setTool("select");
@@ -221,6 +226,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
+            recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
             setTool("select");
             return;
@@ -235,6 +241,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
+            recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
             setTool("select");
             return;
@@ -249,6 +256,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
+            recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
             setTool("select");
             return;
@@ -267,6 +275,12 @@ export default function useCanvasInteraction({
             currentPathRef.current = path;
             setCurrentPath(path);
             
+            recordEvent("path.started", path.id, { 
+                points: path.points, 
+                color: path.color, 
+                width: path.width 
+            });
+
             // Start hold-to-shape tracking
             holdStartPosRef.current = { x: wp.x, y: wp.y };
             if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
@@ -292,6 +306,18 @@ export default function useCanvasInteraction({
         const wp = screenToWorld(sp.x, sp.y); 
         setMousePos(sp);
         emitCursorMove(wp.x, wp.y);
+
+        // Record local cursor if recording
+        const now = Date.now();
+        if (now - lastCursorRecordRef.current > 60) {
+            recordEvent("cursor.moved", me?.userId || me?.id, { 
+                x: wp.x, 
+                y: wp.y,
+                name: me?.name || "You",
+                color: "#2563eb"
+            });
+            lastCursorRecordRef.current = now;
+        }
 
         if (isPanningRef.current) {
             const dx = sp.x - lastPointRef.current.x, dy = sp.y - lastPointRef.current.y;
@@ -361,6 +387,10 @@ export default function useCanvasInteraction({
             }
             currentPathRef.current.points.push({ x: p.x, y: p.y, pressure });
             setCurrentPath({ ...currentPathRef.current });
+
+            recordEvent("path.appended", currentPathRef.current.id, { 
+                newPoint: { x: p.x, y: p.y, pressure } 
+            });
 
             // Samsung-style hold detection: 
             // If we moved too far from the point where the timer started, reset it.
@@ -439,6 +469,7 @@ export default function useCanvasInteraction({
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 setSelectedIds([el.id]);
                 pushAction({ type: "ADD_ELEMENT", element: el });
+                recordEvent("element.created", el.id, { element: el });
             }
             setGhostElement(null); drawingRef.current = false; setTool("select"); return;
         }
@@ -453,6 +484,8 @@ export default function useCanvasInteraction({
             if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
             holdTimerRef.current = null;
 
+            recordEvent("path.finished", path.id, {});
+
             if (socket?.connected) socket.emit("draw:stroke-end", { boardId });
 
             // If we have a hold-preview, commit that instead of the raw path
@@ -461,6 +494,8 @@ export default function useCanvasInteraction({
                 setElements(prev => [...prev, el]);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
+                recordEvent("element.created", el.id, { element: el });
+
                 
                 // Clear preview
                 setAutoShapePreview(null);
@@ -470,15 +505,17 @@ export default function useCanvasInteraction({
 
             if (path && path.points.length > 0) {
                 const bounds = getPathBounds(path.points);
+                const finalId = path.id;
                 const el = {
                     ...path,
-                    id: uid(),
+                    id: finalId,
                     ...bounds,
                     userId: me?.userId || me?.id,
                 };
                 setElements(prev => [...prev, el]);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
+                recordEvent("element.created", finalId, { element: el });
 
             }
             return;
@@ -498,6 +535,7 @@ export default function useCanvasInteraction({
                 setElements(prev => prev.filter(el => !el.isMarkedForErasure));
                 for (const el of marked) {
                     if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
+                    recordEvent("element.deleted", el.id, {});
                 }
                 pushAction({ type: "ERASE_ELEMENTS", elements: cleanMarked });
             } else {
