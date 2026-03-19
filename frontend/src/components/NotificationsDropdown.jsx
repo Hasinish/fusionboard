@@ -1,74 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
-import { Check, X, Bell, ExternalLink, Mail, UserPlus, Info } from "lucide-react";
+import { Check, X, Bell, ExternalLink, Mail, UserPlus, Info, CheckCheck } from "lucide-react";
 
-const NotificationsDropdown = ({ onClose }) => {
+const NotificationsDropdown = ({ 
+    onClose, 
+    notifications = [], 
+    invitations = [], 
+    loading = false, 
+    handleInviteAction, 
+    handleNotificationClick,
+    markAllRead
+}) => {
     const navigate = useNavigate();
-    const [invitations, setInvitations] = useState([]);
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
 
-    const fetchAll = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        try {
-            setLoading(true);
-            const [resInvites, resNotes] = await Promise.all([
-                api.get("/invitations/my", { headers: { Authorization: `Bearer ${token}` } }),
-                api.get("/notifications", { headers: { Authorization: `Bearer ${token}` } })
-            ]);
-            setInvitations(Array.isArray(resInvites.data) ? resInvites.data : []);
-            setNotifications(Array.isArray(resNotes.data) ? resNotes.data : []);
-        } catch (err) {
-            console.error("Failed to load notifications", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchAll();
-    }, []);
-
-    const handleInviteAction = async (id, action) => {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-        try {
-            await api.post(`/invitations/${id}/${action}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-            setInvitations((prev) => prev.filter((inv) => inv._id !== id));
-        } catch (err) {
-            console.error("Failed to update invitation", err);
-        }
-    };
-
-    const handleNotificationClick = async (note) => {
-        const token = localStorage.getItem("token");
+    const onNoteClick = async (note) => {
         if (note.workspace) {
-            try {
-                await api.put(`/notifications/read/workspace/${note.workspace._id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-            } catch (e) {
-                console.error(e);
-            }
+            await handleNotificationClick(note.workspace._id);
             navigate(`/dashboard?wsId=${note.workspace._id}`);
             onClose();
         }
     };
 
     const hasContent = invitations.length > 0 || notifications.length > 0;
+    const hasUnreadNotes = notifications.some(n => !n.isRead);
 
     return (
         <div
             className="fixed inset-x-4 top-[80px] md:absolute md:inset-auto md:top-full md:right-0 md:mt-2 md:w-96 max-h-[calc(100vh-140px)] bg-white rounded-2xl shadow-2xl border border-[#E8DDD0] z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
             onClick={(e) => e.stopPropagation()}
         >
-            <div className="px-5 py-4 border-b border-[#E8DDD0] flex items-center justify-between bg-white sticky top-0 z-10">
+            <div className="px-5 py-4 border-b border-[#E8DDD0] flex items-center justify-between bg-white sticky top-0 z-10 text-nowrap">
                 <div>
                     <h3 className="font-black text-[#1A1A2E] text-lg leading-tight">Notifications</h3>
                     <p className="text-[10px] font-bold text-[#6B6560] uppercase tracking-wider mt-0.5">Stay updated</p>
                 </div>
+                {hasUnreadNotes && (
+                    <button 
+                        onClick={markAllRead}
+                        className="flex items-center gap-1.5 text-[11px] font-black text-[#244e8a] hover:text-[#1d3f70] transition-colors p-1.5 hover:bg-[#244e8a]/5 rounded-lg"
+                    >
+                        <CheckCheck size={14} /> Mark all read
+                    </button>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FDFBF7]">
@@ -96,7 +69,7 @@ const NotificationsDropdown = ({ onClose }) => {
                                 </div>
                                 {invitations.map((inv) => (
                                     <div key={inv._id} className="px-5 py-4 hover:bg-[#FFF4D6] transition-colors border-l-4 border-[#FFD93D]">
-                                        <p className="text-sm font-bold text-[#1A1A2E] leading-tight">
+                                        <p className="text-sm font-bold text-[#1A1A2E] leading-tight text-wrap">
                                             Join <span className="text-[#244e8a]">{inv.workspace?.name || "Workspace"}</span>
                                         </p>
                                         <p className="text-xs text-[#6B6560] mt-1 line-clamp-2">
@@ -133,14 +106,14 @@ const NotificationsDropdown = ({ onClose }) => {
                                 {notifications.map((note) => (
                                     <div
                                         key={note._id}
-                                        onClick={() => handleNotificationClick(note)}
+                                        onClick={() => onNoteClick(note)}
                                         className={`px-5 py-4 cursor-pointer transition-all flex gap-3 group bg-white hover:bg-[#F5EAD8]/50 ${!note.isRead ? "border-l-4 border-[#244e8a]" : ""}`}
                                     >
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!note.isRead ? "bg-[#244e8a]/10" : "bg-gray-100"}`}>
                                             <Info size={14} className={!note.isRead ? "text-[#244e8a]" : "text-gray-400"} />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className={`text-[13px] leading-snug ${!note.isRead ? "font-bold text-[#1A1A2E]" : "text-[#6B6560]"}`}>
+                                            <p className={`text-[13px] leading-snug text-wrap ${!note.isRead ? "font-bold text-[#1A1A2E]" : "text-[#6B6560]"}`}>
                                                 {note.text}
                                             </p>
                                             <div className="flex items-center justify-between mt-2">

@@ -52,6 +52,12 @@ export default function DashboardHeader({
   profile,
   setProfile,
   user,
+  notifications,
+  invitations,
+  loadingNotifications,
+  handleInviteAction,
+  markWorkspaceRead,
+  markAllRead,
 }) {
   return (
     <header className="bg-white border-b border-[#E8DDD0] px-4 md:px-8 py-4 flex items-center justify-between shrink-0 relative">
@@ -262,6 +268,12 @@ export default function DashboardHeader({
                 {showNotifications && (
                   <NotificationsDropdown
                     onClose={() => setShowNotifications(false)}
+                    notifications={notifications}
+                    invitations={invitations}
+                    loading={loadingNotifications}
+                    handleInviteAction={handleInviteAction}
+                    handleNotificationClick={markWorkspaceRead}
+                    markAllRead={markAllRead}
                   />
                 )}
               </div>

@@ -206,6 +206,12 @@ function DashboardPage() {
           showNotifications={notificationData.showNotifications}
           setShowNotifications={notificationData.setShowNotifications}
           unreadCount={notificationData.unreadCount}
+          notifications={notificationData.notifications}
+          invitations={notificationData.invitations}
+          loadingNotifications={notificationData.loading}
+          handleInviteAction={notificationData.handleInviteAction}
+          markWorkspaceRead={notificationData.markWorkspaceRead}
+          markAllRead={notificationData.markAllRead}
           navigate={navigate}
           profile={profile}
           setProfile={setProfile}
@@ -233,6 +239,7 @@ function DashboardPage() {
                   setRenameBoardTitle={boardData.setRenameBoardTitle}
                   setShowBoardRenameModal={setShowBoardRenameModal}
                   handleDeleteBoard={boardData.handleDeleteBoard}
+                  myRole={workspaceData.myRole}
                 />
               ) : (
                 <CalendarView

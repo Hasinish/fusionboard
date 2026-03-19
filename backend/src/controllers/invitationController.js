@@ -3,6 +3,7 @@ import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js"; // [NEW] Import User to get email
 import driveClient from "../config/googleDrive.js"; // [NEW] Import Drive Client
+import { emitToUser } from "../startup/socket.js";
 
 // fetch any invites waiting for me
 export async function getMyInvitations(req, res) {
@@ -155,6 +156,12 @@ export async function acceptInvitation(req, res) {
         console.error("Failed to create join notification:", noteError);
       }
     }
+
+    // 5. Tell the user's dashboard to refresh its list
+    emitToUser(userId, "workspace:joined", {
+      workspaceId: workspace._id,
+      workspaceName: workspace.name,
+    });
 
     return res.json({ message: "Invitation accepted" });
   } catch (e) {

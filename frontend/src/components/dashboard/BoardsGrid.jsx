@@ -24,7 +24,9 @@ export default function BoardsGrid({
   setRenameBoardTitle,
   setShowBoardRenameModal,
   handleDeleteBoard,
+  myRole,
 }) {
+  const isViewer = myRole === "viewer";
   const timeAgo = (dateStr) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -74,24 +76,26 @@ export default function BoardsGrid({
 
       {viewMode === "grid" && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-          {/* New Board Card */}
-          <div
-            onClick={handleCreateBoard}
-            className="bg-[#1A1A2E] rounded-2xl cursor-pointer hover:bg-[#2d2d4e] hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#1A1A2E]"
-          >
-            {creating ? (
-              <Loader2 className="animate-spin text-white w-10 h-10" />
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                  <Plus size={28} className="text-white" />
-                </div>
-                <span className="text-white font-semibold text-sm mt-2 font-display">
-                  New Board
-                </span>
-              </>
-            )}
-          </div>
+          {/* New Board Card - Hidden for viewers */}
+          {!isViewer && (
+            <div
+              onClick={handleCreateBoard}
+              className="bg-[#1A1A2E] rounded-2xl cursor-pointer hover:bg-[#2d2d4e] hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-3 h-[180px] border-2 border-[#1A1A2E]"
+            >
+              {creating ? (
+                <Loader2 className="animate-spin text-white w-10 h-10" />
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                    <Plus size={28} className="text-white" />
+                  </div>
+                  <span className="text-white font-semibold text-sm mt-2 font-display">
+                    New Board
+                  </span>
+                </>
+              )}
+            </div>
+          )}
 
           {loadingBoards ? (
             Array.from({ length: 6 }).map((_, i) => (
@@ -107,7 +111,9 @@ export default function BoardsGrid({
                 No boards yet
               </h3>
               <p className="text-[#6B6560] max-w-xs">
-                Create your first board to get started with your projects.
+                {isViewer
+                  ? "There are no boards in this workspace yet."
+                  : "Create your first board to get started with your projects."}
               </p>
             </div>
           ) : (
@@ -202,30 +208,32 @@ export default function BoardsGrid({
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTargetBoardId(b._id);
-                      setRenameBoardTitle(b.title);
-                      setShowBoardRenameModal(true);
-                    }}
-                    className="w-8 h-8 bg-white border border-[#E8DDD0] shadow-sm rounded-full flex items-center justify-center hover:bg-[#F5EAD8] hover:text-[#244e8a] transition-all"
-                  >
-                    <Edit2 size={13} className="text-[#6B6560]" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Delete this board?"))
-                        handleDeleteBoard(b._id);
-                    }}
-                    className="w-8 h-8 bg-white border border-[#E8DDD0] shadow-sm rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all"
-                  >
-                    <Trash2 size={14} className="text-red-400" />
-                  </button>
-                </div>
+                {/* Action Buttons - Hidden for viewers */}
+                {!isViewer && (
+                  <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTargetBoardId(b._id);
+                        setRenameBoardTitle(b.title);
+                        setShowBoardRenameModal(true);
+                      }}
+                      className="w-8 h-8 bg-white border border-[#E8DDD0] shadow-sm rounded-full flex items-center justify-center hover:bg-[#F5EAD8] hover:text-[#244e8a] transition-all"
+                    >
+                      <Edit2 size={13} className="text-[#6B6560]" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Delete this board?"))
+                          handleDeleteBoard(b._id);
+                      }}
+                      className="w-8 h-8 bg-white border border-[#E8DDD0] shadow-sm rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all"
+                    >
+                      <Trash2 size={14} className="text-red-400" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -234,15 +242,18 @@ export default function BoardsGrid({
 
       {viewMode === "list" && (
         <div className="mt-6 flex flex-col gap-2">
-          <div
-            onClick={handleCreateBoard}
-            className="bg-[#1A1A2E] hover:bg-[#2d2d4e] rounded-xl px-5 py-3 flex items-center gap-3 cursor-pointer transition-all"
-          >
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0">
-              <Plus size={18} className="text-white" />
+          {/* New Board Card - Hidden for viewers */}
+          {!isViewer && (
+            <div
+              onClick={handleCreateBoard}
+              className="bg-[#1A1A2E] hover:bg-[#2d2d4e] rounded-xl px-5 py-3 flex items-center gap-3 cursor-pointer transition-all"
+            >
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                <Plus size={18} className="text-white" />
+              </div>
+              <span className="text-white font-semibold text-sm">New Board</span>
             </div>
-            <span className="text-white font-semibold text-sm">New Board</span>
-          </div>
+          )}
           {loadingBoards ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -309,29 +320,31 @@ export default function BoardsGrid({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTargetBoardId(b._id);
-                      setRenameBoardTitle(b.title);
-                      setShowBoardRenameModal(true);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full hover:bg-[#F5EAD8] flex items-center justify-center transition-all"
-                  >
-                    <Edit2 size={13} className="text-[#6B6560]" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Delete this board?"))
-                        handleDeleteBoard(b._id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full hover:bg-red-50 flex items-center justify-center transition-all"
-                  >
-                    <Trash2 size={14} className="text-red-400" />
-                  </button>
-                </div>
+                {!isViewer && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTargetBoardId(b._id);
+                        setRenameBoardTitle(b.title);
+                        setShowBoardRenameModal(true);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full hover:bg-[#F5EAD8] flex items-center justify-center transition-all"
+                    >
+                      <Edit2 size={13} className="text-[#6B6560]" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Delete this board?"))
+                          handleDeleteBoard(b._id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full hover:bg-red-50 flex items-center justify-center transition-all"
+                    >
+                      <Trash2 size={14} className="text-red-400" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}

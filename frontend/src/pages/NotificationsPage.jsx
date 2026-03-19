@@ -1,143 +1,109 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
+import { CheckCheck, Bell, UserPlus, Mail, ExternalLink, Info } from "lucide-react";
 import { isLoggedIn } from "../lib/auth";
+import { useNotifications } from "../hooks/useNotifications";
+import { useEffect } from "react";
 
 function NotificationsPage() {
   const navigate = useNavigate();
+  const { 
+      invitations, 
+      notifications, 
+      loading, 
+      markAllRead, 
+      markWorkspaceRead, 
+      handleInviteAction,
+      fetchAll
+  } = useNotifications();
 
-  const [invitations, setInvitations] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-
-  const fetchAll = async () => {
-    const token = localStorage.getItem("token");
-    if (!isLoggedIn() || !token) {
+  useEffect(() => {
+    if (!isLoggedIn()) {
       navigate("/");
       return;
     }
-
-    setError("");
-    setLoading(true);
-
-    try {
-      // grab the pending invites
-      const resInvites = await api.get("/invitations/my", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setInvitations(Array.isArray(resInvites.data) ? resInvites.data : []);
-
-      // grab the regular notifications
-      const resNotes = await api.get("/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setNotifications(Array.isArray(resNotes.data) ? resNotes.data : []);
-    } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to load notifications.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
     fetchAll();
   }, [navigate]);
 
-  const handleInviteAction = async (id, action) => {
-    setError("");
-    setMessage("");
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      await api.post(
-        `/invitations/${id}/${action}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMessage(
-        action === "accept" ? "Invitation accepted." : "Invitation rejected."
-      );
-      // hide it from the screen immediately
-      setInvitations((prev) => prev.filter((inv) => inv._id !== id));
-    } catch (err) {
-      setError(err?.response?.data?.message || "Failed to update invitation.");
-    }
-  };
-
-  const handleNotificationClick = (note) => {
+  const onNoteClick = async (note) => {
     if (note.workspace) {
-      // send them to the workspace (which will clear the notif)
+      await markWorkspaceRead(note.workspace._id);
       navigate(`/dashboard?wsId=${note.workspace._id}`);
     }
   };
 
   const hasContent = invitations.length > 0 || notifications.length > 0;
+  const hasUnreadNotes = notifications.some(n => !n.isRead);
 
   return (
-    <div className="min-h-screen bg-base-200 flex flex-col">
-
+    <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans">
       <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold mb-2">Notifications</h1>
-          <p className="text-sm text-neutral-500 mb-4">
-            Manage invitations and see new messages.
-          </p>
-
-          {error && (
-            <div className="alert alert-error py-2 text-sm mb-3">
-              <span>{error}</span>
+        <div className="max-w-3xl mx-auto px-6 py-10">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+                <h1 className="text-4xl font-black text-[#1A1A2E] mb-2 tracking-tight">Notifications</h1>
+                <p className="text-sm font-bold text-[#6B6560] uppercase tracking-wider">
+                    Manage invitations and stay updated
+                </p>
             </div>
-          )}
-          {message && (
-            <div className="alert alert-success py-2 text-sm mb-3">
-              <span>{message}</span>
-            </div>
-          )}
+            {hasUnreadNotes && (
+                <button 
+                    onClick={markAllRead}
+                    className="flex items-center gap-2 bg-[#244e8a] text-white px-4 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-[#244e8a]/20 hover:bg-[#1d3f70] transition-all active:scale-95"
+                >
+                    <CheckCheck size={18} /> Mark all read
+                </button>
+            )}
+          </div>
 
           {loading ? (
-            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
-              Loading...
+            <div className="bg-white rounded-3xl border border-[#E8DDD0] p-12 text-center shadow-sm">
+              <div className="w-10 h-10 border-4 border-[#244e8a]/20 border-t-[#244e8a] rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-sm font-bold text-[#6B6560]">Syncing your updates...</p>
             </div>
           ) : !hasContent ? (
-            <div className="rounded-box border border-base-300 p-6 bg-base-100 text-sm text-neutral-500">
-              You have no notifications.
+            <div className="bg-white rounded-3xl border border-[#E8DDD0] p-16 text-center shadow-sm">
+              <div className="w-20 h-20 bg-[#F5EAD8]/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Bell size={32} className="text-[#6B6560]" />
+              </div>
+              <p className="text-xl font-black text-[#1A1A2E]">All caught up!</p>
+              <p className="text-[#6B6560] mt-2 font-medium">No new notifications at the moment.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-
-              {/* the invites list */}
+            <div className="space-y-10">
+              {/* Invitations */}
               {invitations.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">Invitations</h2>
-                  <div className="space-y-3">
+                  <div className="flex items-center gap-3 mb-4 ml-1">
+                    <UserPlus size={18} className="text-[#A67C00]" />
+                    <h2 className="text-xs font-black text-[#A67C00] uppercase tracking-[0.2em]">Workspace Invitations</h2>
+                  </div>
+                  <div className="space-y-4">
                     {invitations.map((inv) => (
                       <div
                         key={inv._id}
-                        className="card bg-base-100 shadow-sm border border-base-200"
+                        className="bg-white rounded-2xl border-2 border-[#E8DDD0] p-6 shadow-sm hover:border-[#FFD93D] transition-all"
                       >
-                        <div className="card-body py-4">
-                          <h3 className="font-semibold text-base">
-                            Join Workspace: {inv.workspace?.name || "Unknown"}
-                          </h3>
-                          <p className="text-sm text-neutral-600 mb-2">
-                            Invited by {inv.invitedBy?.name} ({inv.invitedBy?.email})
-                          </p>
-                          <div className="flex gap-2">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div>
+                            <h3 className="font-black text-xl text-[#1A1A2E] leading-tight mb-1">
+                              Join <span className="text-[#244e8a]">{inv.workspace?.name || "Unknown"}</span>
+                            </h3>
+                            <p className="text-sm text-[#6B6560] font-medium">
+                              Invited by <span className="font-bold text-[#1A1A2E]">{inv.invitedBy?.name}</span> ({inv.invitedBy?.email})
+                            </p>
+                          </div>
+                          <div className="flex gap-3">
                             <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleInviteAction(inv._id, "accept")}
+                                onClick={() => handleInviteAction(inv._id, "accept")}
+                                className="flex-1 md:flex-none px-6 py-3 bg-[#244e8a] text-white rounded-xl font-black text-sm hover:bg-[#1d3f70] transition-colors shadow-sm"
                             >
-                              Accept
+                                Accept
                             </button>
                             <button
-                              className="btn btn-sm btn-ghost"
-                              onClick={() => handleInviteAction(inv._id, "reject")}
+                                onClick={() => handleInviteAction(inv._id, "reject")}
+                                className="flex-1 md:flex-none px-6 py-3 bg-white border-2 border-[#E8DDD0] text-[#1A1A2E] rounded-xl font-black text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                             >
-                              Reject
+                                Decline
                             </button>
                           </div>
                         </div>
@@ -147,43 +113,48 @@ function NotificationsPage() {
                 </div>
               )}
 
-              {/* the messages list */}
+              {/* General Notifications */}
               {notifications.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">Messages</h2>
-                  <div className="space-y-3">
+                  <div className="flex items-center gap-3 mb-4 ml-1">
+                    <Mail size={18} className="text-[#6B6560]" />
+                    <h2 className="text-xs font-black text-[#6B6560] uppercase tracking-[0.2em]">Recent Activity</h2>
+                  </div>
+                  <div className="bg-white rounded-3xl border border-[#E8DDD0] overflow-hidden shadow-sm divide-y divide-[#E8DDD0]/50">
                     {notifications.map((note) => (
                       <div
                         key={note._id}
-                        className="card bg-base-100 shadow-sm border border-base-200 cursor-pointer hover:bg-base-50 transition"
-                        onClick={() => handleNotificationClick(note)}
+                        className={`p-6 cursor-pointer transition-all flex gap-4 hover:bg-[#F5EAD8]/20 ${!note.isRead ? "bg-white" : "bg-gray-50/30"}`}
+                        onClick={() => onNoteClick(note)}
                       >
-                        <div className="card-body py-4 flex flex-row items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              {!note.isRead && (
-                                <div
-                                  className="w-2 h-2 rounded-full bg-blue-600"
-                                  title="Unread"
-                                ></div>
-                              )}
-                              <p className={`text-sm ${!note.isRead ? "font-bold text-black" : "text-neutral-600"}`}>
-                                {note.text}
-                              </p>
-                            </div>
-                            <p className="text-xs text-neutral-400 mt-1">
-                              {new Date(note.updatedAt).toLocaleString()}
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${!note.isRead ? "bg-[#244e8a]/10" : "bg-gray-100"}`}>
+                          <Info size={20} className={!note.isRead ? "text-[#244e8a]" : "text-gray-400"} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-1">
+                            <p className={`text-lg leading-tight ${!note.isRead ? "font-black text-[#1A1A2E]" : "font-bold text-[#6B6560]"}`}>
+                              {note.text}
                             </p>
+                            {!note.isRead && (
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#244e8a] shrink-0 mt-1"></span>
+                            )}
                           </div>
-
-
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              {new Date(note.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {note.workspace && (
+                                <span className="flex items-center gap-1 text-xs font-black text-[#244e8a] hover:underline">
+                                    Open Workspace <ExternalLink size={12} />
+                                </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
             </div>
           )}
         </div>

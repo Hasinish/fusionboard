@@ -85,6 +85,11 @@ export function useBoards(selectedWorkspaceId) {
       navigate(`/workspaces/${selectedWorkspaceId}/boards/${res.data._id}`);
     } catch (err) {
       console.error("Failed to create board", err);
+      if (err.response?.status === 403) {
+        alert(err.response?.data?.message || "You do not have permission to create boards in this workspace.");
+      } else {
+        alert("Failed to create board. Please try again.");
+      }
     } finally {
       setCreating(false);
     }

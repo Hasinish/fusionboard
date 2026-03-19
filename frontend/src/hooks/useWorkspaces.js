@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import api from "../lib/api";
+import { io } from "socket.io-client";
+import api, { API_URL } from "../lib/api";
 import { getUser } from "../lib/auth";
 
 export function useWorkspaces() {
@@ -78,6 +79,33 @@ export function useWorkspaces() {
 
   useEffect(() => {
     fetchWorkspaces();
+
+    const token = localStorage.getItem("token");
+    let socket = null;
+
+    if (token) {
+      socket = io(API_URL.replace("/api", ""), {
+        auth: { token },
+      });
+
+      socket.on("workspace:joined", (data) => {
+        console.log("Workspace joined event received:", data);
+        fetchWorkspaces();
+      });
+    }
+
+    // Fallback: listen for custom DOM event from notifications UI
+    const handleRefresh = () => {
+      console.log("Manual refresh workspaces event received");
+      fetchWorkspaces();
+    };
+
+    window.addEventListener("refreshWorkspaces", handleRefresh);
+
+    return () => {
+      socket?.disconnect();
+      window.removeEventListener("refreshWorkspaces", handleRefresh);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

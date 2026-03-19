@@ -33,3 +33,20 @@ export async function markWorkspaceRead(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
+// mark all my notifications as read
+export async function markAllRead(req, res) {
+  try {
+    const userId = req.userId;
+
+    await Notification.updateMany(
+      { recipient: userId, isRead: false },
+      { $set: { isRead: true } }
+    );
+
+    return res.json({ message: "All notifications marked as read" });
+  } catch (e) {
+    console.error("Error marking all read:", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
