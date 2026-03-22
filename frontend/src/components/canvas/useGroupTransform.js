@@ -4,6 +4,7 @@ import { getElementBounds, getPathBounds } from "./geometryUtils";
 export function useGroupTransform({
     camera,
     elementsRef,
+    selectedIds,
     selectedIdsRef,
     onElementsChange,
     pushAction,
@@ -11,7 +12,12 @@ export function useGroupTransform({
     boardId
 }) {
     const [tState, setTState] = useState(null);
+    const [selectionBounds, setSelectionBounds] = useState(null); // { x, y, w, h } in world space
+    const [selectionRotation, setSelectionRotation] = useState(0); 
     const tStateRef = useRef(null);
+    const selectionBoundsRef = useRef(null);
+    const prevSelectedRef = useRef(""); 
+
     const socketRef = useRef(socket);
     const lastGroupEmitRef = useRef(0);
 
@@ -19,13 +25,43 @@ export function useGroupTransform({
         socketRef.current = socket;
     }, [socket]);
 
+    // Recompute bounds immediately whenever selected elements change
+    useEffect(() => {
+        if (!selectedIds || selectedIds.length <= 1) {
+            selectionBoundsRef.current = null;
+            setSelectionBounds(null);
+            setSelectionRotation(0);
+            prevSelectedRef.current = "";
+            return;
+        }
+
+        const selKey = [...selectedIds].sort().join(",");
+        if (selKey === prevSelectedRef.current) return; // same set, keep existing
+        prevSelectedRef.current = selKey;
+
+        const selected = elementsRef.current.filter(el => selectedIds.includes(el.id));
+        if (!selected.length) return;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const el of selected) {
+            const b = getElementBounds(el);
+            minX = Math.min(minX, b.x);
+            minY = Math.min(minY, b.y);
+            maxX = Math.max(maxX, b.x + b.w);
+            maxY = Math.max(maxY, b.y + b.h);
+        }
+        const bounds = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        selectionBoundsRef.current = bounds;
+        setSelectionBounds(bounds);
+        setSelectionRotation(0); // fresh selection always resets rotation
+    }, [selectedIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const onGroupTransformStart = (type, e) => {
         e.stopPropagation();
         e.preventDefault();
         const startX = (e.clientX - camera.x) / camera.z;
         const startY = (e.clientY - camera.y) / camera.z;
 
-        // Use refs to get absolute latest state, avoiding stale closure issues
         const currentElements = elementsRef.current;
         const currentSelectedIds = selectedIdsRef.current;
         const initialElements = currentElements
@@ -34,35 +70,45 @@ export function useGroupTransform({
 
         if (initialElements.length === 0) return;
 
-        // Re-calculate group bounds from the absolute latest elements
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        initialElements.forEach(el => {
-            const b = getElementBounds(el);
-            minX = Math.min(minX, b.x);
-            minY = Math.min(minY, b.y);
-            maxX = Math.max(maxX, b.x + b.w);
-            maxY = Math.max(maxY, b.y + b.h);
-        });
-        const currentGroupBounds = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        let startGroupBounds;
+        if ((type === "rotate" || type === "move") && selectionBoundsRef.current) {
+            startGroupBounds = selectionBoundsRef.current;
+        } else {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            initialElements.forEach(el => {
+                const b = getElementBounds(el);
+                minX = Math.min(minX, b.x);
+                minY = Math.min(minY, b.y);
+                maxX = Math.max(maxX, b.x + b.w);
+                maxY = Math.max(maxY, b.y + b.h);
+            });
+            startGroupBounds = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        }
 
-        const newState = { type, startX, startY, initialElements, groupBounds: currentGroupBounds };
+        const newState = { 
+            type, 
+            startX, 
+            startY, 
+            initialElements, 
+            startGroupBounds, 
+            groupBounds: startGroupBounds, 
+            currentRotation: 0 
+        };
         setTState(newState);
         tStateRef.current = newState;
     };
 
-    // Use a ref-based approach so the window listeners always call the latest version
     const onGroupTransformMoveRef = useRef(null);
     const onGroupTransformEndRef = useRef(null);
 
-    // Update the move handler ref on every render so it always has fresh camera/state
     onGroupTransformMoveRef.current = (e) => {
         if (!tStateRef.current) return;
-        const { type, startX, startY, initialElements, groupBounds: startBounds } = tStateRef.current;
+        const { type, startX, startY, initialElements, startGroupBounds } = tStateRef.current;
         const currentX = (e.clientX - camera.x) / camera.z;
         const currentY = (e.clientY - camera.y) / camera.z;
 
-        const centerX = startBounds.x + startBounds.w / 2;
-        const centerY = startBounds.y + startBounds.h / 2;
+        const centerX = startGroupBounds.x + startGroupBounds.w / 2;
+        const centerY = startGroupBounds.y + startGroupBounds.h / 2;
 
         let updated;
         if (type === "move") {
@@ -76,14 +122,16 @@ export function useGroupTransform({
                 }
                 return { ...el, x: el.x + dx, y: el.y + dy };
             });
+            const newBounds = {
+                ...startGroupBounds,
+                x: startGroupBounds.x + dx,
+                y: startGroupBounds.y + dy
+            };
             setTState(prev => ({
                 ...prev,
-                groupBounds: {
-                    ...startBounds,
-                    x: startBounds.x + dx,
-                    y: startBounds.y + dy
-                }
+                groupBounds: newBounds
             }));
+            tStateRef.current = { ...tStateRef.current, groupBounds: newBounds };
         } else if (type === "rotate") {
             const startAngle = Math.atan2(startY - centerY, startX - centerX);
             let currentAngle = Math.atan2(currentY - centerY, currentX - centerX);
@@ -94,100 +142,110 @@ export function useGroupTransform({
             }
             const deltaAngle = currentAngle - startAngle;
             const deltaDeg = deltaAngle * (180 / Math.PI);
+            
             setTState(prev => ({ ...prev, currentRotation: deltaDeg }));
-
+            tStateRef.current = { ...tStateRef.current, currentRotation: deltaDeg };
+ 
             updated = initialElements.map(el => {
                 const elCX = el.x + el.w / 2;
                 const elCY = el.y + el.h / 2;
-
                 const dx = elCX - centerX;
                 const dy = elCY - centerY;
-
                 const cos = Math.cos(deltaAngle);
                 const sin = Math.sin(deltaAngle);
-
                 const rx = dx * cos - dy * sin;
                 const ry = dx * sin + dy * cos;
-
                 const newCX = centerX + rx;
                 const newCY = centerY + ry;
-
-                const newRotation = (el.rotation || 0) + deltaAngle * (180 / Math.PI);
+                const newRotation = (el.rotation || 0) + deltaDeg;
 
                 if (el.type === "path") {
-                    // Path points MUST be shifted so the hit detection (pointHitsElement)
-                    // stays in sync with the visual div (rotated selection box).
-                    const dx = newCX - (el.x + el.w / 2);
-                    const dy = newCY - (el.y + el.h / 2);
-                    const newPoints = el.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
-                    return {
-                        ...el,
-                        points: newPoints,
-                        x: newCX - el.w / 2,
-                        y: newCY - el.h / 2,
-                        rotation: newRotation,
-                    };
+                    const localDx = newCX - (el.x + el.w / 2);
+                    const localDy = newCY - (el.y + el.h / 2);
+                    const newPoints = el.points.map(p => ({ x: p.x + localDx, y: p.y + localDy }));
+                    return { ...el, points: newPoints, x: newCX - el.w / 2, y: newCY - el.h / 2, rotation: newRotation };
                 }
-
-                return {
-                    ...el,
-                    x: newCX - el.w / 2,
-                    y: newCY - el.h / 2,
-                    rotation: newRotation
-                };
+                return { ...el, x: newCX - el.w / 2, y: newCY - el.h / 2, rotation: newRotation };
             });
         } else if (type.startsWith("scale")) {
             const corner = type.replace("scale-", "");
-            const dw = currentX - startX;
-            const dh = currentY - startY;
+            let dw = currentX - startX;
+            let dh = currentY - startY;
 
+            if (selectionRotation) {
+                const rad = (-selectionRotation * Math.PI) / 180;
+                const cos = Math.cos(rad), sin = Math.sin(rad);
+                const lX = dw * cos - dh * sin;
+                const lY = dw * sin + dh * cos;
+                dw = lX; dh = lY;
+            }
+
+            const isAlt = e.altKey;
             let sw = 1, sh = 1;
-            if (corner.includes("e")) sw = Math.max(0.1, (startBounds.w + dw) / startBounds.w);
-            if (corner.includes("w")) sw = Math.max(0.1, (startBounds.w - dw) / startBounds.w);
-            if (corner.includes("s")) sh = Math.max(0.1, (startBounds.h + dh) / startBounds.h);
-            if (corner.includes("n")) sh = Math.max(0.1, (startBounds.h - dh) / startBounds.h);
+            if (isAlt) {
+                if (corner.includes("e")) sw = Math.max(0.01, (startGroupBounds.w + 2 * dw) / startGroupBounds.w);
+                else if (corner.includes("w")) sw = Math.max(0.01, (startGroupBounds.w - 2 * dw) / startGroupBounds.w);
+                if (corner.includes("s")) sh = Math.max(0.01, (startGroupBounds.h + 2 * dh) / startGroupBounds.h);
+                else if (corner.includes("n")) sh = Math.max(0.01, (startGroupBounds.h - 2 * dh) / startGroupBounds.h);
+            } else {
+                if (corner.includes("e")) sw = Math.max(0.01, (startGroupBounds.w + dw) / startGroupBounds.w);
+                if (corner.includes("w")) sw = Math.max(0.1, (startGroupBounds.w - dw) / startGroupBounds.w);
+                if (corner.includes("s")) sh = Math.max(0.01, (startGroupBounds.h + dh) / startGroupBounds.h);
+                if (corner.includes("n")) sh = Math.max(0.1, (startGroupBounds.h - dh) / startGroupBounds.h);
+            }
 
             if (e.shiftKey) {
                 const ratio = Math.max(sw, sh);
                 sw = ratio; sh = ratio;
             }
 
-            const anchorX = corner.includes("w") ? startBounds.x + startBounds.w : startBounds.x;
-            const anchorY = corner.includes("n") ? startBounds.y + startBounds.h : startBounds.y;
+            const anchorX = isAlt ? centerX : (corner.includes("w") ? startGroupBounds.x + startGroupBounds.w : startGroupBounds.x);
+            const anchorY = isAlt ? centerY : (corner.includes("n") ? startGroupBounds.y + startGroupBounds.h : startGroupBounds.y);
 
             updated = initialElements.map(el => {
-                const elX = anchorX + (el.x - anchorX) * sw;
-                const elY = anchorY + (el.y - anchorY) * sh;
+                const elCX = el.x + el.w / 2;
+                const elCY = el.y + el.h / 2;
+                const dx = elCX - anchorX;
+                const dy = elCY - anchorY;
+                const rad = (-selectionRotation * Math.PI) / 180;
+                const cos = Math.cos(rad), sin = Math.sin(rad);
+                const localX = dx * cos - dy * sin;
+                const localY = dx * sin + dy * cos;
+                const sLocalX = localX * sw;
+                const sLocalY = localY * sh;
+                const rCos = Math.cos(-rad), rSin = Math.sin(-rad);
+                const worldX = anchorX + (sLocalX * rCos - sLocalY * rSin);
+                const worldY = anchorY + (sLocalX * rSin + sLocalY * rCos);
                 const elW = el.w * sw;
                 const elH = el.h * sh;
 
                 if (el.type === "path") {
-                    const newPoints = el.points.map(p => ({
-                        x: anchorX + (p.x - anchorX) * sw,
-                        y: anchorY + (p.y - anchorY) * sh,
-                        pressure: p.pressure
-                    }));
+                    const newPoints = el.points.map(p => {
+                        const pdx = p.x - anchorX;
+                        const pdy = p.y - anchorY;
+                        const plX = pdx * cos - pdy * sin;
+                        const plY = pdx * sin + pdy * cos;
+                        const splX = plX * sw;
+                        const splY = plY * sh;
+                        return { x: anchorX + (splX * rCos - splY * rSin), y: anchorY + (splX * rSin + splY * rCos), pressure: p.pressure };
+                    });
                     const bounds = getPathBounds(newPoints);
-                    return {
-                        ...el,
-                        points: newPoints,
-                        ...bounds
-                    };
+                    return { ...el, points: newPoints, ...bounds };
                 }
-
-                return { ...el, x: elX, y: elY, w: elW, h: elH };
+                return { ...el, x: worldX - elW / 2, y: worldY - elH / 2, w: elW, h: elH };
             });
 
+            const newBounds = {
+                x: anchorX + (startGroupBounds.x - anchorX) * (sw || 0.01),
+                y: anchorY + (startGroupBounds.y - anchorY) * (sh || 0.01),
+                w: startGroupBounds.w * sw,
+                h: startGroupBounds.h * sh
+            };
             setTState(prev => ({
                 ...prev,
-                groupBounds: {
-                    ...startBounds,
-                    x: corner.includes("w") ? startBounds.x + dw : startBounds.x,
-                    y: corner.includes("n") ? startBounds.y + dh : startBounds.y,
-                    w: corner.includes("w") ? startBounds.w - dw : (corner.includes("e") ? startBounds.w + dw : startBounds.w),
-                    h: corner.includes("n") ? startBounds.h - dh : (corner.includes("s") ? startBounds.h + dh : startBounds.h),
-                }
+                groupBounds: newBounds
             }));
+            tStateRef.current = { ...tStateRef.current, groupBounds: newBounds };
         }
 
         if (updated) {
@@ -196,7 +254,6 @@ export function useGroupTransform({
                 updated.forEach(u => map.set(u.id, u));
                 return Array.from(map.values());
             });
-
             if (socketRef.current?.connected) {
                 const now = Date.now();
                 if (now - lastGroupEmitRef.current > 40) {
@@ -207,10 +264,17 @@ export function useGroupTransform({
         }
     };
 
-    // Update the end handler ref on every render
     onGroupTransformEndRef.current = () => {
         if (!tStateRef.current) return;
-        const { initialElements } = tStateRef.current;
+        const { type, currentRotation, groupBounds, initialElements } = tStateRef.current;
+
+        if (type === "rotate") {
+            setSelectionRotation(prev => prev + (currentRotation || 0));
+        } else if ((type === "move" || type.startsWith("scale")) && groupBounds) {
+            selectionBoundsRef.current = groupBounds;
+            setSelectionBounds(groupBounds);
+        }
+
         const currentSelectedIds = selectedIdsRef.current;
         const currentElements = elementsRef.current.filter(el => currentSelectedIds.includes(el.id));
 
@@ -224,11 +288,11 @@ export function useGroupTransform({
             socketRef.current.emit("updateElements", { boardId, elements: currentElements });
         }
 
+        prevSelectedRef.current = [...selectedIdsRef.current].sort().join(",");
         setTState(null);
         tStateRef.current = null;
     };
 
-    // Attach stable wrapper functions that delegate to refs — listeners never go stale
     useEffect(() => {
         if (!tState) return;
         const moveHandler = (e) => onGroupTransformMoveRef.current?.(e);
@@ -241,5 +305,10 @@ export function useGroupTransform({
         };
     }, [tState]);
 
-    return { tState, onGroupTransformStart };
+    return { 
+        tState, 
+        selectionBounds, 
+        selectionRotation, 
+        onGroupTransformStart 
+    };
 }

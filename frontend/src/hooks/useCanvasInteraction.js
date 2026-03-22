@@ -41,7 +41,10 @@ export default function useCanvasInteraction({
     minimapCanvasRef,
 
     // Recording
-    recordEvent
+    recordEvent,
+
+    // Canvas renderer
+    rendererRef
 }) {
     // In-progress pen stroke (vector preview)
     const [currentPath, setCurrentPath] = useState(null);
@@ -172,10 +175,19 @@ export default function useCanvasInteraction({
             drawingRef.current = true; strokeStartRef.current = wp;
             const defs = DEFAULT_ELEMENT_STYLES[toolRef.current] || {};
             const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
+            
+            // Respect currently selected color and width for a live preview feel
+            const toolStyles = {
+                stroke: color,
+                strokeWidth: width,
+            };
+            if (toolRef.current === "sticky") delete toolStyles.strokeWidth; // Stickies use fixed strokeWidth usually
+
             setGhostElement({
                 type: toolRef.current,
                 x: wp.x, y: wp.y, w: 0, h: 0,
                 ...defs,
+                ...toolStyles,
                 ...darkOverrides,
                 text: "",
                 rotation: 0
@@ -208,6 +220,7 @@ export default function useCanvasInteraction({
                 ...darkOverrides,
             };
             setElements(prev => [...prev, el]);
+            rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
@@ -224,6 +237,7 @@ export default function useCanvasInteraction({
                 ...DEFAULT_ELEMENT_STYLES.code,
             };
             setElements(prev => [...prev, el]);
+            rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
@@ -239,6 +253,7 @@ export default function useCanvasInteraction({
                 ...DEFAULT_ELEMENT_STYLES.video,
             };
             setElements(prev => [...prev, el]);
+            rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
@@ -254,6 +269,7 @@ export default function useCanvasInteraction({
                 id: uid() 
             });
             setElements(prev => [...prev, el]);
+            rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
@@ -299,13 +315,22 @@ export default function useCanvasInteraction({
             emitCursorMove(wp.x, wp.y);
             return;
         }
-    }, [getSP, screenToWorld, setMousePos, toolRef, setFollowedUserId, isViewerRef, elementsRef, isDark, setGhostElement, setSelectedIds, selectionBoxRef, setSelectionBox, setElements, socket, boardId, pushAction, setPendingEditId, setTool, color, width, emitCursorMove]);
+    }, [getSP, screenToWorld, setMousePos, toolRef, setFollowedUserId, isViewerRef, elementsRef, isDark, setGhostElement, setSelectedIds, selectionBoxRef, setSelectionBox, setElements, socket, boardId, pushAction, setPendingEditId, setTool, color, width, emitCursorMove, rendererRef]);
 
     const onPointerMove = useCallback((e) => {
         const sp = getSP(e); 
         const wp = screenToWorld(sp.x, sp.y); 
         setMousePos(sp);
         emitCursorMove(wp.x, wp.y);
+
+        // Update local cursor for renderer
+        if (rendererRef?.current) {
+            rendererRef.current.localCursor = {
+                tool: toolRef.current,
+                x: sp.x, y: sp.y,
+                width: width, color: color
+            };
+        }
 
         // Record local cursor if recording
         const now = Date.now();
@@ -429,13 +454,15 @@ export default function useCanvasInteraction({
             setElements(prev => prev.map(el => {
                 if (el.isMarkedForErasure) return el;
                 if (eraserHitsElement(prevPoint.x, prevPoint.y, wp.x, wp.y, el)) {
-                    return { ...el, isMarkedForErasure: true };
+                    const marked = { ...el, isMarkedForErasure: true };
+                    rendererRef?.current?.updateElement(marked);
+                    return marked;
                 }
                 return el;
             }));
             return;
         }
-    }, [getSP, screenToWorld, setMousePos, emitCursorMove, setCamera, cameraRef, selectionBoxRef, setSelectionBox, ghostElement, setGhostElement, socket, boardId, setElements]);
+    }, [getSP, screenToWorld, setMousePos, emitCursorMove, setCamera, cameraRef, selectionBoxRef, setSelectionBox, ghostElement, setGhostElement, socket, boardId, setElements, rendererRef, toolRef, width, color]);
 
     const onPointerUp = useCallback((e) => {
         if (selectionBoxRef.current) {
@@ -466,6 +493,7 @@ export default function useCanvasInteraction({
             const el = { ...ghostElement, id: uid() };
             if (el.w > 5 || el.h > 5) {
                 setElements(prev => [...prev, el]);
+                rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 setSelectedIds([el.id]);
                 pushAction({ type: "ADD_ELEMENT", element: el });
@@ -492,6 +520,7 @@ export default function useCanvasInteraction({
             if (autoShapePreviewRef.current) {
                 const el = { ...autoShapePreviewRef.current, userId: me?.userId || me?.id };
                 setElements(prev => [...prev, el]);
+                rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 recordEvent("element.created", el.id, { element: el });
@@ -513,6 +542,7 @@ export default function useCanvasInteraction({
                     userId: me?.userId || me?.id,
                 };
                 setElements(prev => [...prev, el]);
+                rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 recordEvent("element.created", finalId, { element: el });
@@ -534,6 +564,7 @@ export default function useCanvasInteraction({
                 });
                 setElements(prev => prev.filter(el => !el.isMarkedForErasure));
                 for (const el of marked) {
+                    rendererRef?.current?.deleteElement(el.id);
                     if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
                     recordEvent("element.deleted", el.id, {});
                 }
@@ -542,6 +573,7 @@ export default function useCanvasInteraction({
                 setElements(prev => prev.map(el => {
                     if (el.isMarkedForErasure) {
                         const { isMarkedForErasure, ...rest } = el;
+                        rendererRef?.current?.updateElement(rest);
                         return rest;
                     }
                     return el;

@@ -587,288 +587,292 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 if (el.type !== "path" && el.type !== "graph") onStartEdit(el.id);
             }}
         >
-            {el.type === "code" ? (
-                <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: el.fill, border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
-                    {/* Header */}
-                    <div
-                        className="bg-[#181825] flex items-center justify-between border-b border-[#313244]"
-                        onPointerDown={handlePointerDown}
-                        style={{ padding: `${8 * camera.z}px ${12 * camera.z}px` }}
-                    >
-                        <div className="flex items-center" style={{ gap: `${8 * camera.z}px` }}>
-                            <div className="flex" style={{ gap: `${6 * camera.z}px` }}>
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#f87171' }} />
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#facc15' }} />
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#4ade80' }} />
-                            </div>
-                            <select
-                                className="bg-[#1e1e2e] text-[#cdd6f4] rounded border border-[#313244] outline-none cursor-pointer disabled:cursor-default"
-                                value={el.language}
-                                disabled={isViewer}
-                                style={{
-                                    marginLeft: 8 * camera.z,
-                                    fontSize: 12 * camera.z,
-                                    padding: `${2 * camera.z}px ${6 * camera.z}px`
-                                }}
-                                onChange={(e) => {
-                                    const newLang = e.target.value;
-                                    const boilerplates = {
-                                        javascript: "console.log('Hello from JS!');",
-                                        python: "print('Hello from Python!')",
-                                        java: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from Java!\");\n    }\n}",
-                                        cpp: "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from C++!\" << std::endl;\n    return 0;\n}",
-                                        go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Go!\")\n}",
-                                        rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
-                                    };
-
-                                    const currentCode = (el.code || "").trim();
-                                    const isAnyBoilerplate = Object.values(boilerplates).some(b => b.trim() === currentCode);
-
-                                    if (!currentCode || isAnyBoilerplate) {
-                                        onChange({ ...el, language: newLang, code: boilerplates[newLang] });
-                                    } else {
-                                        onChange({ ...el, language: newLang });
-                                    }
-                                }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                            >
-                                <option value="javascript">JavaScript</option>
-                                <option value="python">Python</option>
-                                <option value="java">Java</option>
-                                <option value="cpp">C++</option>
-                                <option value="go">Go</option>
-                                <option value="rust">Rust</option>
-                            </select>
-                            <button
-                                className="bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] border-none flex items-center justify-center rounded cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Reset to boilerplate"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                disabled={isViewer}
-                                onClick={() => {
-                                    const boilerplates = {
-                                        javascript: "console.log('Hello from JS!');",
-                                        python: "print('Hello from Python!')",
-                                        java: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from Java!\");\n    }\n}",
-                                        cpp: "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from C++!\" << std::endl;\n    return 0;\n}",
-                                        go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Go!\")\n}",
-                                        rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
-                                    };
-                                    onChange({ ...el, code: boilerplates[el.language] });
-                                }}
-                                style={{
-                                    width: 24 * camera.z,
-                                    height: 24 * camera.z,
-                                    marginLeft: 4 * camera.z
-                                }}
-                            >
-                                <RefreshCw size={12 * camera.z} />
-                            </button>
-                        </div>
-                        <button
-                            className="bg-green-600 hover:bg-green-500 text-white border-none flex items-center font-semibold rounded cursor-pointer"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={handleExecute}
-                            disabled={isRunning || isViewer}
-                            style={{
-                                padding: `${4 * camera.z}px ${10 * camera.z}px`,
-                                fontSize: 12 * camera.z,
-                                gap: 4 * camera.z
-                            }}
-                        >
-                            {isRunning ? <Loader2 size={12 * camera.z} className="animate-spin" /> : <Play size={12 * camera.z} fill="currentColor" />}
-                            Run
-                        </button>
-                    </div>
-
-                    {/* Editor */}
-                    <div className="flex-1 relative">
-                        <textarea
-                            className="absolute inset-0 w-full h-full bg-transparent resize-none outline-none font-mono"
-                            style={{
-                                color: el.textColor,
-                                fontSize: `${el.fontSize * (sw / el.w)}px`,
-                                padding: 12 * camera.z,
-                            }}
-                            value={el.code}
-                            readOnly={isViewer}
-                            onChange={(e) => onChange({ ...el, code: e.target.value })}
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            onWheel={(e) => {
-                                // Allow board zoom (bubbles to window) but stop regular internal scroll panning
-                                if (e.ctrlKey || e.metaKey) return;
-                                e.stopPropagation();
-                            }}
-                            spellCheck="false"
-                            placeholder="Write your code here..."
-                        />
-                    </div>
-
-                    {/* Output */}
-                    {el.output !== undefined && (
-                        <div
-                            className="h-1/3 bg-[#11111b] border-t border-[#313244] overflow-y-auto font-mono text-[#a6adc8]"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onWheel={(e) => {
-                                // Allow board zoom (bubbles to window) but stop regular internal scroll panning
-                                if (e.ctrlKey || e.metaKey) return;
-                                e.stopPropagation();
-                            }}
-                            style={{ padding: 8 * camera.z }}
-                        >
-                            <div className="text-[#6c7086] font-bold" style={{ fontSize: 11 * camera.z, marginBottom: 4 * camera.z }}>Output:</div>
-                            <pre className="whitespace-pre-wrap font-mono m-0" style={{ fontSize: 12 * camera.z }}>{el.output}</pre>
-                        </div>
-                    )}
-                </div>
-            ) : el.type === "video" ? (
-                <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: '#000', border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
-                    {/* Header */}
-                    <div
-                        className="bg-[#181825] flex items-center justify-between border-b border-[#313244]"
-                        onPointerDown={handlePointerDown}
-                        style={{ padding: `${8 * camera.z}px ${12 * camera.z}px` }}
-                    >
-                        <div className="flex items-center" style={{ gap: `${8 * camera.z}px` }}>
-                            <div className="flex" style={{ gap: `${6 * camera.z}px` }}>
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#f87171' }} />
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#facc15' }} />
-                                <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#4ade80' }} />
-                            </div>
-                            <div style={{ marginLeft: 8 * camera.z, color: '#cdd6f4', fontSize: 12 * camera.z, display: 'flex', alignItems: 'center', gap: 4 * camera.z }}>
-                                <Youtube size={14 * camera.z} className="text-red-500" />
-                                <span>YouTube Player</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 bg-[#11111b] relative flex items-center justify-center">
-                        {el.videoId ? (
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                src={`https://www.youtube.com/embed/${el.videoId}`}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                title="YouTube Video"
-                                style={{ pointerEvents: isEditing ? 'none' : 'auto' }}
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center gap-4 w-full px-6 text-center">
-                                <Youtube size={48 * camera.z} className="text-[#313244]" />
-                                <input
-                                    type="text"
-                                    placeholder="Paste YouTube Link..."
-                                    className="w-full bg-[#1e1e2e] text-[#cdd6f4] border border-[#313244] rounded outline-none text-center transition-all focus:border-red-500/50"
-                                    style={{
-                                        padding: `${8 * camera.z}px`,
-                                        fontSize: 14 * camera.z
-                                    }}
-                                    value={el.url || ""}
-                                    readOnly={isViewer}
-                                    onChange={(e) => {
-                                        const url = e.target.value;
-                                        let videoId = "";
-                                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                                        const match = url.match(regExp);
-                                        if (match && match[2].length === 11) {
-                                            videoId = match[2];
-                                        }
-                                        onChange({ ...el, url, videoId });
-                                    }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                />
-                                <p style={{ fontSize: 11 * camera.z, color: '#6c7086' }}>
-                                    Supports youtube.com and youtu.be links
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            ) : el.type === "graph" ? (
-                <GraphElement 
-                    element={el} 
-                    onChange={onChange} 
-                    isDark={isDarkMode} 
-                    isSelected={isSelected} 
-                    sw={sw}
-                    sh={sh}
-                    camera={camera}
-                    isViewer={isViewer}
-                    onOpenSidebar={onOpenSidebar}
-                    onStartEdit={() => onStartEdit(el.id)}
-                    sidebarElementId={sidebarElementId}
-                    onSidebarElementIdChange={onSidebarElementIdChange}
-                    isSidebarOpen={isSidebarOpen}
-                />
-            ) : el.type === "path" ? (
-                <PathSVG el={el} sw={sw} sh={sh} />
-            ) : (
+            {(isSelected || isEditing || ["video", "code", "graph", "text", "sticky"].includes(el.type)) ? (
                 <>
-                    {/* Visual Background */}
-                    {el.type === "sticky" ? (
-                        <div
-                            className="absolute inset-0 rounded-sm"
-                            style={{
-                                backgroundColor: el.fill,
-                                opacity: 0.9,
-                                border: `${el.strokeWidth || 1}px solid ${el.stroke}`,
-                                boxSizing: "border-box",
-                                boxShadow: `
+                    {el.type === "code" ? (
+                        <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: el.fill, border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
+                            {/* Header */}
+                            <div
+                                className="bg-[#181825] flex items-center justify-between border-b border-[#313244]"
+                                onPointerDown={handlePointerDown}
+                                style={{ padding: `${8 * camera.z}px ${12 * camera.z}px` }}
+                            >
+                                <div className="flex items-center" style={{ gap: `${8 * camera.z}px` }}>
+                                    <div className="flex" style={{ gap: `${6 * camera.z}px` }}>
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#f87171' }} />
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#facc15' }} />
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#4ade80' }} />
+                                    </div>
+                                    <select
+                                        className="bg-[#1e1e2e] text-[#cdd6f4] rounded border border-[#313244] outline-none cursor-pointer disabled:cursor-default"
+                                        value={el.language}
+                                        disabled={isViewer}
+                                        style={{
+                                            marginLeft: 8 * camera.z,
+                                            fontSize: 12 * camera.z,
+                                            padding: `${2 * camera.z}px ${6 * camera.z}px`
+                                        }}
+                                        onChange={(e) => {
+                                            const newLang = e.target.value;
+                                            const boilerplates = {
+                                                javascript: "console.log('Hello from JS!');",
+                                                python: "print('Hello from Python!')",
+                                                java: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from Java!\");\n    }\n}",
+                                                cpp: "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from C++!\" << std::endl;\n    return 0;\n}",
+                                                go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Go!\")\n}",
+                                                rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
+                                            };
+
+                                            const currentCode = (el.code || "").trim();
+                                            const isAnyBoilerplate = Object.values(boilerplates).some(b => b.trim() === currentCode);
+
+                                            if (!currentCode || isAnyBoilerplate) {
+                                                onChange({ ...el, language: newLang, code: boilerplates[newLang] });
+                                            } else {
+                                                onChange({ ...el, language: newLang });
+                                            }
+                                        }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="python">Python</option>
+                                        <option value="java">Java</option>
+                                        <option value="cpp">C++</option>
+                                        <option value="go">Go</option>
+                                        <option value="rust">Rust</option>
+                                    </select>
+                                    <button
+                                        className="bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] border-none flex items-center justify-center rounded cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Reset to boilerplate"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        disabled={isViewer}
+                                        onClick={() => {
+                                            const boilerplates = {
+                                                javascript: "console.log('Hello from JS!');",
+                                                python: "print('Hello from Python!')",
+                                                java: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from Java!\");\n    }\n}",
+                                                cpp: "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from C++!\" << std::endl;\n    return 0;\n}",
+                                                go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Go!\")\n}",
+                                                rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
+                                            };
+                                            onChange({ ...el, code: boilerplates[el.language] });
+                                        }}
+                                        style={{
+                                            width: 24 * camera.z,
+                                            height: 24 * camera.z,
+                                            marginLeft: 4 * camera.z
+                                        }}
+                                    >
+                                        <RefreshCw size={12 * camera.z} />
+                                    </button>
+                                </div>
+                                <button
+                                    className="bg-green-600 hover:bg-green-500 text-white border-none flex items-center font-semibold rounded cursor-pointer"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={handleExecute}
+                                    disabled={isRunning || isViewer}
+                                    style={{
+                                        padding: `${4 * camera.z}px ${10 * camera.z}px`,
+                                        fontSize: 12 * camera.z,
+                                        gap: 4 * camera.z
+                                    }}
+                                >
+                                    {isRunning ? <Loader2 size={12 * camera.z} className="animate-spin" /> : <Play size={12 * camera.z} fill="currentColor" />}
+                                    Run
+                                </button>
+                            </div>
+
+                            {/* Editor */}
+                            <div className="flex-1 relative">
+                                <textarea
+                                    className="absolute inset-0 w-full h-full bg-transparent resize-none outline-none font-mono"
+                                    style={{
+                                        color: el.textColor,
+                                        fontSize: `${el.fontSize * (sw / el.w)}px`,
+                                        padding: 12 * camera.z,
+                                    }}
+                                    value={el.code}
+                                    readOnly={isViewer}
+                                    onChange={(e) => onChange({ ...el, code: e.target.value })}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    onWheel={(e) => {
+                                        // Allow board zoom (bubbles to window) but stop regular internal scroll panning
+                                        if (e.ctrlKey || e.metaKey) return;
+                                        e.stopPropagation();
+                                    }}
+                                    spellCheck="false"
+                                    placeholder="Write your code here..."
+                                />
+                            </div>
+
+                            {/* Output */}
+                            {el.output !== undefined && (
+                                <div
+                                    className="h-1/3 bg-[#11111b] border-t border-[#313244] overflow-y-auto font-mono text-[#a6adc8]"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onWheel={(e) => {
+                                        // Allow board zoom (bubbles to window) but stop regular internal scroll panning
+                                        if (e.ctrlKey || e.metaKey) return;
+                                        e.stopPropagation();
+                                    }}
+                                    style={{ padding: 8 * camera.z }}
+                                >
+                                    <div className="text-[#6c7086] font-bold" style={{ fontSize: 11 * camera.z, marginBottom: 4 * camera.z }}>Output:</div>
+                                    <pre className="whitespace-pre-wrap font-mono m-0" style={{ fontSize: 12 * camera.z }}>{el.output}</pre>
+                                </div>
+                            )}
+                        </div>
+                    ) : el.type === "video" ? (
+                        <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: '#000', border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
+                            {/* Header */}
+                            <div
+                                className="bg-[#181825] flex items-center justify-between border-b border-[#313244]"
+                                onPointerDown={handlePointerDown}
+                                style={{ padding: `${8 * camera.z}px ${12 * camera.z}px` }}
+                            >
+                                <div className="flex items-center" style={{ gap: `${8 * camera.z}px` }}>
+                                    <div className="flex" style={{ gap: `${6 * camera.z}px` }}>
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#f87171' }} />
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#facc15' }} />
+                                        <div style={{ width: 10 * camera.z, height: 10 * camera.z, borderRadius: '50%', backgroundColor: '#4ade80' }} />
+                                    </div>
+                                    <div style={{ marginLeft: 8 * camera.z, color: '#cdd6f4', fontSize: 12 * camera.z, display: 'flex', alignItems: 'center', gap: 4 * camera.z }}>
+                                        <Youtube size={14 * camera.z} className="text-red-500" />
+                                        <span>YouTube Player</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 bg-[#11111b] relative flex items-center justify-center">
+                                {el.videoId ? (
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        src={`https://www.youtube.com/embed/${el.videoId}`}
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        title="YouTube Video"
+                                        style={{ pointerEvents: isEditing ? 'none' : 'auto' }}
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4 w-full px-6 text-center">
+                                        <Youtube size={48 * camera.z} className="text-[#313244]" />
+                                        <input
+                                            type="text"
+                                            placeholder="Paste YouTube Link..."
+                                            className="w-full bg-[#1e1e2e] text-[#cdd6f4] border border-[#313244] rounded outline-none text-center transition-all focus:border-red-500/50"
+                                            style={{
+                                                padding: `${8 * camera.z}px`,
+                                                fontSize: 14 * camera.z
+                                            }}
+                                            value={el.url || ""}
+                                            readOnly={isViewer}
+                                            onChange={(e) => {
+                                                const url = e.target.value;
+                                                let videoId = "";
+                                                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                                                const match = url.match(regExp);
+                                                if (match && match[2].length === 11) {
+                                                    videoId = match[2];
+                                                }
+                                                onChange({ ...el, url, videoId });
+                                            }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        />
+                                        <p style={{ fontSize: 11 * camera.z, color: '#6c7086' }}>
+                                            Supports youtube.com and youtu.be links
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : el.type === "graph" ? (
+                        <GraphElement
+                            element={el}
+                            onChange={onChange}
+                            isDark={isDarkMode}
+                            isSelected={isSelected}
+                            sw={sw}
+                            sh={sh}
+                            camera={camera}
+                            isViewer={isViewer}
+                            onOpenSidebar={onOpenSidebar}
+                            onStartEdit={() => onStartEdit(el.id)}
+                            sidebarElementId={sidebarElementId}
+                            onSidebarElementIdChange={onSidebarElementIdChange}
+                            isSidebarOpen={isSidebarOpen}
+                        />
+                    ) : el.type === "path" ? (
+                        null
+                    ) : (
+                        <>
+                            {/* Visual Background */}
+                            {el.type === "sticky" ? (
+                                <div
+                                    className="absolute inset-0 rounded-sm"
+                                    style={{
+                                        backgroundColor: el.fill,
+                                        opacity: 0.9,
+                                        border: `${el.strokeWidth || 1}px solid ${el.stroke}`,
+                                        boxSizing: "border-box",
+                                        boxShadow: `
                                     1px 1px 1px rgba(0,0,0,0.05),
                                     ${2 * camera.z}px ${2 * camera.z}px ${5 * camera.z}px rgba(0,0,0,0.1),
                                     ${4 * camera.z}px ${4 * camera.z}px ${10 * camera.z}px rgba(0,0,0,0.05)
                                 `,
-                            }}
-                        >
-                            {/* Folded Corner Effect */}
-                            <svg width="24" height="24" className="absolute bottom-0 right-0 opacity-20" style={{ transform: "scale(0.8)", transformOrigin: "bottom right" }}>
-                                <path d="M 0 24 L 24 24 L 24 0 Z" fill="black" opacity="0.1" />
-                                <path d="M 0 24 L 24 0 L 0 0 Z" fill="white" opacity="0.2" />
-                            </svg>
-                        </div>
-                    ) : (
-                        <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
-                    )}
+                                    }}
+                                >
+                                    {/* Folded Corner Effect */}
+                                    <svg width="24" height="24" className="absolute bottom-0 right-0 opacity-20" style={{ transform: "scale(0.8)", transformOrigin: "bottom right" }}>
+                                        <path d="M 0 24 L 24 24 L 24 0 Z" fill="black" opacity="0.1" />
+                                        <path d="M 0 24 L 24 0 L 0 0 Z" fill="white" opacity="0.2" />
+                                    </svg>
+                                </div>
+                            ) : (
+                                <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
+                            )}
 
-                    {/* Text Area with Vertical Align */}
-                    <div style={{
-                        position: "absolute", inset: "10px",
-                        display: "flex", flexDirection: "column",
-                        justifyContent: valignMap[el.textVerticalAlign || (el.type === "text" ? "top" : "middle")] || "flex-start",
-                        zIndex: 2, pointerEvents: isEditing ? "auto" : "none",
-                        overflow: "hidden",
-                    }}
-                        onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
-                    >
-                        <div
-                            ref={textRef}
-                            contentEditable={isEditing}
-                            suppressContentEditableWarning
-                            onInput={() => { if (textRef.current) onChange({ ...el, text: textRef.current.innerText }); }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Escape") { handleEndEdit(); }
-                                e.stopPropagation();
+                            {/* Text Area with Vertical Align */}
+                            <div style={{
+                                position: "absolute", inset: "10px",
+                                display: "flex", flexDirection: "column",
+                                justifyContent: valignMap[el.textVerticalAlign || (el.type === "text" ? "top" : "middle")] || "flex-start",
+                                zIndex: 2, pointerEvents: isEditing ? "auto" : "none",
+                                overflow: "hidden",
                             }}
-                            onBlur={handleEndEdit}
-                            style={{
-                                fontSize: (el.fontSize || 14) * (sw / el.w),
-                                fontFamily: el.fontFamily || "Inter",
-                                fontWeight: el.bold ? "bold" : "normal",
-                                fontStyle: el.italic ? "italic" : "normal",
-                                color: el.textColor || "#1e1e1e",
-                                textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
-                                whiteSpace: "pre-wrap", wordBreak: "break-word",
-                                outline: "none", lineHeight: 1.4,
-                                minHeight: "1em",
-                            }}
-                            dangerouslySetInnerHTML={isEditing ? undefined : { __html: (el.text || "").replace(/\n/g, "<br>") }}
-                        />
-                    </div>
+                                onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
+                            >
+                                <div
+                                    ref={textRef}
+                                    contentEditable={isEditing}
+                                    suppressContentEditableWarning
+                                    onInput={() => { if (textRef.current) onChange({ ...el, text: textRef.current.innerText }); }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") { handleEndEdit(); }
+                                        e.stopPropagation();
+                                    }}
+                                    onBlur={handleEndEdit}
+                                    style={{
+                                        fontSize: (el.fontSize || 14) * (sw / el.w),
+                                        fontFamily: el.fontFamily || "Inter",
+                                        fontWeight: el.bold ? "bold" : "normal",
+                                        fontStyle: el.italic ? "italic" : "normal",
+                                        color: el.textColor || "#1e1e1e",
+                                        textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
+                                        whiteSpace: "pre-wrap", wordBreak: "break-word",
+                                        outline: "none", lineHeight: 1.4,
+                                        minHeight: "1em",
+                                    }}
+                                    dangerouslySetInnerHTML={isEditing ? undefined : { __html: (el.text || "").replace(/\n/g, "<br>") }}
+                                />
+                            </div>
+                        </>
+                    )}
                 </>
-            )}
+            ) : null}
 
             {/* Selection UI */}
             {isSelected && !isEditing && (

@@ -2,11 +2,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import ElementsLayer from "./ElementsLayer";
 import { getElementBounds } from "./canvas/geometryUtils";
 
-import LivePathOverlay from "./canvas/overlays/LivePathOverlay";
-import EraserTrailOverlay from "./canvas/overlays/EraserTrailOverlay";
-import RemoteLiveStrokesOverlay from "./canvas/overlays/RemoteLiveStrokesOverlay";
-import CursorOverlay from "./canvas/overlays/CursorOverlay";
-import SelectionMarquee from "./canvas/overlays/SelectionMarquee";
 import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
 import BoardElement from "./canvas/BoardElement";
@@ -32,6 +27,7 @@ import useCanvasRealtime from "../hooks/useCanvasRealtime";
 import useCanvasHistory from "../hooks/useCanvasHistory";
 import useCanvasInteraction from "../hooks/useCanvasInteraction";
 import useBoardRecording from "../hooks/useBoardRecording";
+import { useCanvasRenderer } from "../canvas/useCanvasRenderer";
 
 
 
@@ -70,6 +66,10 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [sidebarElementId, setSidebarElementId] = useState(null);
+
+    // Canvas renderer
+    const canvasRef = useRef(null);
+    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef);
 
     const {
         camera, setCamera, cameraRef,
@@ -115,7 +115,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         followedUserIdRef, remoteCamerasRef,
         setStatusMsg,
         undoStackRef, redoStackRef,
-        recordEvent
+        recordEvent,
+        rendererRef
     });
 
     // Broadcast our camera continuously when it changes
@@ -148,7 +149,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         emitCursorMove,
         setMousePos,
         minimapCanvasRef,
-        recordEvent
+        recordEvent,
+        rendererRef
     });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
@@ -310,6 +312,33 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         return () => window.removeEventListener("resize", drawMinimap);
     }, [drawMinimap]);
 
+    // ─── sync overlay state into canvas renderer ──────────────────────────
+    useEffect(() => {
+        syncOverlays({
+            remoteLiveStrokes,
+            cursors,
+            eraserPath,
+            selectionBox,
+            currentPath,
+            bgMode,
+            isDark,
+            myUserId: me?.userId || me?.id || null,
+            selectedIds: new Set(selectedIds),
+            autoShapePreview
+        });
+    }, [remoteLiveStrokes, cursors, eraserPath, selectionBox,
+        currentPath, bgMode, isDark, me, syncOverlays, selectedIds, autoShapePreview]);
+
+    // ─── sync camera into canvas renderer ─────────────────────────────────
+    useEffect(() => {
+        rendererRef.current?.setCamera(camera);
+    }, [camera, rendererRef]);
+
+    // ─── sync elements into canvas renderer ──────────────────────────────
+    useEffect(() => {
+        rendererRef.current?.setElements(elements);
+    }, [elements, rendererRef]);
+
 
     // ─── wheel zoom / pan ────────────────────────────────────────────────────
 
@@ -380,9 +409,29 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={(e) => { setMousePos({ x: -100, y: -100 }); onPointerUp(e); }}
-            onPointerCancel={onPointerUp}
+            onPointerLeave={(e) => { 
+                setMousePos({ x: -100, y: -100 }); 
+                if (rendererRef.current) rendererRef.current.localCursor = null;
+                onPointerUp(e); 
+            }}
+            onPointerCancel={(e) => {
+                if (rendererRef.current) rendererRef.current.localCursor = null;
+                onPointerUp(e);
+            }}
         >
+            {/* Main drawing canvas — 60fps rAF loop, no React re-renders */}
+            <canvas
+                ref={canvasRef}
+                className="absolute inset-0"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    touchAction: 'none',
+                    zIndex: 5,
+                    pointerEvents: 'none'
+                }}
+            />
+
             {bgMode === "dots" && (() => {
                 const z = camera.z; const logZ = Math.log10(z); const floorLogZ = Math.floor(logZ);
                 const scales = [Math.pow(10, -floorLogZ + 1), Math.pow(10, -floorLogZ), Math.pow(10, -floorLogZ - 1)];
@@ -444,30 +493,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             })()}
 
 
-            {/* Live pen stroke preview */}
-            <div style={{ opacity: autoShapePreview ? 0.3 : 1 }}>
-                <LivePathOverlay currentPath={currentPath} camera={camera} />
-            </div>
 
-            {/* Hold-to-shape preview (Samsung style) */}
-            {autoShapePreview && (
-                <div style={{ pointerEvents: "none" }}>
-                    <BoardElement
-                        el={{ ...autoShapePreview, id: "preview-autoshape" }}
-                        camera={camera}
-                        isDarkMode={isDark}
-                        isSelected={false}
-                        onChange={() => {}}
-                        onSelect={() => {}}
-                    />
-                </div>
-            )}
-
-            {/* Eraser trail preview */}
-            <EraserTrailOverlay eraserPath={eraserPath} camera={camera} />
-
-            {/* Remote live strokes preview */}
-            <RemoteLiveStrokesOverlay remoteLiveStrokes={remoteLiveStrokes} camera={camera} />
 
             <ElementsLayer
                 tool={tool}
@@ -492,9 +518,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 recordEvent={recordEvent}
             />
 
-            <EraserCursor tool={tool} mousePos={mousePos} />
 
-            <CursorOverlay cursors={cursors} worldToScreen={worldToScreen} />
+
 
             {/* UI overlay container */}
             <div className="absolute inset-0 pointer-events-none z-30">
@@ -646,6 +671,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                                 setBgMode,
                                 clearBoard: () => {
                                     if (window.confirm("Clear board?")) {
+                                        setElements([]);
+                                        rendererRef.current?.setElements([]);
                                         emitClearBoard();
                                         recordEvent("board.cleared", null, {});
                                     }
@@ -687,8 +714,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 zoom={camera.z}
             />
 
-            {/* Selection Box Visual */}
-            <SelectionMarquee selectionBox={selectionBox} camera={camera} />
+            {/* Selection Box Visual — now drawn on canvas */}
         </div>
     );
 }

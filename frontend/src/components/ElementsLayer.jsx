@@ -144,30 +144,25 @@ export default React.memo(function ElementsLayer({
         }
     };
 
-    // Calculate bounding box of all selected items (not memoized — must update every render during drag)
-    let groupBounds = null;
-    if (selectedItems.length > 0) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        selectedItems.forEach(el => {
-            const b = getElementBounds(el);
-            minX = Math.min(minX, b.x);
-            minY = Math.min(minY, b.y);
-            maxX = Math.max(maxX, b.x + b.w);
-            maxY = Math.max(maxY, b.y + b.h);
-        });
-        groupBounds = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-    }
-
     // Group Transform Handlers
-    const { tState, onGroupTransformStart } = useGroupTransform({
+    const { 
+        tState, 
+        selectionBounds, 
+        selectionRotation, 
+        onGroupTransformStart 
+    } = useGroupTransform({
         camera,
         elementsRef,
+        selectedIds,
         selectedIdsRef,
         onElementsChange,
         pushAction,
         socket,
         boardId
     });
+
+    const activeGroupBounds = tState?.groupBounds || selectionBounds;
+
 
 
 
@@ -195,7 +190,7 @@ export default React.memo(function ElementsLayer({
     return (
         <>
             <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 15, pointerEvents: "none" }}>
-                {elements.map(el => (
+                {elements.filter(el => selectedIds.includes(el.id) || el.id === editingId || el.type === 'text' || el.type === 'code' || el.type === 'video' || el.type === 'graph' || el.type === 'sticky').map(el => (
                     <MemoizedBoardElement
                         key={el.id}
                         el={el}
@@ -257,7 +252,8 @@ export default React.memo(function ElementsLayer({
                 {/* Group Selection Box */}
                 <GroupSelectionBox
                     selectedIds={selectedIds}
-                    groupBounds={groupBounds}
+                    groupBounds={selectionBounds}
+                    selectionRotation={selectionRotation}
                     tState={tState}
                     camera={camera}
                     editingId={editingId}
@@ -270,8 +266,8 @@ export default React.memo(function ElementsLayer({
             </div>
 
             {/* Selection Toolbar */}
-            {!isViewer && selectedItems.length > 0 && !editingId && groupBounds && (() => {
-                const activeBounds = tState?.groupBounds || groupBounds;
+            {!isViewer && selectedItems.length > 0 && !editingId && activeGroupBounds && (() => {
+                const activeBounds = activeGroupBounds;
                 return (
                     <SelectionToolbar
                         selectedItems={selectedItems}

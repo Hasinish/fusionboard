@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 export function GroupSelectionBox({
     selectedIds,
     groupBounds,
+    selectionRotation,
     tState,
     camera,
     editingId,
@@ -33,7 +34,7 @@ export function GroupSelectionBox({
                 height: activeBounds.h * camera.z + 8,
                 zIndex: 20,
                 transformOrigin: "center center",
-                transform: `rotate(${tState?.currentRotation || 0}deg)`,
+                transform: `rotate(${(selectionRotation || 0) + (tState?.currentRotation || 0)}deg)`,
                 cursor: tState?.type === "move" ? "grabbing" : "grab"
             }}
             onPointerDown={(e) => {

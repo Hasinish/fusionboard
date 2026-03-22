@@ -19,7 +19,9 @@ export default function useCanvasRealtime({
     // Undo/Redo reset
     undoStackRef,
     redoStackRef,
-    recordEvent
+    recordEvent,
+    // Canvas renderer
+    rendererRef
 }) {
     const [participants, setParticipants] = useState([]);
     const [cursors, setCursors] = useState({});
@@ -34,13 +36,18 @@ export default function useCanvasRealtime({
         if (!socket) return;
 
         // --- Elements ---
-        socket.on("boardElements", (els) => setElements(els || []));
+        socket.on("boardElements", (els) => {
+            setElements(els || []);
+            rendererRef?.current?.setElements(els || []);
+        });
         socket.on("elementAdded", (el) => {
             setElements(prev => [...prev, el]);
+            rendererRef?.current?.updateElement(el);
             recordEvent("element.created", el.id, { element: el });
         });
         socket.on("elementUpdated", (el) => {
             setElements(prev => prev.map(e => e.id === el.id ? el : e));
+            rendererRef?.current?.updateElement(el);
             recordEvent("element.updated", el.id, { element: el });
         });
         socket.on("elementsUpdated", (newElements) => {
@@ -48,13 +55,17 @@ export default function useCanvasRealtime({
             setElements(prev => {
                 const map = new Map(prev.map(e => [e.id, e]));
                 newElements.forEach(el => {
-                    if (el && el.id) map.set(el.id, el);
+                    if (el && el.id) {
+                        map.set(el.id, el);
+                        rendererRef?.current?.updateElement(el);
+                    }
                 });
                 return Array.from(map.values());
             });
         });
         socket.on("elementDeleted", ({ elementId }) => {
             setElements(prev => prev.filter(e => e.id !== elementId));
+            rendererRef?.current?.deleteElement(elementId);
             recordEvent("element.deleted", elementId, {});
         });
 
@@ -62,6 +73,7 @@ export default function useCanvasRealtime({
             if (undoStackRef) undoStackRef.current = [];
             if (redoStackRef) redoStackRef.current = [];
             setElements([]);
+            rendererRef?.current?.setElements([]);
             setStatusMsg?.("Cleared ✅");
             recordEvent("board.cleared", null, {});
             setTimeout(() => setStatusMsg?.(""), 1500);

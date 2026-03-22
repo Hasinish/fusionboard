@@ -71,7 +71,41 @@ export default function useCanvasHistory({
         undoStackRef.current.push(action);
 
         switch (action.type) {
-// ... (omitting switch for brevity)
+            case "ADD_ELEMENT":
+                setElements(prev => [...prev, action.element]);
+                recordEvent("element.created", action.element.id, { element: action.element, reason: "redo" });
+                if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
+                break;
+            case "UPDATE_ELEMENT":
+                setElements(prev => prev.map(e => (e.id === action.id ? action.newState : e)));
+                recordEvent("element.updated", action.id, { element: action.newState, reason: "redo" });
+                if (socket?.connected) socket.emit("updateElement", { boardId, element: action.newState });
+                break;
+            case "UPDATE_ELEMENTS":
+                setElements(prev => {
+                    const map = new Map(prev.map(e => [e.id, e]));
+                    action.after.forEach(el => map.set(el.id, el));
+                    return Array.from(map.values());
+                });
+                action.after.forEach(el => recordEvent("element.updated", el.id, { element: el, reason: "redo" }));
+                if (socket?.connected) socket.emit("updateElements", { boardId, elements: action.after });
+                break;
+            case "DELETE_ELEMENT":
+                setElements(prev => prev.filter(e => e.id !== action.element.id));
+                recordEvent("element.deleted", action.element.id, { reason: "redo" });
+                if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
+                break;
+            case "DELETE_ELEMENTS":
+            case "ERASE_ELEMENTS":
+                setElements(prev => {
+                    const idsToDel = new Set(action.elements.map(e => e.id));
+                    return prev.filter(e => !idsToDel.has(e.id));
+                });
+                action.elements.forEach(el => {
+                    recordEvent("element.deleted", el.id, { reason: "redo" });
+                    if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
+                });
+                break;
             default:
                 break;
         }
