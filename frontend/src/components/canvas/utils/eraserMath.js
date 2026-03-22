@@ -149,3 +149,4 @@ export function eraserHitsElement(ex1, ey1, ex2, ey2, el) {
     // For solid shapes (or sticky notes), use full footprint/AABB intersection in local space
     return lineIntersectsAABB(lex1, ley1, lex2, ley2, x, y, w, h);
 }
+

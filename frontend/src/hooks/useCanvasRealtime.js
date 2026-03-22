@@ -21,7 +21,9 @@ export default function useCanvasRealtime({
     redoStackRef,
     recordEvent,
     // Canvas renderer
-    rendererRef
+    rendererRef,
+    // Yjs
+    yElements
 }) {
     const [participants, setParticipants] = useState([]);
     const [cursors, setCursors] = useState({});
@@ -39,6 +41,15 @@ export default function useCanvasRealtime({
         socket.on("boardElements", (els) => {
             setElements(els || []);
             rendererRef?.current?.setElements(els || []);
+            // Populate Yjs on initial board load (safety net — Part 1 sends [])
+            if (yElements && Array.isArray(els) && els.length > 0) {
+                yElements.doc.transact(() => {
+                    yElements.clear();
+                    els.forEach(el => {
+                        if (el?.id) yElements.set(el.id, el);
+                    });
+                }, "server-init");
+            }
         });
         socket.on("elementAdded", (el) => {
             setElements(prev => [...prev, el]);
@@ -197,7 +208,36 @@ export default function useCanvasRealtime({
             socket.off("draw:stroke-end");
             socket.off("camera:update");
         };
-    }, [socket, boardId, setElements, setCamera, followedUserIdRef, remoteCamerasRef, setStatusMsg, undoStackRef, redoStackRef]);
+    }, [socket, boardId, setElements, setCamera, followedUserIdRef, remoteCamerasRef, setStatusMsg, undoStackRef, redoStackRef, yElements]);
+
+    // ─── Yjs Observer ─────────────────────────────────────────────────────────
+
+    useEffect(() => {
+        if (!yElements) return;
+
+        const observer = (event, transaction) => {
+            if (transaction.local) return;
+
+            event.changes.keys.forEach((change, id) => {
+                if (change.action === "add" || change.action === "update") {
+                    const el = yElements.get(id);
+                    if (!el) return;
+                    setElements(prev => {
+                        const exists = prev.find(e => e.id === id);
+                        if (exists) return prev.map(e => e.id === id ? el : e);
+                        return [...prev, el];
+                    });
+                    rendererRef?.current?.updateElement(el);
+                } else if (change.action === "delete") {
+                    setElements(prev => prev.filter(e => e.id !== id));
+                    rendererRef?.current?.deleteElement(id);
+                }
+            });
+        };
+
+        yElements.observe(observer);
+        return () => yElements.unobserve(observer);
+    }, [yElements, setElements, rendererRef]);
 
     // ─── Automatic Cleanups ──────────────────────────────────────────────────
 

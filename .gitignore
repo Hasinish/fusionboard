@@ -20,3 +20,7 @@ build/
 
 
 GEMINI.md
+
+# Yjs LevelDB persistence
+data/
+data/yjs/

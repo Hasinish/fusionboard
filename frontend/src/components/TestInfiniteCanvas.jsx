@@ -27,6 +27,7 @@ import useCanvasRealtime from "../hooks/useCanvasRealtime";
 import useCanvasHistory from "../hooks/useCanvasHistory";
 import useCanvasInteraction from "../hooks/useCanvasInteraction";
 import useBoardRecording from "../hooks/useBoardRecording";
+import useYjsBoard from "../hooks/useYjsBoard";
 import { useCanvasRenderer } from "../canvas/useCanvasRenderer";
 
 
@@ -67,9 +68,24 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [sidebarElementId, setSidebarElementId] = useState(null);
 
+    const yjsToken = localStorage.getItem("token");
+
     // Canvas renderer
     const canvasRef = useRef(null);
     const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef);
+
+    const {
+        yElementsRef,
+        yMetaRef,
+        providerRef,
+        yElements,
+        connected: yjsConnected,
+        synced: yjsSynced,
+    } = useYjsBoard({
+        boardId,
+        token: yjsToken,
+        enabled: !!boardId && !!yjsToken,
+    });
 
     const {
         camera, setCamera, cameraRef,
@@ -101,7 +117,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     const { 
         undoStackRef, redoStackRef, pushAction, undo, redo 
     } = useCanvasHistory({
-        socket, boardId, setElements, isViewerRef, recordEvent
+        socket, boardId, setElements, isViewerRef, recordEvent, yElements
     });
 
     const {
@@ -116,7 +132,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         setStatusMsg,
         undoStackRef, redoStackRef,
         recordEvent,
-        rendererRef
+        rendererRef,
+        yElements
     });
 
     // Broadcast our camera continuously when it changes
@@ -150,7 +167,8 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         setMousePos,
         minimapCanvasRef,
         recordEvent,
-        rendererRef
+        rendererRef,
+        yElements
     });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
@@ -516,6 +534,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 onSidebarElementIdChange={setSidebarElementId}
                 sidebarElementId={sidebarElementId}
                 recordEvent={recordEvent}
+                yElements={yElements}
             />
 
 
@@ -545,6 +564,12 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                             isMobile={isMobile}
                         />
 
+                        <div
+                            className="ui-container pointer-events-none flex items-center"
+                            title={yjsSynced ? "Yjs synced" : yjsConnected ? "Yjs syncing..." : "Yjs disconnected"}
+                            style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                                background: yjsSynced ? "#22c55e" : yjsConnected ? "#eab308" : "#6b7280" }}
+                        />
                         <StatusBadge 
                             statusMsg={statusMsg}
                             isMinimapVisible={isMinimapVisible}

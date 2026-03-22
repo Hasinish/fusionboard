@@ -555,6 +555,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
         transition: "opacity 0.15s, filter 0.15s",
     } : {};
 
+
     return (
         <div
             ref={elRef}

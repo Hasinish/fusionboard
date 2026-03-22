@@ -19,7 +19,8 @@ export default React.memo(function ElementsLayer({
     onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
     pendingEditId, onPendingEditConsumed, isViewer = false,
     onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen,
-    recordEvent
+    recordEvent,
+    yElements
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
@@ -79,12 +80,14 @@ export default React.memo(function ElementsLayer({
                 socketRef.current.emit("updateElement", { boardId, element: updated });
                 lastEmitRef.current[updated.id] = now;
             }
+            yElements?.set(updated.id, updated);
         } else if (now - lastEmit > 50) {
             recordEvent("element.updated", updated.id, { element: updated, persist: false });
             if (socketRef.current?.connected) {
                 socketRef.current.emit("updateElement", { boardId, element: updated });
                 lastEmitRef.current[updated.id] = now;
             }
+            yElements?.set(updated.id, updated);
         }
     }, [boardId, onElementsChange, pushAction]);
 
@@ -101,6 +104,7 @@ export default React.memo(function ElementsLayer({
             if (socketRef.current?.connected) {
                 socketRef.current.emit("deleteElement", { boardId, elementId: el.id });
             }
+            yElements?.delete(el.id);
         });
     }, [selectedIds, elements, onElementsChange, pushAction, socketRef, boardId, setSelectedIds]);
 
@@ -110,6 +114,7 @@ export default React.memo(function ElementsLayer({
         if (socketRef.current?.connected) {
             socketRef.current.emit("addElement", { boardId, element: clone });
         }
+        yElements?.set(clone.id, clone);
         pushAction({ type: "ADD_ELEMENT", element: clone });
         recordEvent("element.created", clone.id, { element: clone });
     }, [boardId, onElementsChange, setSelectedIds, pushAction, recordEvent]);
@@ -140,6 +145,7 @@ export default React.memo(function ElementsLayer({
                 if (socketRef.current?.connected) {
                     socketRef.current.emit("updateElement", { boardId, element: el });
                 }
+                yElements?.set(el.id, el);
             });
         }
     };
@@ -158,7 +164,8 @@ export default React.memo(function ElementsLayer({
         onElementsChange,
         pushAction,
         socket,
-        boardId
+        boardId,
+        yElements
     });
 
     const activeGroupBounds = tState?.groupBounds || selectionBounds;
@@ -190,31 +197,41 @@ export default React.memo(function ElementsLayer({
     return (
         <>
             <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 15, pointerEvents: "none" }}>
-                {elements.filter(el => selectedIds.includes(el.id) || el.id === editingId || el.type === 'text' || el.type === 'code' || el.type === 'video' || el.type === 'graph' || el.type === 'sticky').map(el => (
-                    <MemoizedBoardElement
-                        key={el.id}
-                        el={el}
-                        camera={camera}
-                        tool={tool}
-                        isSelected={selectedIds.includes(el.id)}
-                        isMultiSelected={isMultiSelect && selectedIds.includes(el.id)}
-                        onSelect={handleSelect}
-                        onGroupSelect={onGroupTransformStart}
-                        onChange={handleChange}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                        onDragGuide={setDragGuide}
-                        onStartEdit={handleStartEdit}
-                        isEditing={el.id === editingId}
-                        onEndEdit={handleEndEdit}
-                        isViewer={isViewer}
-                        isDarkMode={isDark}
-                        onOpenSidebar={onOpenSidebar}
-                        sidebarElementId={sidebarElementId}
-                        onSidebarElementIdChange={onSidebarElementIdChange}
-                        isSidebarOpen={isSidebarOpen}
-                    />
-                ))}
+                {elements.filter(element => 
+                    selectedIds.includes(element.id) ||
+                    element.id === editingId ||
+                    element.type === 'text' ||
+                    element.type === 'code' ||
+                    element.type === 'video' ||
+                    element.type === 'graph' ||
+                    element.type === 'sticky'
+                ).map(element => {
+                    return (
+                        <MemoizedBoardElement
+                            key={element.id}
+                            el={element}
+                            camera={camera}
+                            tool={tool}
+                            isSelected={selectedIds.includes(element.id)}
+                            isMultiSelected={isMultiSelect && selectedIds.includes(element.id)}
+                            onSelect={handleSelect}
+                            onGroupSelect={onGroupTransformStart}
+                            onChange={handleChange}
+                            onDelete={handleDelete}
+                            onDuplicate={handleDuplicate}
+                            onDragGuide={setDragGuide}
+                            onStartEdit={handleStartEdit}
+                            isEditing={element.id === editingId}
+                            onEndEdit={handleEndEdit}
+                            isViewer={isViewer}
+                            isDarkMode={isDark}
+                            onOpenSidebar={onOpenSidebar}
+                            sidebarElementId={sidebarElementId}
+                            onSidebarElementIdChange={onSidebarElementIdChange}
+                            isSidebarOpen={isSidebarOpen}
+                        />
+                    );
+                })}
 
                 <GhostElement ghost={!isViewer ? ghostElement : null} camera={camera} />
 

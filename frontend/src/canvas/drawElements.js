@@ -4,8 +4,7 @@ function getSvgPathFromStroke(points) {
   if (!points.length) return ''
   const d = points.reduce((acc, [x0, y0], i, arr) => {
     const [x1, y1] = arr[(i + 1) % arr.length]
-    return `${acc} ${x0.toFixed(1)},${y0.toFixed(1)} ${
-      ((x0 + x1) / 2).toFixed(1)},${((y0 + y1) / 2).toFixed(1)}`
+    return `${acc} ${x0.toFixed(1)},${y0.toFixed(1)} ${((x0 + x1) / 2).toFixed(1)},${((y0 + y1) / 2).toFixed(1)}`
   }, `M ${points[0][0].toFixed(1)},${points[0][1].toFixed(1)} Q`)
   return d + ' Z'
 }
@@ -34,6 +33,7 @@ export function drawPath(ctx, el) {
   if (!pathStr) { ctx.restore(); return }
   const path = new Path2D(pathStr)
   ctx.fillStyle = el.color || el.stroke || '#000000'
+  ctx.globalAlpha = el.opacity ?? 1
   ctx.fill(path)
   ctx.restore()
 }
@@ -190,7 +190,7 @@ export function drawText(ctx, el) {
   ctx.textAlign = el.textAlign || 'left'
   const alignX = el.textAlign === 'center' ? el.x + el.w / 2
     : el.textAlign === 'right' ? el.x + el.w - 4
-    : el.x + 4
+      : el.x + 4
   const lines = (el.text || '').split('\n')
   const lh = fontSize * 1.4
   lines.forEach((line, i) => {
@@ -274,18 +274,18 @@ export function drawElement(ctx, el) {
   if (!el || !el.type) return
   try {
     ctx.save()
-    if (el.isMarkedForErasure) ctx.globalAlpha = 0.3
-    switch (el.type) {
-      case 'path':     drawPath(ctx, el);     break
-      case 'rect':     drawRect(ctx, el);     break
-      case 'ellipse':  drawEllipse(ctx, el);  break
-      case 'triangle': drawTriangle(ctx, el); break
-      case 'arrow':    drawArrow(ctx, el);    break
-      case 'sticky':   drawSticky(ctx, el);   break
-      case 'text':     drawText(ctx, el);     break
-      case 'code':     drawCode(ctx, el);     break
-      case 'video':    drawVideo(ctx, el);    break
-      case 'graph':    drawGraph(ctx, el);    break
+    const drawEl = el.isMarkedForErasure ? { ...el, opacity: 0.3 } : el
+    switch (drawEl.type) {
+      case 'path': drawPath(ctx, drawEl); break
+      case 'rect': drawRect(ctx, drawEl); break
+      case 'ellipse': drawEllipse(ctx, drawEl); break
+      case 'triangle': drawTriangle(ctx, drawEl); break
+      case 'arrow': drawArrow(ctx, drawEl); break
+      case 'sticky': drawSticky(ctx, drawEl); break
+      case 'text': drawText(ctx, drawEl); break
+      case 'code': drawCode(ctx, drawEl); break
+      case 'video': drawVideo(ctx, drawEl); break
+      case 'graph': drawGraph(ctx, drawEl); break
     }
     ctx.restore()
   } catch (err) {

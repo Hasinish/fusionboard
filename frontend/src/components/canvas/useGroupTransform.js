@@ -9,7 +9,8 @@ export function useGroupTransform({
     onElementsChange,
     pushAction,
     socket,
-    boardId
+    boardId,
+    yElements
 }) {
     const [tState, setTState] = useState(null);
     const [selectionBounds, setSelectionBounds] = useState(null); // { x, y, w, h } in world space
@@ -261,6 +262,11 @@ export function useGroupTransform({
                     lastGroupEmitRef.current = now;
                 }
             }
+            if (yElements && updated) {
+                yElements.doc.transact(() => {
+                    updated.forEach(el => yElements.set(el.id, el));
+                });
+            }
         }
     };
 
@@ -286,6 +292,11 @@ export function useGroupTransform({
 
         if (socketRef.current?.connected) {
             socketRef.current.emit("updateElements", { boardId, elements: currentElements });
+        }
+        if (yElements && currentElements.length > 0) {
+            yElements.doc.transact(() => {
+                currentElements.forEach(el => yElements.set(el.id, el));
+            });
         }
 
         prevSelectedRef.current = [...selectedIdsRef.current].sort().join(",");

@@ -9,7 +9,8 @@ export default function useCanvasHistory({
     boardId,
     setElements,
     isViewerRef,
-    recordEvent
+    recordEvent,
+    yElements
 }) {
     const undoStackRef = useRef([]);
     const redoStackRef = useRef([]);
@@ -30,11 +31,13 @@ export default function useCanvasHistory({
                 setElements(prev => prev.filter(e => e.id !== action.element.id));
                 recordEvent("element.deleted", action.element.id, { reason: "undo" });
                 if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
+                yElements?.delete(action.element.id);
                 break;
             case "UPDATE_ELEMENT":
                 setElements(prev => prev.map(e => (e.id === action.id ? action.oldState : e)));
                 recordEvent("element.updated", action.id, { element: action.oldState, reason: "undo" });
                 if (socket?.connected) socket.emit("updateElement", { boardId, element: action.oldState });
+                yElements?.set(action.oldState.id, action.oldState);
                 break;
             case "UPDATE_ELEMENTS":
                 setElements(prev => {
@@ -44,11 +47,17 @@ export default function useCanvasHistory({
                 });
                 action.before.forEach(el => recordEvent("element.updated", el.id, { element: el, reason: "undo" }));
                 if (socket?.connected) socket.emit("updateElements", { boardId, elements: action.before });
+                if (yElements) {
+                    yElements.doc.transact(() => {
+                        action.before.forEach(el => yElements.set(el.id, el));
+                    });
+                }
                 break;
             case "DELETE_ELEMENT":
                 setElements(prev => [...prev, action.element]);
                 recordEvent("element.created", action.element.id, { element: action.element, reason: "undo" });
                 if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
+                yElements?.set(action.element.id, action.element);
                 break;
             case "DELETE_ELEMENTS":
             case "ERASE_ELEMENTS":
@@ -57,12 +66,13 @@ export default function useCanvasHistory({
                 action.elements.forEach(el => recordEvent("element.created", el.id, { element: el, reason: "undo" }));
                 for (const el of action.elements) {
                     if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+                    yElements?.set(el.id, el);
                 }
                 break;
             default:
                 break;
         }
-    }, [socket, boardId, setElements, recordEvent]);
+    }, [socket, boardId, setElements, recordEvent, yElements]);
 
     const redo = useCallback(() => {
         const action = redoStackRef.current.pop();
@@ -75,11 +85,13 @@ export default function useCanvasHistory({
                 setElements(prev => [...prev, action.element]);
                 recordEvent("element.created", action.element.id, { element: action.element, reason: "redo" });
                 if (socket?.connected) socket.emit("addElement", { boardId, element: action.element });
+                yElements?.set(action.element.id, action.element);
                 break;
             case "UPDATE_ELEMENT":
                 setElements(prev => prev.map(e => (e.id === action.id ? action.newState : e)));
                 recordEvent("element.updated", action.id, { element: action.newState, reason: "redo" });
                 if (socket?.connected) socket.emit("updateElement", { boardId, element: action.newState });
+                yElements?.set(action.newState.id, action.newState);
                 break;
             case "UPDATE_ELEMENTS":
                 setElements(prev => {
@@ -89,11 +101,17 @@ export default function useCanvasHistory({
                 });
                 action.after.forEach(el => recordEvent("element.updated", el.id, { element: el, reason: "redo" }));
                 if (socket?.connected) socket.emit("updateElements", { boardId, elements: action.after });
+                if (yElements) {
+                    yElements.doc.transact(() => {
+                        action.after.forEach(el => yElements.set(el.id, el));
+                    });
+                }
                 break;
             case "DELETE_ELEMENT":
                 setElements(prev => prev.filter(e => e.id !== action.element.id));
                 recordEvent("element.deleted", action.element.id, { reason: "redo" });
                 if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: action.element.id });
+                yElements?.delete(action.element.id);
                 break;
             case "DELETE_ELEMENTS":
             case "ERASE_ELEMENTS":
@@ -104,12 +122,13 @@ export default function useCanvasHistory({
                 action.elements.forEach(el => {
                     recordEvent("element.deleted", el.id, { reason: "redo" });
                     if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
+                    yElements?.delete(el.id);
                 });
                 break;
             default:
                 break;
         }
-    }, [socket, boardId, setElements, recordEvent]);
+    }, [socket, boardId, setElements, recordEvent, yElements]);
 
     useEffect(() => {
         const hkd = (e) => {
@@ -136,3 +155,11 @@ export default function useCanvasHistory({
         redo
     };
 }
+
+// DUAL-WRITE AUDIT — useCanvasHistory
+// socket.emit addElement calls: 3
+// socket.emit updateElement calls: 2
+// socket.emit updateElements calls: 2
+// socket.emit deleteElement calls: 3
+// yElements writes: 10
+// counts match: YES

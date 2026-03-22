@@ -23,7 +23,11 @@
     "mongoose": "^8.14.3",
     "multer": "^2.0.2",
     "socket.io": "^4.8.1",
-    "stream": "^0.0.3"
+    "stream": "^0.0.3",
+    "ws": "^8.20.0",
+    "y-leveldb": "^0.2.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.30"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

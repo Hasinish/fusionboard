@@ -320,7 +320,7 @@ export const setupSocket = (io) => {
                 io.to(`ws:${workspaceId}`).emit("board:users-updated", { boardId, activeUsers: updatedUsers });
             }
             socket.emit("boardParticipants", participants);
-            socket.emit("boardElements", existingElements);
+            socket.emit("boardElements", []);
             socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color, avatar: socket.userAvatar });
         });
 

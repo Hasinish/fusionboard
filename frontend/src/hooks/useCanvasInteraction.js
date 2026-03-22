@@ -44,7 +44,10 @@ export default function useCanvasInteraction({
     recordEvent,
 
     // Canvas renderer
-    rendererRef
+    rendererRef,
+
+    // Yjs
+    yElements
 }) {
     // In-progress pen stroke (vector preview)
     const [currentPath, setCurrentPath] = useState(null);
@@ -222,6 +225,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+            yElements?.set(el.id, el);
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
@@ -239,6 +243,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+            yElements?.set(el.id, el);
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
@@ -255,6 +260,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+            yElements?.set(el.id, el);
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
@@ -271,6 +277,7 @@ export default function useCanvasInteraction({
             setElements(prev => [...prev, el]);
             rendererRef?.current?.updateElement(el);
             if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+            yElements?.set(el.id, el);
             pushAction({ type: "ADD_ELEMENT", element: el });
             recordEvent("element.created", el.id, { element: el });
             setSelectedIds([el.id]);
@@ -315,7 +322,7 @@ export default function useCanvasInteraction({
             emitCursorMove(wp.x, wp.y);
             return;
         }
-    }, [getSP, screenToWorld, setMousePos, toolRef, setFollowedUserId, isViewerRef, elementsRef, isDark, setGhostElement, setSelectedIds, selectionBoxRef, setSelectionBox, setElements, socket, boardId, pushAction, setPendingEditId, setTool, color, width, emitCursorMove, rendererRef]);
+    }, [getSP, screenToWorld, setMousePos, toolRef, setFollowedUserId, isViewerRef, elementsRef, isDark, setGhostElement, setSelectedIds, selectionBoxRef, setSelectionBox, setElements, socket, boardId, pushAction, setPendingEditId, setTool, color, width, emitCursorMove, rendererRef, yElements]);
 
     const onPointerMove = useCallback((e) => {
         const sp = getSP(e); 
@@ -495,6 +502,7 @@ export default function useCanvasInteraction({
                 setElements(prev => [...prev, el]);
                 rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+                yElements?.set(el.id, el);
                 setSelectedIds([el.id]);
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 recordEvent("element.created", el.id, { element: el });
@@ -522,6 +530,7 @@ export default function useCanvasInteraction({
                 setElements(prev => [...prev, el]);
                 rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+                yElements?.set(el.id, el);
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 recordEvent("element.created", el.id, { element: el });
 
@@ -544,6 +553,7 @@ export default function useCanvasInteraction({
                 setElements(prev => [...prev, el]);
                 rendererRef?.current?.updateElement(el);
                 if (socket?.connected) socket.emit("addElement", { boardId, element: el });
+                yElements?.set(el.id, el);
                 pushAction({ type: "ADD_ELEMENT", element: el });
                 recordEvent("element.created", finalId, { element: el });
 
@@ -566,6 +576,7 @@ export default function useCanvasInteraction({
                 for (const el of marked) {
                     rendererRef?.current?.deleteElement(el.id);
                     if (socket?.connected) socket.emit("deleteElement", { boardId, elementId: el.id });
+                    yElements?.delete(el.id);
                     recordEvent("element.deleted", el.id, {});
                 }
                 pushAction({ type: "ERASE_ELEMENTS", elements: cleanMarked });
@@ -585,7 +596,7 @@ export default function useCanvasInteraction({
         drawingRef.current = false;
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         holdTimerRef.current = null;
-    }, [selectionBoxRef, setSelectionBox, elementsRef, setSelectedIds, ghostElement, setElements, socket, boardId, pushAction, setTool, me]);
+    }, [selectionBoxRef, setSelectionBox, elementsRef, setSelectedIds, ghostElement, setElements, socket, boardId, pushAction, setTool, me, yElements]);
 
     // ── Auto-shape Hold-to-Shape logic ────────────────────────────────────
 
@@ -629,3 +640,11 @@ export default function useCanvasInteraction({
         autoShapePreview
     };
 }
+
+// DUAL-WRITE AUDIT — useCanvasInteraction
+// socket.emit addElement calls: 7
+// socket.emit updateElement calls: 0
+// socket.emit updateElements calls: 0
+// socket.emit deleteElement calls: 1
+// yElements writes: 8
+// counts match: YES
