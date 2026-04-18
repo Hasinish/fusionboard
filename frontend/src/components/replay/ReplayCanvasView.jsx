@@ -1,5 +1,6 @@
 import React from "react";
-import ElementsLayer from "../ElementsLayer";
+import { MemoizedBoardElement } from "../canvas/BoardElement";
+import { CanvasRenderer } from "../../canvas/CanvasRenderer";
 
 export default function ReplayCanvasView({ 
   elements, 
@@ -8,10 +9,39 @@ export default function ReplayCanvasView({
   isDark, 
   bgMode = "dots" 
 }) {
-  const worldToScreen = React.useCallback((wx, wy) => ({
-    x: wx * camera.z + camera.x,
-    y: wy * camera.z + camera.y,
-  }), [camera]);
+  const canvasRef = React.useRef(null);
+  const rendererRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (canvasRef.current && !rendererRef.current) {
+      rendererRef.current = new CanvasRenderer(canvasRef.current);
+      rendererRef.current.start();
+    }
+    return () => {
+      rendererRef.current?.stop();
+      rendererRef.current = null;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setElements(elements || []);
+      rendererRef.current.isDark = isDark;
+      rendererRef.current.bgMode = bgMode;
+    }
+  }, [elements, isDark, bgMode]);
+
+  React.useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setCamera(camera);
+    }
+  }, [camera]);
+
+  const interactiveElements = React.useMemo(() => {
+    return (elements || []).filter(el => 
+      ['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)
+    );
+  }, [elements]);
 
   return (
     <div 
@@ -48,17 +78,36 @@ export default function ReplayCanvasView({
         );
       })()}
 
-      <ElementsLayer
-        elements={elements}
-        camera={camera}
-        isDark={isDark}
-        isViewer={true}
-        // Dummy props required by ElementsLayer
-        tool="hand"
-        selectedIds={[]}
-        setSelectedIds={() => {}}
-        onElementsChange={() => {}}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
       />
+
+      <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 15, pointerEvents: "none" }}>
+        {interactiveElements.map((el) => (
+          <MemoizedBoardElement
+            key={el.id}
+            el={el}
+            camera={camera}
+            tool="hand"
+            isSelected={false}
+            isMultiSelected={false}
+            isViewer={true}
+            isDarkMode={isDark}
+            onSelect={() => {}}
+            onGroupSelect={() => {}}
+            onChange={() => {}}
+            onDuplicate={() => {}}
+            onDragGuide={() => {}}
+            onStartEdit={() => {}}
+            isEditing={false}
+            onEndEdit={() => {}}
+            onOpenSidebar={() => {}}
+            onSidebarElementIdChange={() => {}}
+          />
+        ))}
+      </div>
     </div>
   );
 }

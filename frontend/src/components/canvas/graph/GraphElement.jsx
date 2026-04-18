@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import GraphRenderer from "./GraphRenderer";
-import GraphEditorPanel from "./GraphEditorPanel";
 import { RotateCcw, Plus, Minus, Hand } from "lucide-react";
 import { zoomViewportAt } from "./graphViewport";
 
@@ -21,20 +20,17 @@ export default function GraphElement({
   const isEditing = element.id === sidebarElementId;
   const containerRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [isInternalPanMode, setIsInternalPanMode] = useState(false);
+  const [internalPanOverride, setInternalPanOverride] = useState(null);
   const zoom = camera.z || 1;
-
-  // Auto-enable internal pan when starting edit, but allow manual toggle
-  useEffect(() => {
-    if (isEditing && isSidebarOpen) {
-      setIsInternalPanMode(true);
-    } else {
-      setIsInternalPanMode(false);
-    }
-  }, [isEditing, isSidebarOpen]);
+  const isInternalPanMode = !isViewer && (
+    isEditing && isSidebarOpen
+      ? (internalPanOverride ?? true)
+      : false
+  );
 
   const triggerEdit = () => {
     if (isViewer) return;
+    setInternalPanOverride(null);
     onSidebarElementIdChange?.(element.id);
     onOpenSidebar?.(true);
   };
@@ -45,13 +41,15 @@ export default function GraphElement({
 
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsEditing(false);
+        setInternalPanOverride(null);
+        onSidebarElementIdChange?.(null);
+        onOpenSidebar?.(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEditing]);
+  }, [isEditing, onOpenSidebar, onSidebarElementIdChange]);
 
   const handleUpdate = (updates, persist = true) => {
     onChange({ ...element, ...updates }, persist);
@@ -94,7 +92,10 @@ export default function GraphElement({
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                setIsInternalPanMode(!isInternalPanMode);
+                setInternalPanOverride((prev) => {
+                  const currentValue = prev ?? true;
+                  return !currentValue;
+                });
               }}
               className={`transition-all active:scale-95 flex items-center justify-center border-r ${
                 isInternalPanMode 

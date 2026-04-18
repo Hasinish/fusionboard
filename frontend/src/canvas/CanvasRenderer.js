@@ -11,6 +11,10 @@ export class CanvasRenderer {
     this.canvas = canvasEl
     this.ctx = canvasEl.getContext('2d')
     this.elements = new Map()
+    this.elementOrder = []
+    this.previewElements = new Map()
+    this.hiddenElementIds = new Set()
+    this.overlayElementIds = new Set()
     this.camera = { x: 0, y: 0, z: 1 }
 
     // Overlay state — set from outside via syncOverlays()
@@ -47,21 +51,69 @@ export class CanvasRenderer {
 
   setElements(arr) {
     this.elements.clear()
+    this.elementOrder = []
     if (!Array.isArray(arr)) return
-    arr.forEach(el => { if (el?.id) this.elements.set(el.id, el) })
+    arr.forEach(el => {
+      if (!el?.id) return
+      this.elements.set(el.id, el)
+      this.elementOrder.push(el.id)
+    })
+  }
+
+  setOrder(ids) {
+    this.elementOrder = Array.isArray(ids) ? [...ids] : []
   }
 
   updateElement(el) {
     if (!el?.id) return
     this.elements.set(el.id, el)
+    if (!this.elementOrder.includes(el.id)) {
+      this.elementOrder.push(el.id)
+    }
   }
 
-  deleteElement(id) { this.elements.delete(id) }
+  deleteElement(id) {
+    this.elements.delete(id)
+    this.previewElements.delete(id)
+    this.hiddenElementIds.delete(id)
+    this.elementOrder = this.elementOrder.filter(existingId => existingId !== id)
+  }
+
+  setPreviewElements(previews) {
+    this.previewElements.clear()
+    if (previews instanceof Map) {
+      previews.forEach((value, key) => {
+        if (value?.id) this.previewElements.set(key, value)
+      })
+      return
+    }
+    if (Array.isArray(previews)) {
+      previews.forEach((value) => {
+        if (value?.id) this.previewElements.set(value.id, value)
+      })
+      return
+    }
+    if (previews && typeof previews === 'object') {
+      Object.entries(previews).forEach(([id, value]) => {
+        if (value?.id) this.previewElements.set(id, value)
+      })
+    }
+  }
+
+  setHiddenElementIds(ids) {
+    this.hiddenElementIds = new Set(Array.isArray(ids) ? ids : [])
+  }
+
+  setOverlayElementIds(ids) {
+    this.overlayElementIds = new Set(Array.isArray(ids) ? ids : [])
+  }
 
   syncOverlays(overrides) { Object.assign(this, overrides) }
 
   getElementsArray() {
-    return Array.from(this.elements.values())
+    return this.elementOrder
+      .map(id => this.elements.get(id))
+      .filter(Boolean)
   }
 
   // ─── Private ───────────────────────────────────────────────
@@ -78,7 +130,7 @@ export class CanvasRenderer {
   }
 
   _drawBackground() {
-    const { ctx, bgMode, isDark } = this
+    const { ctx } = this
     const w = this._logicalW || this.canvas.offsetWidth
     const h = this._logicalH || this.canvas.offsetHeight
 
@@ -104,9 +156,35 @@ export class CanvasRenderer {
     ctx.scale(camera.z, camera.z)
 
     // Draw all committed elements
-    for (const el of this.elements.values()) {
+    for (const id of this.elementOrder) {
+      const el = this.elements.get(id)
+      if (!el) continue
+
+      // Elements completely replaced by React (always rendered by React)
       if (['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)) continue
-      drawElement(ctx, el)
+
+      if (this.previewElements.has(id)) continue
+
+      if (this.hiddenElementIds.has(id)) {
+        // Draw eraser-marked elements as faded ghosts
+        drawElement(ctx, { ...el, opacity: 0.18 })
+        continue
+      }
+      
+      // If it's in the overlay (e.g., selected rect), React is drawing the text box.
+      // So tell the canvas to draw the shape, but NOT the text.
+      const skipText = this.overlayElementIds.has(id)
+      drawElement(ctx, skipText ? { ...el, text: null } : el)
+    }
+
+    for (const el of this.previewElements.values()) {
+      if (!el?.id || this.hiddenElementIds.has(el.id)) continue
+
+      // Elements completely replaced by React
+      if (['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)) continue
+
+      const skipText = this.overlayElementIds.has(el.id)
+      drawElement(ctx, skipText ? { ...el, text: null } : el)
     }
 
     // Draw the local live stroke being drawn right now (already in world coords)

@@ -1,36 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 /**
- * Hook to manage elements, selection, and document state.
+ * Hook to manage local canvas UI state.
  */
 export function useCanvasElementsState(tool) {
-    // elements
-    const [elements, setElementsState] = useState([]);
-    const elementsRef = useRef(elements);
-    
-    const setElements = useCallback((updater) => {
-        setElementsState(current => {
-            const next = typeof updater === "function" ? updater(current) : updater;
-            elementsRef.current = next;
-            return next;
-        });
-    }, []);
-
     // selected ids
-    const [selectedIds, setSelectedIdsState] = useState([]);
-    const selectedIdsRef = useRef(selectedIds);
-    
-    const setSelectedIds = useCallback((updater) => {
-        setSelectedIdsState(current => {
-            const next = typeof updater === "function" ? updater(current) : updater;
-            selectedIdsRef.current = next;
-            return next;
-        });
-    }, []);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     // Clear selection if tool is not 'select'
     useEffect(() => {
-        if (tool !== "select") setSelectedIds([]);
+        if (tool !== "select") {
+            queueMicrotask(() => setSelectedIds([]));
+        }
     }, [tool, setSelectedIds]);
 
     // selection box (marquee)
@@ -49,8 +30,7 @@ export function useCanvasElementsState(tool) {
     const clearPendingEditId = useCallback(() => setPendingEditId(null), []);
 
     return {
-        elements, setElements, elementsRef,
-        selectedIds, setSelectedIds, selectedIdsRef,
+        selectedIds, setSelectedIds,
         selectionBox, setSelectionBox, selectionBoxRef,
         ghostElement, setGhostElement,
         pendingEditId, setPendingEditId, clearPendingEditId

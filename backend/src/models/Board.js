@@ -54,7 +54,8 @@ const boardSchema = new mongoose.Schema(
       required: true,
     },
     title: { type: String, default: "Untitled Board" },
-    elements: { type: [elementSchema], default: [] },
+    // Legacy bootstrap storage. Do not load normally. Yjs persistence uses LevelDB.
+    elements: { type: [elementSchema], default: [], select: false },
   },
   { timestamps: true }
 );

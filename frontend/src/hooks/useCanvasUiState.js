@@ -32,8 +32,6 @@ export function useCanvasUiState() {
     // Minimap state
     const [isMinimapVisible, setIsMinimapVisible] = useState(true);
     const minimapCanvasRef = useRef(null);
-    const minimapCtxRef = useRef(null);
-
     // Layout and responsive state
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
     useEffect(() => {
@@ -56,7 +54,6 @@ export function useCanvasUiState() {
     }, []);
 
     // Ephemeral visual state
-    const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
     const [statusMsg, setStatusMsg] = useState("");
 
     // ctrlPressed state for shortcuts and UI hints
@@ -84,10 +81,9 @@ export function useCanvasUiState() {
         shapesOpen, setShapesOpen, shapesRef,
         plusOpen, setPlusOpen, plusRef,
         colorOpen, setColorOpen, colorRef,
-        isMinimapVisible, setIsMinimapVisible, minimapCanvasRef, minimapCtxRef,
+        isMinimapVisible, setIsMinimapVisible, minimapCanvasRef,
         isMobile,
         toolbarRef, toolbarHeight,
-        mousePos, setMousePos,
         statusMsg, setStatusMsg,
         ctrlPressed
     };

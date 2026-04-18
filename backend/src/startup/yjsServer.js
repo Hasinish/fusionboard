@@ -5,51 +5,227 @@ import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import { LeveldbPersistence } from "y-leveldb";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import Board from "../models/Board.js";
 import Workspace from "../models/Workspace.js";
 
-// ── Message type constants (verified from y-websocket v3 source) ──────────
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
 
-// ── Module-level persistence (instantiated ONCE, never inside handlers) ───
+const BOARD_SCHEMA_VERSION = 2;
+const BOARD_BOOTSTRAP_ORIGIN = "fusionboard:server-bootstrap";
+const MONGO_MIRROR_DEBOUNCE_MS = 1000;
+
 const persistence = new LeveldbPersistence("./data/yjs");
 
-// Cache of active Y.Doc instances by docName.
-// Prevents race condition where two simultaneous connections for the same
-// board call getYDoc twice, creating two separate Y.Doc instances.
+// Cache promises so a board doc is created + bootstrapped only once at a time.
 const docCache = new Map();
+const docConns = new Map();
+const docAwareness = new Map();
+const mongoMirrorTimers = new Map();
 
-// Log unhandled rejections to prevent silent crashes
 process.on("unhandledRejection", (reason, promise) => {
   console.error("[Yjs] Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-/**
- * Get or create a persisted Y.Doc for. Uses docCache to ensure only
- * one Y.Doc exists per docName. Binds persistence via update listener.
- */
+function cloneValue(value) {
+  if (value == null) return value;
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function repairElementOrder(elementsById, elementOrder) {
+  const seen = new Set();
+  const nextOrder = [];
+
+  elementOrder.toArray().forEach((id) => {
+    if (!id || seen.has(id) || !elementsById.has(id)) return;
+    seen.add(id);
+    nextOrder.push(id);
+  });
+
+  elementsById.forEach((_, id) => {
+    if (!seen.has(id)) {
+      seen.add(id);
+      nextOrder.push(id);
+    }
+  });
+
+  const currentOrder = elementOrder.toArray();
+  const needsRepair =
+    currentOrder.length !== nextOrder.length ||
+    currentOrder.some((id, index) => id !== nextOrder[index]);
+
+  if (needsRepair) {
+    if (elementOrder.length > 0) {
+      elementOrder.delete(0, elementOrder.length);
+    }
+    if (nextOrder.length > 0) {
+      elementOrder.insert(0, nextOrder);
+    }
+  }
+
+  return nextOrder;
+}
+
+function ensureBoardSchema(ydoc) {
+  const elementsById = ydoc.getMap("elementsById");
+  const elementOrder = ydoc.getArray("elementOrder");
+  const meta = ydoc.getMap("meta");
+  const legacyElements = ydoc.getMap("elements");
+
+  const needsLegacyMigration =
+    elementsById.size === 0 &&
+    elementOrder.length === 0 &&
+    legacyElements.size > 0;
+
+  if (needsLegacyMigration) {
+    ydoc.transact(() => {
+      legacyElements.forEach((value, id) => {
+        if (!value?.id) return;
+        elementsById.set(id, cloneValue(value));
+      });
+      repairElementOrder(elementsById, elementOrder);
+      legacyElements.clear();
+      meta.set("schemaVersion", BOARD_SCHEMA_VERSION);
+      meta.set("bootstrappedAt", Date.now());
+    }, BOARD_BOOTSTRAP_ORIGIN);
+  } else if (elementOrder.length === 0 && elementsById.size > 0) {
+    ydoc.transact(() => {
+      repairElementOrder(elementsById, elementOrder);
+      if (!meta.has("schemaVersion")) {
+        meta.set("schemaVersion", BOARD_SCHEMA_VERSION);
+      }
+    }, BOARD_BOOTSTRAP_ORIGIN);
+  } else if (!meta.has("schemaVersion")) {
+    ydoc.transact(() => {
+      meta.set("schemaVersion", BOARD_SCHEMA_VERSION);
+    }, BOARD_BOOTSTRAP_ORIGIN);
+  }
+
+  return {
+    elementsById,
+    elementOrder,
+    meta,
+  };
+}
+
+async function bootstrapDocFromMongo(docName, ydoc) {
+  const schema = ensureBoardSchema(ydoc);
+
+  if (!mongoose.isValidObjectId(docName)) {
+    return schema;
+  }
+
+  const board = await Board.findById(docName)
+    .select("+elements title")
+    .lean();
+
+  if (!board) {
+    return schema;
+  }
+
+  const needsElementBootstrap =
+    schema.elementsById.size === 0 &&
+    schema.elementOrder.length === 0 &&
+    Array.isArray(board.elements) &&
+    board.elements.length > 0;
+
+  const needsTitleBootstrap =
+    !schema.meta.has("title") &&
+    typeof board.title === "string" &&
+    board.title.trim().length > 0;
+
+  if (!needsElementBootstrap && !needsTitleBootstrap) {
+    return schema;
+  }
+
+  ydoc.transact(() => {
+    if (needsElementBootstrap) {
+      board.elements.forEach((element) => {
+        if (!element?.id) return;
+        schema.elementsById.set(element.id, cloneValue(element));
+      });
+      repairElementOrder(schema.elementsById, schema.elementOrder);
+      schema.meta.set("bootstrappedFromMongoAt", Date.now());
+    }
+
+    if (needsTitleBootstrap) {
+      schema.meta.set("title", board.title.trim());
+    }
+
+    if (!schema.meta.has("schemaVersion")) {
+      schema.meta.set("schemaVersion", BOARD_SCHEMA_VERSION);
+    }
+  }, BOARD_BOOTSTRAP_ORIGIN);
+
+  return schema;
+}
+
+async function mirrorDocToMongo(docName, ydoc) {
+  if (!mongoose.isValidObjectId(docName)) {
+    return;
+  }
+
+  const title = ydoc.getMap("meta").get("title");
+  const update = {
+    $currentDate: { updatedAt: true },
+  };
+
+  if (typeof title === "string" && title.trim()) {
+    update.$set = { title: title.trim() };
+  }
+
+  await Board.updateOne({ _id: docName }, update);
+}
+
+function scheduleMongoMirror(docName, ydoc) {
+  const existingTimer = mongoMirrorTimers.get(docName);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  const timer = setTimeout(() => {
+    mongoMirrorTimers.delete(docName);
+    mirrorDocToMongo(docName, ydoc).catch((error) => {
+      console.error(`[Yjs] Failed to mirror board ${docName} into Mongo:`, error);
+    });
+  }, MONGO_MIRROR_DEBOUNCE_MS);
+
+  mongoMirrorTimers.set(docName, timer);
+}
+
 async function getOrCreateDoc(docName) {
   if (docCache.has(docName)) {
     return docCache.get(docName);
   }
-  const ydoc = await persistence.getYDoc(docName);
-  docCache.set(docName, ydoc);
 
-  // "bindState" — persist every update automatically
-  ydoc.on("update", (update) => {
-    persistence.storeUpdate(docName, update).catch(err => {
-      console.error(`[Yjs] Persistence error for ${docName}:`, err);
+  const docPromise = (async () => {
+    const ydoc = await persistence.getYDoc(docName);
+    ensureBoardSchema(ydoc);
+
+    ydoc.on("update", (update) => {
+      persistence.storeUpdate(docName, update).catch((error) => {
+        console.error(`[Yjs] Persistence error for ${docName}:`, error);
+      });
     });
-  });
 
-  return ydoc;
+    await bootstrapDocFromMongo(docName, ydoc);
+    return ydoc;
+  })();
+
+  docCache.set(docName, docPromise);
+
+  try {
+    return await docPromise;
+  } catch (error) {
+    docCache.delete(docName);
+    throw error;
+  }
 }
 
-/**
- * Send a Y.Doc's full state to a newly connected WebSocket client
- * (sync step 1 + step 2 + awareness).
- */
 function sendSyncStep1(ws, ydoc) {
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, MSG_SYNC);
@@ -62,11 +238,7 @@ function sendSyncStep1(ws, ydoc) {
   ws.send(encoding.toUint8Array(encoder2));
 }
 
-/**
- * Handle an incoming binary message from a client.
- * Routes to sync or awareness protocol handlers.
- */
-function handleMessage(ws, ydoc, message, awareness, conns) {
+function handleMessage(ws, ydoc, message, awareness) {
   const buf = message instanceof Buffer ? new Uint8Array(message) : new Uint8Array(message);
   const decoder = decoding.createDecoder(buf);
   const msgType = decoding.readVarUint(decoder);
@@ -84,10 +256,6 @@ function handleMessage(ws, ydoc, message, awareness, conns) {
   }
 }
 
-/**
- * Broadcast a message to all connected clients for a doc, optionally
- * excluding the sender.
- */
 function broadcastToDoc(conns, message, excludeWs) {
   const data = message instanceof Uint8Array ? message : new Uint8Array(message);
   for (const conn of conns) {
@@ -97,10 +265,55 @@ function broadcastToDoc(conns, message, excludeWs) {
   }
 }
 
-// Track connections per doc: Map<docName, Set<ws>>
-const docConns = new Map();
-// Track awareness per doc: Map<docName, awarenessProtocol.Awareness>
-const docAwareness = new Map();
+async function cleanupDoc(docName, ydoc, awareness) {
+  const pendingMirror = mongoMirrorTimers.get(docName);
+  if (pendingMirror) {
+    clearTimeout(pendingMirror);
+    mongoMirrorTimers.delete(docName);
+    try {
+      await mirrorDocToMongo(docName, ydoc);
+    } catch (error) {
+      console.error(`[Yjs] Failed to flush board ${docName} on close:`, error);
+    }
+  }
+
+  if (awareness) {
+    awarenessProtocol.removeAwarenessStates(
+      awareness,
+      Array.from(awareness.getStates().keys()),
+      null
+    );
+  }
+
+  docAwareness.delete(docName);
+  docCache.delete(docName);
+  ydoc.destroy();
+}
+
+export async function deleteYjsBoardDoc(boardId) {
+  const docName = String(boardId);
+  const pendingMirror = mongoMirrorTimers.get(docName);
+  if (pendingMirror) {
+    clearTimeout(pendingMirror);
+    mongoMirrorTimers.delete(docName);
+  }
+
+  const docPromise = docCache.get(docName);
+  docCache.delete(docName);
+  docConns.delete(docName);
+  docAwareness.delete(docName);
+
+  if (docPromise) {
+    try {
+      const doc = await docPromise;
+      doc?.destroy?.();
+    } catch {
+      // Ignore in-memory cleanup failures.
+    }
+  }
+
+  await persistence.clearDocument(docName);
+}
 
 export function startYjsServer(httpServer) {
   const wss = new WebSocketServer({ noServer: true });
@@ -109,7 +322,6 @@ export function startYjsServer(httpServer) {
     console.error("[Yjs] WebSocketServer error:", err);
   });
 
-  // Intercept HTTP upgrade requests for /yjs/* only
   httpServer.on("upgrade", (req, socket, head) => {
     const handleUpgradeError = (err) => {
       console.error("[Yjs] Upgrade socket error:", err.message);
@@ -131,25 +343,21 @@ export function startYjsServer(httpServer) {
   wss.on("connection", (ws, req) => {
     const parsedUrl = new URL(req.url, "http://localhost");
 
-    // Prevent unhandled 'error' from crashing the process
     ws.on("error", (err) => {
       console.error("[Yjs] ws error:", err.message);
     });
 
-    ;(async () => {
+    (async () => {
       try {
-        // STEP A — Parse query params
-        const url = parsedUrl;
         const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-        const boardId = pathParts[1] || url.searchParams.get("boardId");
-        const token = url.searchParams.get("token");
+        const boardId = pathParts[1] || parsedUrl.searchParams.get("boardId");
+        const token = parsedUrl.searchParams.get("token");
 
         if (!boardId || !token) {
           try { ws.close(4001, "Missing boardId or token"); } catch { /* ignore */ }
           return;
         }
 
-        // STEP B — Verify JWT
         let decoded;
         try {
           decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -158,7 +366,6 @@ export function startYjsServer(httpServer) {
           return;
         }
 
-        // STEP C — Look up user role (default to viewer if anything fails)
         let role = "viewer";
         try {
           const board = await Board.findById(boardId).select("workspace").lean();
@@ -168,37 +375,35 @@ export function startYjsServer(httpServer) {
               .lean();
             if (workspace?.members) {
               const member = workspace.members.find(
-                (m) => String(m.user) === String(decoded.id)
+                (entry) => String(entry.user) === String(decoded.id)
               );
               if (member) role = member.role || "viewer";
             }
           }
         } catch {
-          // board may not exist (e.g. test room) — keep role = viewer
+          // Boards like the test room won't exist in Mongo; keep viewer fallback.
         }
 
-        // STEP D — Get or create the persisted Y.Doc
         const docName = String(boardId);
         const ydoc = await getOrCreateDoc(docName);
 
-        // Get or create awareness for this doc
         if (!docAwareness.has(docName)) {
           docAwareness.set(docName, new awarenessProtocol.Awareness(ydoc));
         }
         const awareness = docAwareness.get(docName);
 
-        // Track connections for this doc
         if (!docConns.has(docName)) {
           docConns.set(docName, new Set());
         }
         const conns = docConns.get(docName);
         conns.add(ws);
 
-        // Set up doc update broadcasting (only once per doc)
         if (!ydoc._yjsBroadcastBound) {
           ydoc._yjsBroadcastBound = true;
+
           ydoc.on("update", (update, origin) => {
             try {
+              scheduleMongoMirror(docName, ydoc);
               const encoder = encoding.createEncoder();
               encoding.writeVarUint(encoder, MSG_SYNC);
               encoding.writeVarUint(encoder, syncProtocol.messageYjsUpdate ?? 2);
@@ -208,8 +413,8 @@ export function startYjsServer(httpServer) {
               if (currentConns) {
                 broadcastToDoc(currentConns, msg, origin);
               }
-            } catch (err) {
-              console.error(`[Yjs] Broadcast error for ${docName}:`, err);
+            } catch (error) {
+              console.error(`[Yjs] Broadcast error for ${docName}:`, error);
             }
           });
 
@@ -229,16 +434,11 @@ export function startYjsServer(httpServer) {
           });
         }
 
-        // STEP E — Connect the socket
-        // Send sync step 1 + 2 so the client gets full doc state
         sendSyncStep1(ws, ydoc);
 
         if (role === "viewer") {
           ws.isReadOnly = true;
 
-          // Viewers can receive sync & awareness but cannot send writes.
-          // Allow MSG_SYNC (sync step 1 = read requests) and MSG_AWARENESS.
-          // Block everything else (sync step 2, updates = writes).
           ws.on("message", (message) => {
             try {
               const buf = message instanceof Buffer
@@ -248,69 +448,51 @@ export function startYjsServer(httpServer) {
               const msgType = decoding.readVarUint(decoder);
 
               if (msgType === MSG_AWARENESS) {
-                // Allow awareness messages (cursor/presence)
                 const update = decoding.readVarUint8Array(decoder);
                 awarenessProtocol.applyAwarenessUpdate(awareness, update, ws);
                 return;
               }
 
               if (msgType === MSG_SYNC) {
-                // Read the sync message type to determine if it's a read or write
                 const syncMsgType = decoding.readVarUint(decoder);
-                // syncProtocol.messageYjsSyncStep1 = 0 (read request — allowed)
-                // syncProtocol.messageYjsSyncStep2 = 1 (full state — write)
-                // syncProtocol.messageYjsUpdate = 2 (incremental update — write)
                 if (syncMsgType === syncProtocol.messageYjsSyncStep1) {
-                  // This is a sync step 1 (read) — respond with sync step 2
                   const encoder = encoding.createEncoder();
                   encoding.writeVarUint(encoder, MSG_SYNC);
-                  // Re-create decoder for the full message to pass to readSyncMessage
                   const fullDecoder = decoding.createDecoder(buf);
-                  decoding.readVarUint(fullDecoder); // skip msg type
+                  decoding.readVarUint(fullDecoder);
                   syncProtocol.readSyncMessage(fullDecoder, encoder, ydoc, ws);
                   if (encoding.length(encoder) > 1) {
                     ws.send(encoding.toUint8Array(encoder));
                   }
-                  return;
                 }
-                // Block sync step 2 and update messages (writes) from viewers
-                return;
               }
-
-              // Block all other message types from viewers
             } catch {
-              // ignore malformed messages
+              // Ignore malformed messages.
             }
           });
         } else {
-          // Editors and owners get full read/write access
           ws.on("message", (message) => {
             try {
-              handleMessage(ws, ydoc, message, awareness, conns);
+              handleMessage(ws, ydoc, message, awareness);
             } catch {
-              // ignore malformed messages
+              // Ignore malformed messages.
             }
           });
         }
 
-        // STEP F — Handle disconnect: clean up connection tracking
         ws.on("close", () => {
           conns.delete(ws);
           if (conns.size === 0) {
             docConns.delete(docName);
-            // Clean up awareness when no connections remain
-            awarenessProtocol.removeAwarenessStates(
-              awareness,
-              Array.from(awareness.getStates().keys()),
-              null
-            );
+            cleanupDoc(docName, ydoc, awareness).catch((error) => {
+              console.error(`[Yjs] Cleanup error for ${docName}:`, error);
+            });
           }
         });
 
         console.log(
           `[Yjs] connected boardId=${boardId} role=${role} userId=${decoded.id}`
         );
-
       } catch (err) {
         console.error("[Yjs] connection error:", err);
         try { ws.close(4002, "Server error"); } catch { /* ignore */ }

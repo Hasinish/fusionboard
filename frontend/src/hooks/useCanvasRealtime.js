@@ -1,274 +1,209 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-/**
- * useCanvasRealtime
- * Manages socket subscriptions, participants, cursors, and remote strokes.
- * Also handles throttled emission of transient data like cursor position and camera.
- */
+const CURSOR_COLORS = [
+    "#dc2626", "#ea580c", "#d97706", "#059669",
+    "#0891b2", "#2563eb", "#4f46e5", "#7c3aed",
+    "#c026d3", "#db2777", "#4b5563", "#0f172a"
+];
+
+function pickColor(key) {
+    const source = String(key || Math.random());
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) {
+        hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+    }
+    return CURSOR_COLORS[hash % CURSOR_COLORS.length];
+}
+
+function shallowParticipantsEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+        const left = a[i];
+        const right = b[i];
+        if (
+            left.userId !== right.userId ||
+            left.name !== right.name ||
+            left.color !== right.color ||
+            left.avatar !== right.avatar
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export default function useCanvasRealtime({
-    boardId,
-    socket,
+    awareness,
     me,
-    // Dependency setters from other domains
-    setElements,
     setCamera,
     followedUserIdRef,
     remoteCamerasRef,
-    // UI feedback
-    setStatusMsg,
-    // Undo/Redo reset
-    undoStackRef,
-    redoStackRef,
-    recordEvent,
-    // Canvas renderer
     rendererRef,
-    // Yjs
-    yElements
+    recordEvent,
 }) {
     const [participants, setParticipants] = useState([]);
-    const [cursors, setCursors] = useState({});
-    const [remoteLiveStrokes, setRemoteLiveStrokes] = useState({}); // userId -> stroke object
 
     const lastCameraEmitRef = useRef(0);
     const lastCursorEmitRef = useRef(0);
+    const lastStrokeEmitRef = useRef(0);
+    const participantsRef = useRef([]);
 
-    // ─── Socket Subscriptions ────────────────────────────────────────────────
+    const userId = String(me?.userId || me?.id || "");
+    const userColor = pickColor(userId || me?.name || "fusionboard-user");
+
+    const updateLocalPresence = useCallback((patch) => {
+        if (!awareness) return;
+        const current = awareness.getLocalState() || {};
+        awareness.setLocalState({
+            ...current,
+            userId,
+            name: me?.name || "You",
+            avatar: me?.avatar || null,
+            color: current.color || userColor,
+            ...patch,
+        });
+    }, [awareness, me?.avatar, me?.name, userColor, userId]);
 
     useEffect(() => {
-        if (!socket) return;
+        if (!awareness || !userId) return;
 
-        // --- Elements ---
-        socket.on("boardElements", (els) => {
-            setElements(els || []);
-            rendererRef?.current?.setElements(els || []);
-            // Populate Yjs on initial board load (safety net — Part 1 sends [])
-            if (yElements && Array.isArray(els) && els.length > 0) {
-                yElements.doc.transact(() => {
-                    yElements.clear();
-                    els.forEach(el => {
-                        if (el?.id) yElements.set(el.id, el);
-                    });
-                }, "server-init");
-            }
-        });
-        socket.on("cleared", () => {
-            if (undoStackRef) undoStackRef.current = [];
-            if (redoStackRef) redoStackRef.current = [];
-            setElements([]);
-            rendererRef?.current?.setElements([]);
-            if (yElements) {
-                yElements.doc.transact(() => {
-                    yElements.clear();
-                });
-            }
-            setStatusMsg?.("Cleared ✅");
-            recordEvent("board.cleared", null, {});
-            setTimeout(() => setStatusMsg?.(""), 1500);
-        });
-
-        socket.on("saved", () => {
-            setStatusMsg?.("Saved ✅");
-            setTimeout(() => setStatusMsg?.(""), 1500);
-        });
-
-        // --- Participants / Presence ---
-        socket.on("boardParticipants", (p) => {
-            const standardized = (p || []).map(entry => ({
-                ...entry,
-                userId: entry.userId ? String(entry.userId) : entry.userId
-            }));
-            setParticipants(standardized);
-        });
-
-        socket.on("cursorJoin", ({ userId, name, color, avatar }) => {
-            const uid = String(userId);
-            setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x: 0, y: 0, ts: Date.now() } }));
-            setParticipants(prev => {
-                if (prev.find(p => String(p.userId) === uid)) {
-                    return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
-                }
-                return [...prev, { userId: uid, name, color, avatar }];
-            });
-        });
-
-        socket.on("cursorMove", ({ userId, name, color, avatar, x, y }) => {
-            const uid = String(userId);
-            setCursors(prev => ({ ...prev, [uid]: { name, color, avatar, x, y, ts: Date.now() } }));
-            recordEvent("cursor.moved", uid, { x, y, name, color, avatar });
-            setParticipants(prev => {
-                if (prev.find(p => String(p.userId) === uid)) {
-                    return prev.map(p => String(p.userId) === uid ? { ...p, name, color, avatar } : p);
-                }
-                return [...prev, { userId: uid, name, color, avatar }];
-            });
-        });
-
-        socket.on("cursorLeave", ({ userId }) => {
-            const uid = String(userId);
-            setParticipants(prev => prev.filter(p => String(p.userId) !== uid));
-            setCursors(prev => {
-                const next = { ...prev };
-                delete next[uid];
-                return next;
-            });
-            setRemoteLiveStrokes(prev => {
-                const next = { ...prev };
-                delete next[uid];
-                return next;
-            });
-        });
-
-        // --- Live Drawing ---
-        socket.on("draw:stroke-progress", ({ userId, stroke }) => {
-            setRemoteLiveStrokes(prev => {
-                const isNew = !prev[userId];
-                // Record for replay
-                if (isNew) {
-                    recordEvent("path.started", stroke.id, { 
-                        points: stroke.points, 
-                        color: stroke.color, 
-                        width: stroke.width, 
-                        opacity: stroke.opacity 
-                    });
-                } else {
-                    const lastPoint = stroke.points[stroke.points.length - 1];
-                    recordEvent("path.appended", stroke.id, { newPoint: lastPoint });
-                }
-
-                return {
-                    ...prev,
-                    [userId]: stroke
-                };
-            });
-        });
-
-        socket.on("draw:stroke-end", ({ userId }) => {
-            setRemoteLiveStrokes(prev => {
-                const stroke = prev[userId];
-                if (stroke) {
-                    recordEvent("path.finished", stroke.id, {});
-                }
-                const next = { ...prev };
-                delete next[userId];
-                return next;
-            });
-        });
-
-        // --- Camera / Follow Sync ---
-        socket.on("camera:update", ({ userId, camera: remoteCamera }) => {
-            const uid = String(userId);
-            if (remoteCamerasRef) remoteCamerasRef.current[uid] = remoteCamera;
-            
-            // If we are following this user, update our camera
-            if (followedUserIdRef?.current && String(followedUserIdRef.current) === uid) {
-                setCamera(remoteCamera);
-            }
+        updateLocalPresence({
+            cursor: null,
+            camera: null,
+            liveStroke: null,
         });
 
         return () => {
-            // Explicitly notify the backend that this user is leaving the board interaction
-            socket.emit("cursorLeave");
-
-            socket.off("boardElements");
-
-            socket.off("cleared");
-            socket.off("saved");
-            socket.off("boardParticipants");
-            socket.off("cursorJoin");
-            socket.off("cursorMove");
-            socket.off("cursorLeave");
-            socket.off("draw:stroke-progress");
-            socket.off("draw:stroke-end");
-            socket.off("camera:update");
+            const state = awareness.getLocalState();
+            if (!state) return;
+            awareness.setLocalState(null);
         };
-    }, [socket, boardId, setElements, setCamera, followedUserIdRef, remoteCamerasRef, setStatusMsg, undoStackRef, redoStackRef, yElements]);
-
-    // ─── Yjs Observer ─────────────────────────────────────────────────────────
+    }, [awareness, updateLocalPresence, userId]);
 
     useEffect(() => {
-        if (!yElements) return;
+        if (!awareness) return;
 
-        const observer = (event, transaction) => {
-            if (transaction.local) return;
+        const refreshPresence = () => {
+            const nextParticipantsMap = new Map();
+            const nextCursors = {};
+            const nextLiveStrokes = {};
+            const nextRemoteCameras = {};
 
-            event.changes.keys.forEach((change, id) => {
-                if (change.action === "add" || change.action === "update") {
-                    const el = yElements.get(id);
-                    if (!el) return;
-                    setElements(prev => {
-                        const exists = prev.find(e => e.id === id);
-                        if (exists) return prev.map(e => e.id === id ? el : e);
-                        return [...prev, el];
+            awareness.getStates().forEach((state, clientId) => {
+                if (!state?.userId) return;
+                const uid = String(state.userId);
+
+                // For the avatar list, only add if not already present
+                if (!nextParticipantsMap.has(uid)) {
+                    nextParticipantsMap.set(uid, {
+                        userId: uid,
+                        name: state.name || "Unknown",
+                        color: state.color || pickColor(uid),
+                        avatar: state.avatar || null,
                     });
-                    rendererRef?.current?.updateElement(el);
-                } else if (change.action === "delete") {
-                    setElements(prev => prev.filter(e => e.id !== id));
-                    rendererRef?.current?.deleteElement(id);
                 }
+
+                if (state.cursor) {
+                    nextCursors[uid] = {
+                        ...state.cursor,
+                        name: state.name || "Unknown",
+                        color: state.color || pickColor(uid),
+                        avatar: state.avatar || null,
+                    };
+                }
+
+                if (state.liveStroke) {
+                    nextLiveStrokes[uid] = state.liveStroke;
+                }
+
+                if (state.camera) {
+                    nextRemoteCameras[uid] = state.camera;
+                }
+            });
+
+            const nextParticipants = Array.from(nextParticipantsMap.values());
+            nextParticipants.sort((a, b) => a.name.localeCompare(b.name));
+
+            if (!shallowParticipantsEqual(participantsRef.current, nextParticipants)) {
+                participantsRef.current = nextParticipants;
+                setParticipants(nextParticipants);
+            }
+
+            if (remoteCamerasRef) {
+                remoteCamerasRef.current = nextRemoteCameras;
+            }
+
+            if (followedUserIdRef?.current) {
+                const followedCamera = nextRemoteCameras[String(followedUserIdRef.current)];
+                if (followedCamera) {
+                    setCamera(followedCamera);
+                }
+            }
+
+            rendererRef?.current?.syncOverlays({
+                cursors: nextCursors,
+                remoteLiveStrokes: nextLiveStrokes,
             });
         };
 
-        yElements.observe(observer);
-        return () => yElements.unobserve(observer);
-    }, [yElements, setElements, rendererRef]);
+        refreshPresence();
+        awareness.on("change", refreshPresence);
 
-    // ─── Automatic Cleanups ──────────────────────────────────────────────────
-
-    useEffect(() => {
-        const t = setInterval(() => {
-            const now = Date.now();
-            setCursors(prev => {
-                const copy = { ...prev };
-                let changed = false;
-                for (const [uid, c] of Object.entries(copy)) {
-                    if (now - c.ts > 8000) {
-                        delete copy[uid];
-                        changed = true;
-                    }
-                }
-                return changed ? copy : prev;
-            });
-        }, 2000);
-        return () => clearInterval(t);
-    }, []);
-
-    // ─── Emitters ────────────────────────────────────────────────────────────
+        return () => {
+            awareness.off("change", refreshPresence);
+        };
+    }, [awareness, followedUserIdRef, remoteCamerasRef, rendererRef, setCamera]);
 
     const emitCursorMove = useCallback((x, y) => {
-        if (!socket?.connected) return;
+        if (!awareness || !userId) return;
+
         const now = Date.now();
-        if (now - lastCursorEmitRef.current > 40) {
-            socket.emit("cursorMove", { boardId, x, y });
-            lastCursorEmitRef.current = now;
-        }
-    }, [socket, boardId]);
+        if (now - lastCursorEmitRef.current < 40) return;
+
+        updateLocalPresence({
+            cursor: { x, y, ts: now },
+        });
+        lastCursorEmitRef.current = now;
+        recordEvent?.("cursor.moved", userId, {
+            x,
+            y,
+            name: me?.name || "You",
+            color: userColor,
+            avatar: me?.avatar || null,
+        });
+    }, [awareness, me?.avatar, me?.name, recordEvent, updateLocalPresence, userColor, userId]);
 
     const emitCameraUpdate = useCallback((camera) => {
-        if (!socket?.connected) return;
-        // Don't broadcast our camera when we're just following someone else
+        if (!awareness || !userId) return;
         if (followedUserIdRef?.current) return;
 
         const now = Date.now();
-        if (now - lastCameraEmitRef.current > 50) {
-            socket.emit("camera:update", { boardId, userId: me?.userId || me?.id, camera });
-            lastCameraEmitRef.current = now;
-        }
-    }, [socket, boardId, me, followedUserIdRef]);
+        if (now - lastCameraEmitRef.current < 50) return;
 
-    const emitClearBoard = useCallback(() => {
-        if (!socket?.connected) return;
-        socket.emit("clearBoard", { boardId });
-    }, [socket, boardId]);
+        updateLocalPresence({ camera });
+        lastCameraEmitRef.current = now;
+    }, [awareness, followedUserIdRef, updateLocalPresence, userId]);
+
+    const emitStrokeProgress = useCallback((stroke) => {
+        if (!awareness || !userId) return;
+
+        const now = Date.now();
+        if (now - lastStrokeEmitRef.current < 40) return;
+
+        updateLocalPresence({ liveStroke: stroke });
+        lastStrokeEmitRef.current = now;
+    }, [awareness, updateLocalPresence, userId]);
+
+    const emitStrokeEnd = useCallback(() => {
+        if (!awareness || !userId) return;
+        updateLocalPresence({ liveStroke: null });
+    }, [awareness, updateLocalPresence, userId]);
 
     return {
         participants,
-        setParticipants,
-        cursors,
-        setCursors,
-        remoteLiveStrokes,
-        setRemoteLiveStrokes,
         emitCursorMove,
         emitCameraUpdate,
-        emitClearBoard
+        emitStrokeProgress,
+        emitStrokeEnd,
     };
 }

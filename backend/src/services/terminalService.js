@@ -1,0 +1,120 @@
+import pty from "node-pty";
+import os from "os";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+
+// For tracking active PTY processes
+const activeTerminals = new Map();
+
+export const handleTerminalConnection = (socket) => {
+    socket.on("terminal:spawn", async ({ language, code, cols = 80, rows = 24 }) => {
+        const id = crypto.randomUUID();
+        const tempDir = path.join(process.cwd(), "temp", id);
+        
+        try {
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+
+            let filename = "";
+            let commandString = "";
+
+            if (language === "python") {
+                filename = "main.py";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = `python -u main.py`;
+            } else if (language === "javascript") {
+                filename = "main.js";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = `node main.js`;
+            } else if (language === "cpp") {
+                filename = "main.cpp";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = os.platform() === 'win32' ? `g++ main.cpp -o main.exe && ./main.exe` : `g++ main.cpp -o main && ./main`;
+            } else if (language === "java") {
+                filename = "Main.java";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = `javac Main.java && java Main`;
+            } else if (language === "go") {
+                filename = "main.go";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = `go run main.go`;
+            } else if (language === "rust") {
+                filename = "main.rs";
+                fs.writeFileSync(path.join(tempDir, filename), code);
+                commandString = os.platform() === 'win32' ? `rustc main.rs && ./main.exe` : `rustc main.rs && ./main`;
+            }
+
+            const shell = os.platform() === "win32" ? "cmd.exe" : "bash";
+            const shellArgs = os.platform() === 'win32' ? ['/Q', '/K', 'prompt $S'] : [];
+
+            // Start a PERSISTENT shell
+            const ptyProcess = pty.spawn(shell, shellArgs, {
+                name: "xterm-color",
+                cols: cols,
+                rows: rows,
+                cwd: tempDir,
+                env: { ...process.env, PYTHONUNBUFFERED: "1" }
+            });
+
+            activeTerminals.set(socket.id, ptyProcess);
+            
+            // Log for backend debugging
+            const debugLogPath = path.join(process.cwd(), "terminal_debug.log");
+            fs.appendFileSync(debugLogPath, `\n--- NEW SESSION (${language}) ---\n`);
+
+            ptyProcess.onData((data) => {
+                fs.appendFileSync(debugLogPath, data);
+                socket.emit("terminal:data", data);
+            });
+
+            // Start the user code
+            setTimeout(() => {
+                if (activeTerminals.has(socket.id)) {
+                    ptyProcess.write(`${commandString}\r\n`);
+                    // Small delay to let the command echo be swallowed
+                    setTimeout(() => {
+                        if (activeTerminals.has(socket.id)) {
+                            socket.emit("terminal:ready");
+                        }
+                    }, 200);
+                }
+            }, 600);
+
+            ptyProcess.onExit(({ exitCode }) => {
+                socket.emit("terminal:data", `\r\n\x1b[38;5;240m[Shell Exited with code ${exitCode}]\x1b[0m\r\n`);
+                activeTerminals.delete(socket.id);
+                setTimeout(() => {
+                    fs.rm(tempDir, { recursive: true, force: true }, () => {});
+                }, 2000);
+            });
+
+        } catch (err) {
+            console.error("Failed to spawn terminal:", err);
+            socket.emit("terminal:data", `\x1b[31m[Error] Failed to spawn: ${err.message}\x1b[0m\r\n`);
+        }
+    });
+
+    socket.on("terminal:data", (data) => {
+        const ptyProcess = activeTerminals.get(socket.id);
+        if (ptyProcess) {
+            ptyProcess.write(data);
+        }
+    });
+
+    socket.on("terminal:resize", ({ cols, rows }) => {
+        const ptyProcess = activeTerminals.get(socket.id);
+        if (ptyProcess) {
+            try { ptyProcess.resize(cols, rows); } catch(e) {}
+        }
+    });
+
+    socket.on("disconnect", () => {
+        const ptyProcess = activeTerminals.get(socket.id);
+        if (ptyProcess) {
+            ptyProcess.kill();
+            activeTerminals.delete(socket.id);
+        }
+    });
+};

@@ -1,20 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
+import {
+    BOARD_CLEAR_ORIGIN,
+    BOARD_COMMIT_ORIGIN,
+    BOARD_META_ORIGIN,
+    createBoardActions,
+    createBoardStore,
+    ensureBoardSchema,
+} from "../lib/yjsBoard";
 
 export default function useYjsBoard({ boardId, token, enabled = true }) {
     const yDocRef = useRef(null);
     const providerRef = useRef(null);
     const yElementsRef = useRef(null);
+    const yElementOrderRef = useRef(null);
     const yMetaRef = useRef(null);
+    const awarenessRef = useRef(null);
+    const boardStoreRef = useRef(null);
+    const boardActionsRef = useRef(null);
+    const undoManagerRef = useRef(null);
     const [connected, setConnected] = useState(false);
     const [synced, setSynced] = useState(false);
-    // yElements and yMeta as STATE so consumers re-render when Yjs connects.
-    const [yElements, setYElements] = useState(null);
-    const [yMeta, setYMeta] = useState(null);
+    const [boardApi, setBoardApi] = useState({
+        yElements: null,
+        yElementOrder: null,
+        yMeta: null,
+        awareness: null,
+        boardStore: null,
+        boardActions: null,
+        undoManager: null,
+    });
 
     useEffect(() => {
         if (!boardId || !token || !enabled) return;
+        let disposed = false;
 
         // Build WebSocket URL from VITE_API_URL
         const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:5001/api")
@@ -35,10 +55,37 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
 
         yDocRef.current = doc;
         providerRef.current = provider;
-        yElementsRef.current = doc.getMap("elements");
-        yMetaRef.current = doc.getMap("meta");
-        setYElements(yElementsRef.current);
-        setYMeta(yMetaRef.current);
+        const schema = ensureBoardSchema(doc);
+        const boardStore = createBoardStore(schema);
+        const boardActions = createBoardActions(schema);
+        const undoManager = new Y.UndoManager([schema.elementsById, schema.elementOrder, schema.meta], {
+            trackedOrigins: new Set([
+                BOARD_COMMIT_ORIGIN,
+                BOARD_META_ORIGIN,
+                BOARD_CLEAR_ORIGIN,
+            ]),
+            captureTimeout: 500,
+        });
+
+        yElementsRef.current = schema.elementsById;
+        yElementOrderRef.current = schema.elementOrder;
+        yMetaRef.current = schema.meta;
+        awarenessRef.current = provider.awareness;
+        boardStoreRef.current = boardStore;
+        boardActionsRef.current = boardActions;
+        undoManagerRef.current = undoManager;
+        queueMicrotask(() => {
+            if (disposed) return;
+            setBoardApi({
+                yElements: schema.elementsById,
+                yElementOrder: schema.elementOrder,
+                yMeta: schema.meta,
+                awareness: provider.awareness,
+                boardStore,
+                boardActions,
+                undoManager,
+            });
+        });
 
         provider.on("status", ({ status }) => {
             setConnected(status === "connected");
@@ -48,26 +95,53 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
         });
 
         return () => {
+            disposed = true;
+            undoManager.destroy();
+            boardStore.destroy();
             provider.destroy();
             doc.destroy();
             yDocRef.current = null;
             providerRef.current = null;
             yElementsRef.current = null;
+            yElementOrderRef.current = null;
             yMetaRef.current = null;
+            awarenessRef.current = null;
+            boardStoreRef.current = null;
+            boardActionsRef.current = null;
+            undoManagerRef.current = null;
             setConnected(false);
             setSynced(false);
-            setYElements(null);
-            setYMeta(null);
+            queueMicrotask(() => {
+                setBoardApi({
+                    yElements: null,
+                    yElementOrder: null,
+                    yMeta: null,
+                    awareness: null,
+                    boardStore: null,
+                    boardActions: null,
+                    undoManager: null,
+                });
+            });
         };
     }, [boardId, token, enabled]);
 
     return {
         yDocRef,
         yElementsRef,
+        yElementOrderRef,
         yMetaRef,
         providerRef,
-        yElements,
-        yMeta,
+        awarenessRef,
+        boardStoreRef,
+        boardActionsRef,
+        undoManagerRef,
+        yElements: boardApi.yElements,
+        yElementOrder: boardApi.yElementOrder,
+        yMeta: boardApi.yMeta,
+        awareness: boardApi.awareness,
+        boardStore: boardApi.boardStore,
+        boardActions: boardApi.boardActions,
+        undoManager: boardApi.undoManager,
         connected,
         synced,
     };

@@ -97,8 +97,9 @@ export function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
  * @param wx World X
  * @param wy World Y
  * @param el Element object
+ * @param cameraZ Zoom level
  */
-export function pointHitsElement(wx, wy, el) {
+export function pointHitsElement(wx, wy, el, cameraZ = 1) {
     // 1. Transform point to local space if rotated
     let px = wx;
     let py = wy;
@@ -114,42 +115,99 @@ export function pointHitsElement(wx, wy, el) {
         py = cy + (dx * sin + dy * cos);
     }
 
-    // 2. Per-type precision check
+    // Mathematical padding: 4 screen pixels of tolerance, converted to world space.
+    // Plus half the stroke width, so the "center line" math expands out to cover the stroke itself.
+    const screenPadding = 4;
+    const hitThreshold = ((el.strokeWidth || 2) / 2) + (screenPadding / cameraZ);
+
+    // ── Freehand paths: always stroke-only ──
     if (el.type === "path") {
         const points = el.points || [];
-        const threshold = (el.width || 2) + 5;
         for (let i = 0; i < points.length - 1; i++) {
             const p1 = points[i];
             const p2 = points[i + 1];
-            if (getDistToSegment(px, py, p1.x, p1.y, p2.x, p2.y) < threshold) return true;
+            if (getDistToSegment(px, py, p1.x, p1.y, p2.x, p2.y) < hitThreshold) return true;
         }
         return false;
     }
 
+    // ── Ellipse: stroke-only (distance from ellipse perimeter) ──
     if (el.type === "ellipse") {
-        const rx = el.w / 2;
-        const ry = el.h / 2;
-        const cx = el.x + rx;
-        const cy = el.y + ry;
-        if (rx <= 0 || ry <= 0) return false;
-        return ((px - cx) ** 2) / (rx ** 2) + ((py - cy) ** 2) / (ry ** 2) <= 1;
+        const sW = el.strokeWidth || 2;
+        const rx = Math.max(0.1, el.w / 2 - sW / 2);
+        const ry = Math.max(0.1, el.h / 2 - sW / 2);
+        const cx = el.x + el.w / 2;
+        const cy = el.y + el.h / 2;
+        
+        const dx = px - cx;
+        const dy = py - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist === 0) return false;
+        const angle = Math.atan2(dy, dx);
+        const eRadius = (rx * ry) / Math.sqrt((ry * Math.cos(angle)) ** 2 + (rx * Math.sin(angle)) ** 2);
+        return Math.abs(dist - eRadius) <= hitThreshold;
     }
 
+    // ── Triangle: stroke-only (distance from edges) ──
     if (el.type === "triangle") {
         const sW = el.strokeWidth || 2;
-        return pointInTriangle(px, py,
-            el.x + el.w / 2, el.y + sW,
-            el.x + el.w - sW, el.y + el.h - sW,
-            el.x + sW, el.y + el.h - sW
-        );
+        const x1 = el.x + el.w / 2, y1 = el.y + sW;
+        const x2 = el.x + el.w - sW, y2 = el.y + el.h - sW;
+        const x3 = el.x + sW, y3 = el.y + el.h - sW;
+        const d1 = getDistToSegment(px, py, x1, y1, x2, y2);
+        const d2 = getDistToSegment(px, py, x2, y2, x3, y3);
+        const d3 = getDistToSegment(px, py, x3, y3, x1, y1);
+        return d1 < hitThreshold || d2 < hitThreshold || d3 < hitThreshold;
     }
 
+    // ── Rectangle: stroke-only (distance from edges) ──
+    if (el.type === "rect") {
+        const sW = el.strokeWidth || 2;
+        // SVG renders rect at [sW/2, sW/2, w - sW, h - sW].
+        // So the mathematical center line of the stroke is exact:
+        const minX = el.x + sW / 2;
+        const minY = el.y + sW / 2;
+        const maxX = el.x + el.w - sW / 2;
+        const maxY = el.y + el.h - sW / 2;
+        
+        // Quick bounding box pre-check with threshold padding
+        if (px < minX - hitThreshold || px > maxX + hitThreshold ||
+            py < minY - hitThreshold || py > maxY + hitThreshold) return false;
+
+        // Rounded corners: radius = 8
+        const r = 8;
+        if (px < minX + r && py < minY + r) {
+            // Top-left corner
+            const dist = Math.sqrt((px - (minX + r)) ** 2 + (py - (minY + r)) ** 2);
+            return Math.abs(dist - r) <= hitThreshold;
+        } else if (px > maxX - r && py < minY + r) {
+            // Top-right corner
+            const dist = Math.sqrt((px - (maxX - r)) ** 2 + (py - (minY + r)) ** 2);
+            return Math.abs(dist - r) <= hitThreshold;
+        } else if (px > maxX - r && py > maxY - r) {
+            // Bottom-right corner
+            const dist = Math.sqrt((px - (maxX - r)) ** 2 + (py - (maxY - r)) ** 2);
+            return Math.abs(dist - r) <= hitThreshold;
+        } else if (px < minX + r && py > maxY - r) {
+            // Bottom-left corner
+            const dist = Math.sqrt((px - (minX + r)) ** 2 + (py - (maxY - r)) ** 2);
+            return Math.abs(dist - r) <= hitThreshold;
+        }
+
+        // Straight segments
+        const dLeft   = getDistToSegment(px, py, minX, minY + r, minX, maxY - r);
+        const dRight  = getDistToSegment(px, py, maxX, minY + r, maxX, maxY - r);
+        const dTop    = getDistToSegment(px, py, minX + r, minY, maxX - r, minY);
+        const dBottom = getDistToSegment(px, py, minX + r, maxY, maxX - r, maxY);
+        return dLeft < hitThreshold || dRight < hitThreshold || dTop < hitThreshold || dBottom < hitThreshold;
+    }
+
+    // ── Arrow: precise shaft + head ──
     if (el.type === "arrow") {
-        const sW = el.strokeWidth || 3;
         const headSize = 12;
-        // Shaft check (rectangle)
-        if (px >= el.x && px <= el.x + el.w - headSize && py >= el.y + el.h / 2 - sW && py <= el.y + el.h / 2 + sW) return true;
-        // Head check (triangle)
+        // Shaft line
+        if (getDistToSegment(px, py, el.x, el.y + el.h / 2, el.x + el.w - headSize, el.y + el.h / 2) < hitThreshold) return true;
+        // Head triangle
         return pointInTriangle(px, py,
             el.x + el.w, el.y + el.h / 2,
             el.x + el.w - headSize, el.y + el.h / 2 - headSize / 2,
@@ -157,7 +215,114 @@ export function pointHitsElement(wx, wy, el) {
         );
     }
 
-    // Default: Rectangle-based HIT for rect, sticky, text (with padding), code, video
+    // ── Content types (sticky, text, code, video, graph): full bounding-box selection ──
     const pad = el.type === "text" ? 5 : 0;
     return px >= el.x - pad && px <= el.x + el.w + pad && py >= el.y - pad && py <= el.y + el.h + pad;
+}
+
+function lineIntersectsLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+    const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (den === 0) return false;
+    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+
+function segmentIntersectsBox(px1, py1, px2, py2, boxX1, boxY1, boxX2, boxY2) {
+    if ((px1 >= boxX1 && px1 <= boxX2 && py1 >= boxY1 && py1 <= boxY2) ||
+        (px2 >= boxX1 && px2 <= boxX2 && py2 >= boxY1 && py2 <= boxY2)) return true;
+    return lineIntersectsLine(px1, py1, px2, py2, boxX1, boxY1, boxX2, boxY1) ||
+           lineIntersectsLine(px1, py1, px2, py2, boxX1, boxY2, boxX2, boxY2) ||
+           lineIntersectsLine(px1, py1, px2, py2, boxX1, boxY1, boxX1, boxY2) ||
+           lineIntersectsLine(px1, py1, px2, py2, boxX2, boxY1, boxX2, boxY2);
+}
+
+/**
+ * Determines if a selection box (x1,y1 to x2,y2) hits an element.
+ * Only returns true if the marquee entirely encloses the shape, or physically intersects its outline.
+ */
+export function boxHitsElement(x1, y1, x2, y2, el) {
+    const bounds = getElementBounds(el);
+    // 1. Fast AABB rejection
+    if (bounds.x > x2 || bounds.x + bounds.w < x1 || bounds.y > y2 || bounds.y + bounds.h < y1) {
+        return false;
+    }
+
+    // 2. Content types are solid blocks
+    if (["sticky", "text", "code", "video", "graph"].includes(el.type)) return true;
+
+    // 3. Fully enclosed?
+    if (bounds.x >= x1 && bounds.x + bounds.w <= x2 && bounds.y >= y1 && bounds.y + bounds.h <= y2) {
+        return true;
+    }
+
+    // 4. Exact outline geometric intersection
+    const rotatePoint = (px, py) => {
+        if (!el.rotation) return { x: px, y: py };
+        const rad = (el.rotation * Math.PI) / 180;
+        const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
+        const dx = px - cx, dy = py - cy;
+        return {
+            x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+            y: cy + dx * Math.sin(rad) + dy * Math.cos(rad)
+        };
+    };
+
+    if (el.type === "path") {
+        const points = el.points || [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const p1 = rotatePoint(points[i].x, points[i].y);
+            const p2 = rotatePoint(points[i+1].x, points[i+1].y);
+            if (segmentIntersectsBox(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2)) return true;
+        }
+        return false;
+    }
+
+    if (el.type === "rect") {
+        const p1 = rotatePoint(el.x, el.y);
+        const p2 = rotatePoint(el.x + el.w, el.y);
+        const p3 = rotatePoint(el.x + el.w, el.y + el.h);
+        const p4 = rotatePoint(el.x, el.y + el.h);
+        return segmentIntersectsBox(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p2.x, p2.y, p3.x, p3.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p3.x, p3.y, p4.x, p4.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p4.x, p4.y, p1.x, p1.y, x1, y1, x2, y2);
+    }
+
+    if (el.type === "triangle") {
+        const p1 = rotatePoint(el.x + el.w / 2, el.y); 
+        const p2 = rotatePoint(el.x + el.w, el.y + el.h);
+        const p3 = rotatePoint(el.x, el.y + el.h);
+        return segmentIntersectsBox(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p2.x, p2.y, p3.x, p3.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p3.x, p3.y, p1.x, p1.y, x1, y1, x2, y2);
+    }
+
+    if (el.type === "arrow") {
+        const headSize = 12;
+        const p1 = rotatePoint(el.x, el.y + el.h / 2);
+        const p2 = rotatePoint(el.x + el.w, el.y + el.h / 2);
+        const h1 = rotatePoint(el.x + el.w - headSize, el.y + el.h / 2 - headSize / 2);
+        const h2 = rotatePoint(el.x + el.w - headSize, el.y + el.h / 2 + headSize / 2);
+        return segmentIntersectsBox(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(p2.x, p2.y, h1.x, h1.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(h1.x, h1.y, h2.x, h2.y, x1, y1, x2, y2) ||
+               segmentIntersectsBox(h2.x, h2.y, p2.x, p2.y, x1, y1, x2, y2);
+    }
+
+    if (el.type === "ellipse") {
+        const steps = 16;
+        let lastP = null;
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI * 2;
+            const px = el.x + el.w/2 + (el.w/2) * Math.cos(angle);
+            const py = el.y + el.h/2 + (el.h/2) * Math.sin(angle);
+            const p = rotatePoint(px, py);
+            if (lastP && segmentIntersectsBox(lastP.x, lastP.y, p.x, p.y, x1, y1, x2, y2)) return true;
+            lastP = p;
+        }
+        return false;
+    }
+
+    return false;
 }

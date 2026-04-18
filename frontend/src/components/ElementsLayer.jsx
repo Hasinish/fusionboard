@@ -1,191 +1,296 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Trash2, Bold, Italic, AlignLeft, AlignCenter, AlignRight, RotateCcw, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Play, Loader2, RefreshCw, Youtube } from "lucide-react";
-import { FONTS, COLORS, DEFAULT_ELEMENT_STYLES } from "./canvas/constants";
-import { getSvgPathFromStroke, getPathBounds, getElementBounds, getDistToSegment, pointInTriangle, pointHitsElement } from "./canvas/geometryUtils";
-import { MemoizedColorMenu } from "./canvas/ColorMenu";
-import { ShapeSVG, PathSVG } from "./canvas/ShapeRenderers";
+import { pointHitsElement } from "./canvas/geometryUtils";
 import { GhostElement } from "./canvas/GhostElement";
-
-
 import { SelectionToolbar } from "./canvas/SelectionToolbar";
 import { GroupSelectionBox } from "./canvas/GroupSelectionBox";
-import BoardElement, { MemoizedBoardElement } from "./canvas/BoardElement";
+import { MemoizedBoardElement } from "./canvas/BoardElement";
 import { useGroupTransform } from "./canvas/useGroupTransform";
 import { useElementKeyboard } from "./canvas/useElementKeyboard";
+import {
+    useBoardElement,
+    useBoardElementsByIds,
+    useBoardInteractiveIds,
+    useBoardVersion,
+} from "../lib/yjsBoard";
 
+const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+
+function OverlayBoardElement({
+    id,
+    boardStore,
+    previewElement,
+    camera,
+    tool,
+    isSelected,
+    isMultiSelected,
+    onSelect,
+    onGroupSelect,
+    onChange,
+    onDuplicate,
+    onDragGuide,
+    onStartEdit,
+    isEditing,
+    onEndEdit,
+    isViewer,
+    isDarkMode,
+    onOpenSidebar,
+    sidebarElementId,
+    onSidebarElementIdChange,
+    isSidebarOpen,
+}) {
+    const committedElement = useBoardElement(boardStore, id);
+    const element = previewElement || committedElement;
+
+    if (!element) return null;
+    if (!isSelected && !isEditing && !INTERACTIVE_ELEMENT_TYPES.has(element.type)) {
+        return null;
+    }
+
+    return (
+        <MemoizedBoardElement
+            el={element}
+            camera={camera}
+            tool={tool}
+            isSelected={isSelected}
+            isMultiSelected={isMultiSelected}
+            onSelect={onSelect}
+            onGroupSelect={onGroupSelect}
+            onChange={onChange}
+            onDuplicate={onDuplicate}
+            onDragGuide={onDragGuide}
+            onStartEdit={onStartEdit}
+            isEditing={isEditing}
+            onEndEdit={onEndEdit}
+            isViewer={isViewer}
+            isDarkMode={isDarkMode}
+            onOpenSidebar={onOpenSidebar}
+            sidebarElementId={sidebarElementId}
+            onSidebarElementIdChange={onSidebarElementIdChange}
+            isSidebarOpen={isSidebarOpen}
+        />
+    );
+}
 
 export default React.memo(function ElementsLayer({
-    tool, elements, camera, boardId, socket, isDark,
-    onElementsChange, selectedIds, setSelectedIds, ghostElement, pushAction,
-    pendingEditId, onPendingEditConsumed, isViewer = false,
-    onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen,
+    tool,
+    boardStore,
+    boardActions,
+    camera,
+    isDark,
+    selectedIds,
+    setSelectedIds,
+    ghostElement,
+    pendingEditId,
+    onPendingEditConsumed,
+    isViewer = false,
+    onOpenSidebar,
+    sidebarElementId,
+    onSidebarElementIdChange,
+    isSidebarOpen,
     recordEvent,
-    yElements,
-    rendererRef
+    rendererRef,
 }) {
     const [editingId, setEditingId] = useState(null);
-    const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
-    const updateTimer = useRef({});
-    const socketRef = useRef(socket);
-    const propertyEditStateRef = useRef(null); // Tracks the "true" before-state for undo
+    const [dragGuide, setDragGuide] = useState(null);
+    const [previewById, setPreviewById] = useState({});
 
-    const elementsRef = useRef(elements);
-    elementsRef.current = elements;
     const selectedIdsRef = useRef(selectedIds);
-    selectedIdsRef.current = selectedIds;
+    useEffect(() => {
+        selectedIdsRef.current = selectedIds;
+    }, [selectedIds]);
 
-    useEffect(() => { socketRef.current = socket; }, [socket]);
+    const boardVersion = useBoardVersion(boardStore);
+    const interactiveIds = useBoardInteractiveIds(boardStore);
+    const selectedItems = useBoardElementsByIds(boardStore, selectedIds);
+    const orderedIds = useMemo(
+        () => {
+            if (boardVersion < 0) return [];
+            return boardStore?.getOrderedIds?.() || [];
+        },
+        [boardStore, boardVersion]
+    );
+    const activeEditingId = pendingEditId || (editingId && boardStore?.hasElement?.(editingId) ? editingId : null);
+    const visiblePreviewById = useMemo(() => (
+        boardVersion < 0
+            ? {}
+            : Object.fromEntries(
+                Object.entries(previewById).filter(([id]) => boardStore?.hasElement?.(id))
+            )
+    ), [boardStore, boardVersion, previewById]);
 
-    // When parent requests editing a newly created element (e.g. text tool click)
+    const selectedItemsWithPreview = useMemo(
+        () => selectedItems.map((item) => visiblePreviewById[item.id] || item).filter(Boolean),
+        [selectedItems, visiblePreviewById]
+    );
+
+    const previewInteractiveIds = useMemo(
+        () =>
+            Object.values(visiblePreviewById)
+                .filter((element) => element?.id && INTERACTIVE_ELEMENT_TYPES.has(element.type))
+                .map((element) => element.id),
+        [visiblePreviewById]
+    );
+
+    const visibleIds = useMemo(() => {
+        const visibleSet = new Set([
+            ...interactiveIds,
+            ...selectedIds,
+            ...previewInteractiveIds,
+            activeEditingId,
+        ].filter(Boolean));
+        return orderedIds.filter((id) => visibleSet.has(id));
+    }, [activeEditingId, interactiveIds, orderedIds, previewInteractiveIds, selectedIds]);
+
     useEffect(() => {
         if (pendingEditId) {
-            setSelectedIds([pendingEditId]);
-            setEditingId(pendingEditId);
             onPendingEditConsumed?.();
         }
-    }, [pendingEditId, setSelectedIds, onPendingEditConsumed]);
+    }, [onPendingEditConsumed, pendingEditId]);
 
-    const selectedItems = useMemo(() => elements.filter(e => selectedIds.includes(e.id)), [elements, selectedIds]);
-
-    // Sync sidebar element ID with selection for graphs
     useEffect(() => {
         if (selectedIds.length === 1) {
-            const el = elements.find(e => e.id === selectedIds[0]);
-            if (el && el.type === "graph") {
-                onSidebarElementIdChange(el.id);
+            const selectedElement = boardStore?.getElement?.(selectedIds[0]);
+            if (selectedElement?.type === "graph") {
+                onSidebarElementIdChange(selectedElement.id);
             } else if (!isSidebarOpen) {
                 onSidebarElementIdChange(null);
             }
         } else if (selectedIds.length === 0 && !isSidebarOpen) {
             onSidebarElementIdChange(null);
         }
-    }, [selectedIds, elements, onSidebarElementIdChange, isSidebarOpen]);
+    }, [boardStore, boardVersion, isSidebarOpen, onSidebarElementIdChange, selectedIds]);
 
-    const isMultiSelect = selectedIds.length > 1;
+    const clearPreviewIds = useCallback((ids) => {
+        if (!ids?.length) return;
+        setPreviewById((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            ids.forEach((id) => {
+                if (next[id]) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, []);
 
-    const lastEmitRef = useRef({});
+    const setPreviewElements = useCallback((elements) => {
+        setPreviewById((prev) => {
+            const next = { ...prev };
+            const selectedSet = new Set(selectedIdsRef.current);
+            let changed = false;
 
-    const handleChange = useCallback((updated, persist = false, beforeState = null) => {
-        if (isViewer) return;
-        rendererRef?.current?.updateElement(updated);
-        onElementsChange(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+            selectedSet.forEach((id) => {
+                if (next[id]) {
+                    delete next[id];
+                    changed = true;
+                }
+            });
 
-        const now = Date.now();
-        const lastEmit = lastEmitRef.current[updated.id] || 0;
+            (elements || []).forEach((element) => {
+                if (!element?.id) return;
+                next[element.id] = element;
+                changed = true;
+            });
 
-        if (persist) {
-            if (beforeState) {
-                pushAction({ type: "UPDATE_ELEMENT", id: updated.id, oldState: beforeState, newState: updated });
-            }
-            recordEvent("element.updated", updated.id, { element: updated, persist: true });
-            if (socketRef.current?.connected) {
-                socketRef.current.emit("updateElement", { boardId, element: updated });
-                lastEmitRef.current[updated.id] = now;
-            }
-            yElements?.set(updated.id, updated);
-        } else if (now - lastEmit > 50) {
-            recordEvent("element.updated", updated.id, { element: updated, persist: false });
-            if (socketRef.current?.connected) {
-                socketRef.current.emit("updateElement", { boardId, element: updated });
-                lastEmitRef.current[updated.id] = now;
-            }
-            yElements?.set(updated.id, updated);
+            return changed ? next : prev;
+        });
+    }, []);
+
+    useEffect(() => {
+        rendererRef?.current?.setOverlayElementIds(visibleIds);
+    }, [rendererRef, visibleIds]);
+
+    useEffect(() => {
+        const previewMap = new Map();
+        Object.values(visiblePreviewById).forEach((element) => {
+            if (!element?.id || INTERACTIVE_ELEMENT_TYPES.has(element.type)) return;
+            previewMap.set(element.id, element);
+        });
+        rendererRef?.current?.setPreviewElements(previewMap);
+    }, [rendererRef, visiblePreviewById]);
+
+    const handleChange = useCallback((updated, persist = true, origin = undefined) => {
+        if (isViewer || !updated?.id) return;
+
+        if (!persist) {
+            setPreviewById((prev) => ({ ...prev, [updated.id]: updated }));
+            return;
         }
-    }, [boardId, onElementsChange, pushAction, yElements, rendererRef]);
+
+        clearPreviewIds([updated.id]);
+        // If an explicit origin is provided (like "DRAG_PREVIEW"), it won't trigger the UndoManager
+        boardActions?.updateElement(updated.id, updated, origin ? { origin } : undefined);
+        recordEvent?.("element.updated", updated.id, { element: updated, persist: true });
+    }, [boardActions, clearPreviewIds, isViewer, recordEvent]);
 
     const handleDelete = useCallback(() => {
-        if (isViewer) return;
-        if (selectedIds.length === 0) return;
-        const deletedItems = elements.filter(el => selectedIds.includes(el.id));
-        onElementsChange(prev => prev.filter(e => !selectedIds.includes(e.id)));
-        deletedItems.forEach(el => rendererRef?.current?.deleteElement(el.id));
+        if (isViewer || selectedIds.length === 0) return;
+
+        const idsToDelete = [...selectedIds];
+        boardActions?.deleteElements(idsToDelete);
+        idsToDelete.forEach((id) => recordEvent?.("element.deleted", id, {}));
+        clearPreviewIds(idsToDelete);
         setSelectedIds([]);
         setEditingId(null);
-        pushAction({ type: "DELETE_ELEMENTS", elements: deletedItems });
-        deletedItems.forEach(el => {
-            recordEvent("element.deleted", el.id, {});
-            if (socketRef.current?.connected) {
-                socketRef.current.emit("deleteElement", { boardId, elementId: el.id });
-            }
-            yElements?.delete(el.id);
-        });
-    }, [selectedIds, elements, onElementsChange, pushAction, socketRef, boardId, setSelectedIds]);
+    }, [boardActions, clearPreviewIds, isViewer, recordEvent, selectedIds, setSelectedIds]);
 
     const handleDuplicate = useCallback((clone) => {
-        onElementsChange(prev => [...prev, clone]);
-        rendererRef?.current?.updateElement(clone);
+        if (isViewer || !clone?.id) return;
+        boardActions?.createElement(clone);
         setSelectedIds([clone.id]);
-        if (socketRef.current?.connected) {
-            socketRef.current.emit("addElement", { boardId, element: clone });
+        recordEvent?.("element.created", clone.id, { element: clone });
+    }, [boardActions, isViewer, recordEvent, setSelectedIds]);
+
+    useElementKeyboard({ selectedIds, editingId: activeEditingId, handleDelete });
+
+    const updateStyle = useCallback((patch, persist = true) => {
+        if (isViewer || selectedIds.length === 0) return;
+
+        const updatedElements = selectedIds
+            .map((id) => visiblePreviewById[id] || boardStore?.getElement?.(id))
+            .filter(Boolean)
+            .map((element) => ({ ...element, ...patch }));
+
+        if (!persist) {
+            setPreviewElements(updatedElements);
+            return;
         }
-        yElements?.set(clone.id, clone);
-        pushAction({ type: "ADD_ELEMENT", element: clone });
-        recordEvent("element.created", clone.id, { element: clone });
-    }, [boardId, onElementsChange, setSelectedIds, pushAction, recordEvent]);
 
-    useElementKeyboard({ selectedIds, editingId, handleDelete });
-
-    const updateStyle = (patch, persist = true) => {
-        if (isViewer) return;
-        if (selectedIds.length === 0) return;
-        const beforeElements = elements.filter(el => selectedIds.includes(el.id));
-        const updatedElements = elements.map(el => {
-            if (selectedIds.includes(el.id)) {
-                return { ...el, ...patch };
-            }
-            return el;
+        clearPreviewIds(selectedIds);
+        boardActions?.updateElements(updatedElements);
+        updatedElements.forEach((element) => {
+            recordEvent?.("element.updated", element.id, { element, persist: true });
         });
-        onElementsChange(updatedElements);
+    }, [boardActions, boardStore, clearPreviewIds, isViewer, recordEvent, selectedIds, setPreviewElements, visiblePreviewById]);
 
-        if (persist) {
-            pushAction({
-                type: "UPDATE_ELEMENTS",
-                before: beforeElements,
-                after: updatedElements.filter(el => selectedIds.includes(el.id))
-            });
-            selectedIds.forEach(id => {
-                const el = updatedElements.find(e => e.id === id);
-                rendererRef?.current?.updateElement(el);
-                recordEvent("element.updated", id, { element: el });
-                if (socketRef.current?.connected) {
-                    socketRef.current.emit("updateElement", { boardId, element: el });
-                }
-                yElements?.set(el.id, el);
-            });
-        }
-    };
-
-    const { 
-        tState, 
-        selectionBounds, 
-        selectionRotation, 
-        onGroupTransformStart 
+    const {
+        tState,
+        selectionBounds,
+        selectionRotation,
+        onGroupTransformStart,
     } = useGroupTransform({
         camera,
-        elements,
-        elementsRef,
+        boardActions,
         selectedIds,
         selectedIdsRef,
-        onElementsChange,
-        pushAction,
-        socket,
-        boardId,
-        yElements
+        selectedElements: selectedItemsWithPreview,
+        onPreviewElementsChange: setPreviewElements,
     });
 
     const activeGroupBounds = tState?.groupBounds || selectionBounds;
-
-
-
+    const isMultiSelect = selectedIds.length > 1;
 
     const handleSelect = useCallback((id, multi) => {
         if (multi) {
-            setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+            setSelectedIds((prev) => (
+                prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+            ));
         } else {
-            setSelectedIds(prev => {
-                if (prev.length === 1 && prev[0] === id) return prev;
-                return [id];
-            });
+            setSelectedIds((prev) => (
+                prev.length === 1 && prev[0] === id ? prev : [id]
+            ));
         }
         setEditingId(null);
     }, [setSelectedIds]);
@@ -199,44 +304,37 @@ export default React.memo(function ElementsLayer({
         setEditingId(null);
     }, []);
 
+    const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
     return (
         <>
             <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 15, pointerEvents: "none" }}>
-                {elements.filter(element => 
-                    selectedIds.includes(element.id) ||
-                    element.id === editingId ||
-                    element.type === 'text' ||
-                    element.type === 'code' ||
-                    element.type === 'video' ||
-                    element.type === 'graph' ||
-                    element.type === 'sticky'
-                ).map(element => {
-                    return (
-                        <MemoizedBoardElement
-                            key={element.id}
-                            el={element}
-                            camera={camera}
-                            tool={tool}
-                            isSelected={selectedIds.includes(element.id)}
-                            isMultiSelected={isMultiSelect && selectedIds.includes(element.id)}
-                            onSelect={handleSelect}
-                            onGroupSelect={onGroupTransformStart}
-                            onChange={handleChange}
-                            onDelete={handleDelete}
-                            onDuplicate={handleDuplicate}
-                            onDragGuide={setDragGuide}
-                            onStartEdit={handleStartEdit}
-                            isEditing={element.id === editingId}
-                            onEndEdit={handleEndEdit}
-                            isViewer={isViewer}
-                            isDarkMode={isDark}
-                            onOpenSidebar={onOpenSidebar}
-                            sidebarElementId={sidebarElementId}
-                            onSidebarElementIdChange={onSidebarElementIdChange}
-                            isSidebarOpen={isSidebarOpen}
-                        />
-                    );
-                })}
+                {visibleIds.map((id) => (
+                    <OverlayBoardElement
+                        key={id}
+                        id={id}
+                        boardStore={boardStore}
+                        previewElement={visiblePreviewById[id]}
+                        camera={camera}
+                        tool={tool}
+                        isSelected={selectedIdSet.has(id)}
+                        isMultiSelected={isMultiSelect && selectedIdSet.has(id)}
+                        onSelect={handleSelect}
+                        onGroupSelect={onGroupTransformStart}
+                        onChange={handleChange}
+                        onDuplicate={handleDuplicate}
+                        onDragGuide={setDragGuide}
+                        onStartEdit={handleStartEdit}
+                        isEditing={activeEditingId === id}
+                        onEndEdit={handleEndEdit}
+                        isViewer={isViewer}
+                        isDarkMode={isDark}
+                        onOpenSidebar={onOpenSidebar}
+                        sidebarElementId={sidebarElementId}
+                        onSidebarElementIdChange={onSidebarElementIdChange}
+                        isSidebarOpen={isSidebarOpen}
+                    />
+                ))}
 
                 <GhostElement ghost={!isViewer ? ghostElement : null} camera={camera} />
 
@@ -258,11 +356,19 @@ export default React.memo(function ElementsLayer({
                                 y1={sy1 - Math.sin(dragGuide.angle) * 2000}
                                 x2={sx1 + Math.cos(dragGuide.angle) * 2000}
                                 y2={sy1 + Math.sin(dragGuide.angle) * 2000}
-                                stroke="#2563eb" strokeWidth="1" strokeDasharray="6 4" opacity="0.4"
+                                stroke="#2563eb"
+                                strokeWidth="1"
+                                strokeDasharray="6 4"
+                                opacity="0.4"
                             />
                             <line
-                                x1={sx1} y1={sy1} x2={sx2} y2={sy2}
-                                stroke="#2563eb" strokeWidth="1.5" strokeDasharray="6 4"
+                                x1={sx1}
+                                y1={sy1}
+                                x2={sx2}
+                                y2={sy2}
+                                stroke="#2563eb"
+                                strokeWidth="1.5"
+                                strokeDasharray="6 4"
                             />
                             <circle cx={sx1} cy={sy1} r="4" fill="#2563eb" opacity="0.7" />
                             <rect x={midX - 20} y={midY - 11} width="40" height="18" rx="5" fill="#1e40af" opacity="0.85" />
@@ -271,42 +377,37 @@ export default React.memo(function ElementsLayer({
                     );
                 })()}
 
-                {/* Group Selection Box */}
                 <GroupSelectionBox
                     selectedIds={selectedIds}
                     groupBounds={selectionBounds}
                     selectionRotation={selectionRotation}
                     tState={tState}
                     camera={camera}
-                    editingId={editingId}
+                    editingId={activeEditingId}
                     onGroupTransformStart={onGroupTransformStart}
                     handleSelect={handleSelect}
                     setSelectedIds={setSelectedIds}
-                    elementsRef={elementsRef}
+                    boardStore={boardStore}
                     pointHitsElement={pointHitsElement}
                 />
             </div>
 
-            {/* Selection Toolbar */}
-            {!isViewer && selectedItems.length > 0 && !editingId && activeGroupBounds && (() => {
-                const activeBounds = activeGroupBounds;
-                return (
-                    <SelectionToolbar
-                        selectedItems={selectedItems}
-                        updateStyle={updateStyle}
-                        handleDelete={handleDelete}
-                        activeBounds={activeBounds}
-                        camera={camera}
-                        isDark={isDark}
-                        onSettingsClick={() => {
-                            if (selectedItems.length === 1) {
-                                onSidebarElementIdChange(selectedItems[0].id);
-                                onOpenSidebar(true);
-                            }
-                        }}
-                    />
-                );
-            })()}
+            {!isViewer && selectedItemsWithPreview.length > 0 && !activeEditingId && activeGroupBounds && (
+                <SelectionToolbar
+                    selectedItems={selectedItemsWithPreview}
+                    updateStyle={updateStyle}
+                    handleDelete={handleDelete}
+                    activeBounds={activeGroupBounds}
+                    camera={camera}
+                    isDark={isDark}
+                    onSettingsClick={() => {
+                        if (selectedItemsWithPreview.length === 1) {
+                            onSidebarElementIdChange(selectedItemsWithPreview[0].id);
+                            onOpenSidebar(true);
+                        }
+                    }}
+                />
+            )}
         </>
     );
 });

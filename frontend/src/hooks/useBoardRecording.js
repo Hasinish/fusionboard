@@ -4,12 +4,20 @@ import api from "../lib/api";
 /**
  * useBoardRecording
  * Manages the whiteboard recording lifecycle: audio + semantic events.
- * USES REFS for elements and camera to avoid excessive re-renders during recording.
+ * USES refs to read board state on demand without making React own the board snapshot.
  */
-export default function useBoardRecording({ boardId, workspaceId, elements, camera, userId, isDark, bgMode }) {
+export default function useBoardRecording({
+  boardId,
+  workspaceId,
+  boardStore,
+  boardVersion = 0,
+  camera,
+  userId,
+  isDark,
+  bgMode
+}) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStatus, setRecordingStatus] = useState("idle"); // idle, recording, saving
-  const [recordingSession, setRecordingSession] = useState(null);
   const [duration, setDuration] = useState(0);
 
   const mediaRecorderRef = useRef(null);
@@ -21,7 +29,7 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
   const sessionRef = useRef(null);
 
   // Keep refs up to date for capturing latest state without re-triggering effects
-  const elementsRef = useRef(elements);
+  const elementsRef = useRef(boardStore?.getOrderedElements?.() || []);
   const cameraRef = useRef(camera);
   const isDarkRef = useRef(isDark);
   const bgModeRef = useRef(bgMode);
@@ -65,7 +73,9 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
     }
   }, [userId, flushEvents]);
 
-  useEffect(() => { elementsRef.current = elements; }, [elements]);
+  useEffect(() => {
+    elementsRef.current = boardStore?.getOrderedElements?.() || [];
+  }, [boardStore, boardVersion]);
   useEffect(() => { cameraRef.current = camera; }, [camera]);
   
   useEffect(() => { 
@@ -122,7 +132,6 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
 
       session = res.data;
       sessionRef.current = session;
-      setRecordingSession(session);
     } catch (error) {
       console.error("Failed to create recording session:", error);
       alert("Failed to reach server. Please check your connection.");
@@ -154,7 +163,6 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
             }
           });
           setRecordingStatus("idle");
-          setRecordingSession(null);
           sessionRef.current = null;
         } catch (error) {
           console.error("Failed to upload audio", error);
@@ -185,7 +193,6 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
          api.delete(`/recordings/${session._id}`, {
            headers: { Authorization: `Bearer ${token}` }
          }).catch(() => {});
-         setRecordingSession(null);
          sessionRef.current = null;
       }
     }
@@ -216,17 +223,11 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
       console.error("Failed to end recording session on backend", error);
     }
     
-    if (checkpointTimerRef.current) {
-      clearInterval(checkpointTimerRef.current);
-      checkpointTimerRef.current = null;
-    }
-
     // Final cleanup of refs
     startTimeRef.current = null;
   }, [recordEvent, flushEvents]);
 
   // Periodic Checkpoints
-  const checkpointTimerRef = useRef(null);
   const handleCreateCheckpoint = useCallback(async () => {
     const sessionId = sessionRef.current?._id || sessionRef.current?.id;
     if (!sessionId || !startTimeRef.current) return;
@@ -249,18 +250,10 @@ export default function useBoardRecording({ boardId, workspaceId, elements, came
   }, []);
 
   useEffect(() => {
-    if (isRecording) {
-      // Create a checkpoint every 30 seconds
-      checkpointTimerRef.current = setInterval(handleCreateCheckpoint, 30000);
-    } else {
-      if (checkpointTimerRef.current) {
-        clearInterval(checkpointTimerRef.current);
-        checkpointTimerRef.current = null;
-      }
-    }
-    return () => {
-      if (checkpointTimerRef.current) clearInterval(checkpointTimerRef.current);
-    };
+    if (!isRecording) return undefined;
+
+    const checkpointTimer = setInterval(handleCreateCheckpoint, 30000);
+    return () => clearInterval(checkpointTimer);
   }, [isRecording, handleCreateCheckpoint]);
 
   useEffect(() => {

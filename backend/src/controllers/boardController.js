@@ -4,6 +4,7 @@ import Notification from "../models/Notification.js";
 import Note from "../models/Note.js";
 import Activity from "../models/Activity.js"; // [NEW]
 import { getActiveUsersMap, emitToUser, emitToWorkspace } from "../startup/socket.js";
+import { deleteYjsBoardDoc } from "../startup/yjsServer.js";
 async function getMember(userId, workspaceId) {
   const ws = await Workspace.findOne({
     _id: workspaceId,
@@ -131,32 +132,6 @@ export async function getBoard(req, res) {
   }
 }
 
-// save the latest drawing strokes
-export async function saveBoard(req, res) {
-  try {
-    const userId = req.userId;
-    const { boardId } = req.params;
-    const { segments } = req.body;
-
-    const board = await Board.findById(boardId);
-    if (!board) return res.status(404).json({ message: "Board not found" });
-
-    const member = await getMember(userId, board.workspace);
-    if (!member) return res.status(403).json({ message: "Not allowed" });
-
-    if (member.role === "viewer") {
-      return res.status(403).json({ message: "Viewers cannot save boards" });
-    }
-
-    board.segments = Array.isArray(segments) ? segments : [];
-    await board.save();
-
-    return res.json({ message: "Board saved", updatedAt: board.updatedAt });
-  } catch (e) {
-    console.error("saveBoard error:", e);
-    return res.status(500).json({ message: "Server error" });
-  }
-}
 
 // rename a board
 export async function updateBoard(req, res) {
@@ -224,6 +199,7 @@ export async function deleteBoard(req, res) {
     await Note.deleteMany({ board: boardId });
 
     // actually delete it
+    await deleteYjsBoardDoc(boardId);
     await Board.findByIdAndDelete(boardId);
 
     emitToWorkspace(board.workspace, "board:deleted", { boardId });

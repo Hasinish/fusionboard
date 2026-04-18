@@ -20,9 +20,23 @@ function applyRotation(ctx, el) {
 
 export function drawPath(ctx, el) {
   const pts = (el.points || []).map(p => [p.x, p.y, p.pressure ?? 0.5])
-  if (pts.length < 2) return
+  if (pts.length === 0) return
+
   ctx.save()
   if (el.rotation) applyRotation(ctx, el)
+
+  // Explicit single click (dot) support
+  if (pts.length === 1) {
+    const p = pts[0];
+    const radius = Math.max(1, (el.width || el.strokeWidth || 2) / 2);
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], radius, 0, 2 * Math.PI);
+    ctx.fillStyle = el.color || el.stroke || '#000000';
+    ctx.globalAlpha = el.opacity ?? 1;
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
   const stroke = getStroke(pts, {
     size: el.width || el.strokeWidth || 2,
     thinning: 0.5,
@@ -56,7 +70,9 @@ export function drawRect(ctx, el) {
   // Text inside shape
   if (el.text) {
     const fontSize = el.fontSize || 14
-    ctx.font = `${fontSize}px ${el.fontFamily || 'Inter, sans-serif'}`
+    const fontStyle = el.italic ? 'italic ' : ''
+    const fontWeight = el.bold ? 'bold ' : 'normal'
+    ctx.font = `${fontStyle}${fontWeight} ${fontSize}px ${el.fontFamily || 'Inter, sans-serif'}`
     ctx.fillStyle = el.textColor || el.color || '#1e1e1e'
     ctx.textBaseline = 'middle'
     ctx.textAlign = el.textAlign || 'center'
@@ -82,7 +98,9 @@ export function drawEllipse(ctx, el) {
   if (el.fill && el.fill !== 'transparent' && el.fill !== 'none') ctx.fill()
   ctx.stroke()
   if (el.text) {
-    ctx.font = `${el.fontSize || 14}px ${el.fontFamily || 'Inter, sans-serif'}`
+    const fontStyle = el.italic ? 'italic ' : ''
+    const fontWeight = el.bold ? 'bold ' : 'normal'
+    ctx.font = `${fontStyle}${fontWeight} ${el.fontSize || 14}px ${el.fontFamily || 'Inter, sans-serif'}`
     ctx.fillStyle = el.textColor || el.color || '#1e1e1e'
     ctx.textBaseline = 'middle'
     ctx.textAlign = el.textAlign || 'center'
@@ -157,7 +175,9 @@ export function drawSticky(ctx, el) {
   ctx.stroke()
   // Text (word-wrap)
   const fontSize = el.fontSize || 16
-  ctx.font = `${fontSize}px ${el.fontFamily || 'Gloria Hallelujah, sans-serif'}`
+  const fontStyle = el.italic ? 'italic ' : ''
+  const fontWeight = el.bold ? 'bold ' : 'normal'
+  ctx.font = `${fontStyle}${fontWeight} ${fontSize}px ${el.fontFamily || 'Gloria Hallelujah, sans-serif'}`
   ctx.fillStyle = el.textColor || el.color || '#1e1e1e'
   ctx.textBaseline = 'top'
   const padding = 12
@@ -183,7 +203,9 @@ export function drawText(ctx, el) {
   ctx.save()
   if (el.rotation) applyRotation(ctx, el)
   const fontSize = el.fontSize || 20
-  ctx.font = `${el.fontWeight || 'normal'} ${fontSize}px ${el.fontFamily || 'Inter, sans-serif'}`
+  const fontStyle = el.italic ? 'italic ' : ''
+  const fontWeight = el.bold ? 'bold ' : (el.fontWeight || 'normal')
+  ctx.font = `${fontStyle}${fontWeight} ${fontSize}px ${el.fontFamily || 'Inter, sans-serif'}`
   ctx.fillStyle = el.textColor || el.color || el.stroke || '#000000'
   ctx.globalAlpha = el.opacity ?? 1
   ctx.textBaseline = 'top'

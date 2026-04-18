@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+
 import { ArrowLeft, Settings2, Trash2 } from "lucide-react";
 import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
 import VoiceChat from "../components/VoiceChat";
@@ -12,46 +12,20 @@ function TestWhiteboardPage() {
     const me = getUser();
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-    const [socket, setSocket] = useState(null);
+
     const [talkingUserIds, setTalkingUserIds] = useState([]);
 
     useEffect(() => {
         if (!isLoggedIn()) navigate("/");
     }, [navigate]);
 
-    // wire up the realtime connection with a dummy board ID
-    useEffect(() => {
-        const socketUrl = API_URL.replace("/api", "");
 
-        const newSocket = io(socketUrl, {
-            auth: { token },
-            transports: ["websocket", "polling"],
-            reconnection: true,
-        });
-        setSocket(newSocket);
-
-        newSocket.on("connect", () => {
-            // using a hardcoded string so everyone joins the same infinite test room
-            newSocket.emit("joinBoard", {
-                boardId: "infinite-test-room",
-                user: { name: me?.name || "Tester" },
-            });
-        });
-
-        return () => {
-            newSocket.emit("cursorLeave");
-            newSocket.disconnect();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     return (
         <div className="w-screen h-screen m-0 p-0 overflow-hidden relative font-sans">
             <TestInfiniteCanvas
                 boardId={"infinite-test-room"}
                 boardTitle="Infinite Test Room"
-                socket={socket}
-                initialSegments={[]}
                 me={me}
                 talkingUserIds={talkingUserIds}
                 workspaceId="infinite-test"

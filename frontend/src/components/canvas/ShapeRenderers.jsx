@@ -51,6 +51,19 @@ export function PathSVG({ el, sw, sh }) {
     const scaleX = sw / (bounds.w || 1);
     const scaleY = sh / (bounds.h || 1);
 
+    // If path only has a single point (a dot click without dragging)
+    if (el.points.length === 1) {
+        const radius = (el.width || 2) * Math.min(scaleX, scaleY);
+        const p = el.points[0];
+        const cx = (p.x - bounds.x) * scaleX;
+        const cy = (p.y - bounds.y) * scaleY;
+        return (
+            <svg width={sw} height={sh} className="absolute inset-0 pointer-events-none" style={{ overflow: "visible" }}>
+                <circle cx={cx} cy={cy} r={radius} fill={el.color || "#000"} />
+            </svg>
+        );
+    }
+
     const outlinePoints = getStroke(
         el.points.map(p => [
             (p.x - bounds.x) * scaleX,
@@ -62,6 +75,7 @@ export function PathSVG({ el, sw, sh }) {
             thinning: 0.5,
             smoothing: 0.5,
             streamline: 0.5,
+            last: true, // Ensuring perfect-freehand tries to close the path
         }
     );
 

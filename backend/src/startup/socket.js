@@ -6,19 +6,7 @@ import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
 import Activity from "../models/Activity.js";
 import { ensureMember } from "../controllers/chatController.js";
-
-const CURSOR_COLORS = [
-    "#dc2626", "#ea580c", "#d97706", "#059669",
-    "#0891b2", "#2563eb", "#4f46e5", "#7c3aed",
-    "#c026d3", "#db2777", "#4b5563", "#0f172a"
-];
-
-function pickColor(key) {
-    const s = String(key || Math.random());
-    let hash = 0;
-    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
-    return CURSOR_COLORS[hash % CURSOR_COLORS.length];
-}
+import { handleTerminalConnection } from "../services/terminalService.js";
 
 const socketMeta = new Map();
 let ioInstance;
@@ -130,6 +118,7 @@ export const setupSocket = (io) => {
     }
 
     io.on("connection", (socket) => {
+        handleTerminalConnection(socket);
         // handling voice chat stuff
         socket.on("voice:join", ({ roomId }) => {
             if (!roomId) return;
@@ -259,35 +248,27 @@ export const setupSocket = (io) => {
             if (!boardId) return;
             const name = user?.name ? String(user.name) : socket.userName || "User";
             const userId = socket.userId;
-            const color = pickColor(socket.id);
             let workspaceId = null;
-            let boardTitle = "Unknown Board";
-            let existingElements = [];
-            let role = "viewer"; // default to most restrictive
+            let role = "viewer";
+
             try {
-                const board = await Board.findById(boardId).select("workspace title elements");
-                if (board) {
+                const board = await Board.findById(boardId).select("workspace").lean();
+                if (board?.workspace) {
                     workspaceId = board.workspace;
-                    boardTitle = board.title;
-                    existingElements = board.elements || [];
-                    // Look up user's role in the workspace
-                    if (workspaceId) {
-                        const ws = await Workspace.findById(workspaceId).select("members").lean();
-                        if (ws && ws.members) {
-                            const member = ws.members.find(m => String(m.user) === String(userId));
-                            if (member) role = member.role || "viewer";
-                        }
+                    const ws = await Workspace.findById(workspaceId).select("members").lean();
+                    if (ws?.members) {
+                        const member = ws.members.find((entry) => String(entry.user) === String(userId));
+                        if (member) role = member.role || "viewer";
                     }
                 }
-            } catch (e) { /* ignore non-ObjectId boardIds */ }
-            // [NEW] If this socket was already in another board, update that board's list first
+            } catch {
+                // Non-persistent test rooms are allowed.
+            }
+
             const oldMeta = socketMeta.get(socket.id);
-            if (oldMeta && oldMeta.boardId && String(oldMeta.boardId) !== String(boardId)) {
-                // Remove from old board's room and emit update for old board
+            if (oldMeta?.boardId && String(oldMeta.boardId) !== String(boardId)) {
                 socket.leave(`board:${oldMeta.boardId}`);
-                socket.to(`board:${oldMeta.boardId}`).emit("cursorLeave", { userId: oldMeta.userId });
                 if (oldMeta.workspaceId) {
-                    // Temporarily delete from socketMeta to get accurate count for old board
                     socketMeta.delete(socket.id);
                     const updatedUsersForOldBoard = getActiveBoardUsers(oldMeta.boardId);
                     io.to(`ws:${oldMeta.workspaceId}`).emit("board:users-updated", {
@@ -299,103 +280,23 @@ export const setupSocket = (io) => {
 
             socket.join(`board:${boardId}`);
             socketMeta.set(socket.id, {
-                boardId, userId, name, color,
-                workspaceId, boardTitle, hasEdited: false, role,
+                boardId,
+                userId,
+                name,
+                workspaceId,
+                role,
                 avatar: socket.userAvatar
             });
 
-            // Get current participants in this board
-            const boardRoom = io.sockets.adapter.rooms.get(`board:${boardId}`);
-            const participantIds = boardRoom ? Array.from(boardRoom) : [];
-            const participants = participantIds
-                .map(sid => {
-                    const meta = socketMeta.get(sid);
-                    if (!meta) return null;
-                    return { userId: meta.userId, name: meta.name, color: meta.color, avatar: meta.avatar };
-                })
-                .filter(Boolean);
-
             if (workspaceId) {
                 const updatedUsers = getActiveBoardUsers(boardId);
-                io.to(`ws:${workspaceId}`).emit("board:users-updated", { boardId, activeUsers: updatedUsers });
-            }
-            socket.emit("boardParticipants", participants);
-            socket.emit("boardElements", []);
-            socket.to(`board:${boardId}`).emit("cursorJoin", { userId, name, color, avatar: socket.userAvatar });
-        });
-
-        // ─── Live pen stroke preview (vector) ───────────────────────────────────────
-
-        socket.on("draw:stroke-progress", ({ boardId, stroke }) => {
-            if (!boardId) return;
-            if (isViewerSocket(socket.id)) return;
-            const meta = socketMeta.get(socket.id);
-            socket.to(`board:${boardId}`).emit("draw:stroke-progress", {
-                userId: meta?.userId || socket.userId || socket.id,
-                stroke
-            });
-        });
-
-        socket.on("draw:stroke-end", ({ boardId }) => {
-            if (!boardId) return;
-            if (isViewerSocket(socket.id)) return;
-            const meta = socketMeta.get(socket.id);
-            socket.to(`board:${boardId}`).emit("draw:stroke-end", {
-                userId: meta?.userId || socket.userId || socket.id
-            });
-        });
-
-        // ─── Cursors ────────────────────────────────────────────────────────────────
-
-        socket.on("cursorMove", ({ boardId, x, y }) => {
-            if (!boardId) return;
-            const meta = socketMeta.get(socket.id);
-            if (!meta) return;
-            if (String(meta.boardId) !== String(boardId)) return;
-            socket.to(`board:${boardId}`).emit("cursorMove", {
-                userId: meta.userId,
-                name: meta.name,
-                color: meta.color,
-                avatar: meta.avatar,
-                x,
-                y,
-            });
-        });
-
-        socket.on("camera:update", ({ boardId, userId, camera }) => {
-            if (!boardId) return;
-            const meta = socketMeta.get(socket.id);
-            if (!meta) return;
-            if (String(meta.boardId) !== String(boardId)) return;
-            socket.to(`board:${boardId}`).emit("camera:update", {
-                userId: userId || socket.userId,
-                camera,
-            });
-        });
-
-        // ─── Elements (sticky notes, shapes, paths, text, code, video) ──────────────
-
-        socket.on("clearBoard", async ({ boardId }) => {
-            if (!boardId) return;
-            if (isViewerSocket(socket.id)) return;
-            console.log(`[Socket] clearBoard triggered for ${boardId} by user ${socket.userId}`);
-            io.to(`board:${boardId}`).emit("cleared");
-            try {
-                const meta = socketMeta.get(socket.id);
-                if (meta) meta.hasEdited = true;
-                await Board.findByIdAndUpdate(boardId, { $set: { elements: [] } });
-            } catch (e) {
-                console.error("clearBoard error:", e);
+                io.to(`ws:${workspaceId}`).emit("board:users-updated", {
+                    boardId,
+                    activeUsers: updatedUsers
+                });
             }
         });
 
-        socket.on("board:update-title", ({ boardId, title }) => {
-            if (!boardId) return;
-            if (isViewerSocket(socket.id)) return;
-            const meta = socketMeta.get(socket.id);
-            if (meta) meta.boardTitle = title;
-            socket.to(`board:${boardId}`).emit("board:title-updated", { title });
-        });
 
         // ─── Voice: grant unmute to a viewer ─────────────────────────────────────
         socket.on("voice:grant-unmute", ({ targetUserId }) => {
@@ -418,34 +319,17 @@ export const setupSocket = (io) => {
             }
         });
 
-        const leaveCursor = async () => {
+        const leaveBoard = async () => {
             const meta = socketMeta.get(socket.id);
             if (!meta) return;
 
             console.log(`[Socket] ${socket.id} leaving board ${meta.boardId} (workspace ${meta.workspaceId})`);
-
-            // Notify canvas participants that user left
-            if (meta.boardId) {
-                socket.to(`board:${meta.boardId}`).emit("cursorLeave", { userId: meta.userId });
-            }
-
-            // Log activity if they edited
-            if (meta.hasEdited && meta.workspaceId) {
-                try {
-                    await Activity.create({
-                        workspace: meta.workspaceId,
-                        user: meta.userId,
-                        action: "edited_board",
-                        details: meta.boardTitle,
-                    });
-                } catch (e) { /* ignore */ }
-            }
-
-            // [FIX] Store IDs before deleting from the map
             const { workspaceId, boardId } = meta;
+            if (boardId) {
+                socket.leave(`board:${boardId}`);
+            }
             socketMeta.delete(socket.id);
 
-            // Notify dashboard of updated active users
             if (workspaceId && boardId) {
                 const updatedUsers = getActiveBoardUsers(boardId);
                 console.log(`[Socket] Emitting board:users-updated for board ${boardId} to ws:${workspaceId}`);
@@ -456,8 +340,8 @@ export const setupSocket = (io) => {
             }
         };
 
-        socket.on("cursorLeave", leaveCursor);
-        socket.on("disconnect", leaveCursor);
+        socket.on("leaveBoard", leaveBoard);
+        socket.on("disconnect", leaveBoard);
     });
 };
 

@@ -10,7 +10,7 @@ export function GroupSelectionBox({
     onGroupTransformStart,
     handleSelect,
     setSelectedIds,
-    elementsRef,
+    boardStore,
     pointHitsElement
 }) {
     if (selectedIds.length <= 1 || !groupBounds || editingId) return null;
@@ -34,7 +34,7 @@ export function GroupSelectionBox({
                 height: activeBounds.h * camera.z + 8,
                 zIndex: 20,
                 transformOrigin: "center center",
-                transform: `rotate(${(selectionRotation || 0) + (tState?.currentRotation || 0)}deg)`,
+                transform: `rotate(${selectionRotation || 0}deg)`,
                 cursor: tState?.type === "move" ? "grabbing" : "grab"
             }}
             onPointerDown={(e) => {
@@ -49,7 +49,7 @@ export function GroupSelectionBox({
 
                 // 2. Precision yield check (unselected ONLY)
                 // We check if an unselected element is hit precisely under the group box
-                const elementsCopy = [...elementsRef.current].reverse();
+                const elementsCopy = [...(boardStore?.getOrderedElements?.() || [])].reverse();
 
                 if (e.shiftKey) {
                     const hitElement = elementsCopy.find(el => pointHitsElement(wp.x, wp.y, el));

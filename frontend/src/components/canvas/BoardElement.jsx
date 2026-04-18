@@ -4,8 +4,9 @@ import getStroke from "perfect-freehand";
 import { ShapeSVG, PathSVG } from "./ShapeRenderers";
 import { getPathBounds, pointHitsElement } from "./geometryUtils";
 import GraphElement from "./graph/GraphElement";
+import { CodeTerminal } from "./CodeTerminal";
 
-export { pointHitsElement } from "./geometryUtils";
+export { pointHitsElement, boxHitsElement } from "./geometryUtils";
 
 export function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -16,6 +17,8 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
     const textRef = useRef(null);
     const elRef = useRef(null);
     const [isRunning, setIsRunning] = useState(false);
+    const [isTerminalActive, setIsTerminalActive] = useState(false);
+    const [terminalSessionKey, setTerminalSessionKey] = useState(0);
 
     const sx = el.x * camera.z + camera.x;
     const sy = el.y * camera.z + camera.y;
@@ -24,26 +27,47 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
 
     // ── drag to move (Alt = duplicate, Shift = angle-snap) ───────────────────
     const handlePointerDown = (e) => {
-        if (e.button === 1) return; // Allow middle-click to bubble up for panning
+        if (e.button === 1 || tool === "hand") return; // Middle click or hand tool
         if (e.button !== 0) return;
         if (isViewer) return; // Viewers cannot drag elements
         if (tool !== "select" || isEditing) return;
 
-        // Use the same coordinate logic as the main canvas
+        // The parent element is the ElementsLayer which has NO camera translation applied.
+        // We must subtract camera.x/y ourselves to get pure world space coordinates.
+        // ALWAYS use elRef.current.parentElement (ElementsLayer) as the absolute reference frame.
         const rect = elRef.current.parentElement.getBoundingClientRect();
-        const scx = e.clientX - rect.left;
-        const scy = e.clientY - rect.top;
         const wp = {
-            x: (scx - camera.x) / camera.z,
-            y: (scy - camera.y) / camera.z
+            x: (e.clientX - rect.left - camera.x) / camera.z,
+            y: (e.clientY - rect.top - camera.y) / camera.z
         };
-        const isHit = pointHitsElement(wp.x, wp.y, el);
+        // If already selected, the entire bounding box becomes grabbable to prevent accidental deselection
+        const isHit = isSelected || pointHitsElement(wp.x, wp.y, el, camera.z);
 
-        // If we hit nothing and it's not selected, we let the event bubble
-        // to the background canvas for marquee selection or reaching through.
-        if (!isHit && !isSelected) return;
+        // If we missed the stroke, pass the click through to whatever is below
+        if (!isHit) {
+            // Temporarily remove ourselves from hit-testing
+            elRef.current.style.pointerEvents = 'none';
+            const below = document.elementFromPoint(e.clientX, e.clientY);
+            elRef.current.style.pointerEvents = '';
+            // Re-dispatch to the element underneath (another shape, or the canvas bg)
+            if (below) {
+                below.dispatchEvent(new PointerEvent('pointerdown', {
+                    bubbles: true,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    button: e.button,
+                    buttons: e.buttons,
+                    shiftKey: e.shiftKey,
+                    altKey: e.altKey,
+                    ctrlKey: e.ctrlKey,
+                    metaKey: e.metaKey,
+                }));
+            }
+            e.stopPropagation();
+            return;
+        }
 
-        // If it's a hit or already selected, we "claim" this event.
+        // If it's a hit, we "claim" this event.
         e.stopPropagation();
 
         // If Shift is held, we only toggle selection, don't start a drag
@@ -107,7 +131,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 const bounds = getPathBounds(newPoints);
                 updated = { ...updated, points: newPoints, ...bounds };
             }
-            commitChange(updated);
+            commitChange(updated, true, "DRAG_PREVIEW");
         };
 
         const onUp = () => {
@@ -130,7 +154,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                     const bounds = getPathBounds(newPoints);
                     updatedFinal = { ...updatedFinal, points: newPoints, ...bounds };
                 }
-                commitChange(updatedFinal, true, beforeState);
+                commitChange(updatedFinal, true, undefined, beforeState);
             }
         };
 
@@ -138,94 +162,21 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
         window.addEventListener("mouseup", onUp);
     };
 
-    // ── Execute Code (Hybrid Approach) ──────────────────────────────────────────
+    // ── Execute Code (Native Terminal Approach) ─────────────────────────────────
     const handleExecute = async (e) => {
         e.stopPropagation();
-        if (isRunning || !el.code) return;
-        setIsRunning(true);
-        onChange({ ...el, output: "Executing..." });
-
-        try {
-            if (el.language === "javascript") {
-                let logs = [];
-                const originalLog = console.log;
-                console.log = (...args) => {
-                    logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
-                    originalLog(...args);
-                };
-                try {
-                    // eslint-disable-next-line no-eval
-                    const result = eval(el.code);
-                    if (result !== undefined && logs.length === 0) logs.push(String(result));
-                    onChange({ ...el, output: logs.join('\n') || "Executed without output." });
-                } catch (err) {
-                    onChange({ ...el, output: `Error: ${err.message}` });
-                } finally {
-                    console.log = originalLog;
-                }
-            } else if (el.language === "python") {
-                if (!window.pyodide) {
-                    onChange({ ...el, output: "Downloading Python (WASM Engine)... This only happens once." });
-                    await new Promise((resolve, reject) => {
-                        const script = document.createElement("script");
-                        script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
-                        script.onload = resolve;
-                        script.onerror = reject;
-                        document.body.appendChild(script);
-                    });
-                    window.pyodide = await window.loadPyodide();
-                }
-
-                let pyLogs = [];
-                window.pyodide.setStdout({ batched: (str) => pyLogs.push(str) });
-                window.pyodide.setStderr({ batched: (str) => pyLogs.push(str) });
-                try {
-                    await window.pyodide.runPythonAsync(el.code);
-                    onChange({ ...el, output: pyLogs.join('\n') || "Executed without output." });
-                } catch (err) {
-                    onChange({ ...el, output: String(err) });
-                }
-            } else if (["java", "cpp", "go", "rust"].includes(el.language)) {
-                // Judge0 CE API integration
-                const languageIds = {
-                    java: 62,   // OpenJDK 13+
-                    cpp: 54,    // GCC 9.2.0
-                    go: 60,     // 1.13.5
-                    rust: 73    // 1.40.0
-                };
-
-                try {
-                    const response = await fetch("https://ce.judge0.com/submissions?base64_encoded=false&wait=true", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            source_code: el.code,
-                            language_id: languageIds[el.language]
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.status?.id === 6) { // Compilation Error
-                        onChange({ ...el, output: `Compilation Error:\n${data.compile_output || "No details available."}` });
-                    } else if (data.status?.id > 3) { // Other Errors (Runtime, TLE, etc)
-                        onChange({
-                            ...el,
-                            output: `Error (${data.status.description}):\n${data.stderr || data.stdout || "No details available."}`
-                        });
-                    } else {
-                        onChange({ ...el, output: data.stdout || "Executed without output." });
-                    }
-                } catch (err) {
-                    onChange({ ...el, output: `API Error: ${err.message}` });
-                }
-            } else {
-                onChange({ ...el, output: `Execution for ${el.language} is not yet implemented.` });
-            }
-        } catch (err) {
-            onChange({ ...el, output: `System Error: ${err.message}` });
-        } finally {
-            setIsRunning(false);
+        if (!el.code) return;
+        
+        // If already active, toggle it or just update key to force remount
+        if (isTerminalActive) {
+            setIsTerminalActive(false);
+            setTimeout(() => {
+                setIsTerminalActive(true);
+                setTerminalSessionKey(Date.now());
+            }, 50);
+        } else {
+            setIsTerminalActive(true);
+            setTerminalSessionKey(Date.now());
         }
     };
 
@@ -335,7 +286,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 const bounds = getPathBounds(newPoints);
                 updated = { ...updated, points: newPoints, ...bounds };
             }
-            commitChange(updated);
+            commitChange(updated, true, "DRAG_PREVIEW");
         };
         const onUp = () => {
             window.removeEventListener("mousemove", onMove);
@@ -362,9 +313,9 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 onChange(updatedFinal, true, beforeState);
             }
         };
-        const commitChange = (u, p, b) => {
-            if (!p) { elRef.current._lastX = u.x; elRef.current._lastY = u.y; elRef.current._lastW = u.w; elRef.current._lastH = u.h; }
-            onChange(u, p, b);
+        const commitChange = (u, p, o) => {
+            if (!p || o === "DRAG_PREVIEW") { elRef.current._lastX = u.x; elRef.current._lastY = u.y; elRef.current._lastW = u.w; elRef.current._lastH = u.h; }
+            onChange(u, p, o);
         };
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
@@ -439,7 +390,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 rotation: newAngle
             };
 
-            commitChange(updated);
+            commitChange(updated, true, "DRAG_PREVIEW");
         };
 
         const onUp = () => {
@@ -453,17 +404,21 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                 w: elRef.current._lastW !== undefined ? elRef.current._lastW : el.w,
                 rotation: elRef.current._lastRot !== undefined ? elRef.current._lastRot : el.rotation
             };
-            onChange(finalU, true, beforeState);
+            commitChange(finalU, true, undefined, beforeState);
         };
 
-        const commitChange = (u, p, b) => {
-            if (!p) {
+        const commitChange = (u, p, o, b) => {
+            if (!p || o === "DRAG_PREVIEW") {
                 elRef.current._lastX = u.x;
                 elRef.current._lastY = u.y;
                 elRef.current._lastW = u.w;
                 elRef.current._lastRot = u.rotation;
             }
-            onChange(u, p, b);
+            // o is the custom origin (e.g., "DRAG_PREVIEW")
+            // Call onChange(updated, persist, origin) 
+            // Warning: ElementLayer's onChange doesn't take beforeState directly, but we can pass it if we want.
+            // ElementsLayer.jsx handleChange handles `beforeState` tracking? No, UndoManager tracks it automatically!
+            onChange(u, p, o);
         };
 
         window.addEventListener("mousemove", onMove);
@@ -494,7 +449,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
             const newRotation = Math.round(angle);
             let updated = { ...el, rotation: newRotation };
 
-            commitChange(updated);
+            commitChange(updated, true, "DRAG_PREVIEW");
         };
         const onUp = () => {
             window.removeEventListener("mousemove", onMove);
@@ -502,12 +457,12 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
             const finalRotation = elRef.current._lastRot !== undefined ? elRef.current._lastRot : el.rotation;
             if (finalRotation !== el.rotation) {
                 let updatedFinal = { ...el, rotation: finalRotation };
-                onChange(updatedFinal, true, beforeState);
+                onChange(updatedFinal, true, undefined, beforeState);
             }
         };
-        const commitChange = (u, p, b) => {
-            if (!p) elRef.current._lastRot = u.rotation;
-            onChange(u, p, b);
+        const commitChange = (u, p, o, b) => {
+            if (!p || o === "DRAG_PREVIEW") elRef.current._lastRot = u.rotation;
+            onChange(u, p, o);
         };
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
@@ -573,19 +528,20 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
             onPointerDown={handlePointerDown}
             onDoubleClick={(e) => {
                 if (isViewer) return; // Viewers cannot edit text
-                // Precision check for double click too
-                const rect = e.currentTarget.parentElement.getBoundingClientRect();
-                const scx = e.clientX - rect.left;
-                const scy = e.clientY - rect.top;
+                // Precision check for double click relative to absolute canvas parent
+                const rect = elRef.current.parentElement.getBoundingClientRect();
                 const wp = {
-                    x: (scx - camera.x) / camera.z,
-                    y: (scy - camera.y) / camera.z
+                    x: (e.clientX - rect.left - camera.x) / camera.z,
+                    y: (e.clientY - rect.top - camera.y) / camera.z
                 };
-                const isHit = pointHitsElement(wp.x, wp.y, el);
-                if (!isHit && !isSelected) return;
+                // If already selected, double-clicking anywhere inside bounds activates edit
+                const isHit = isSelected || pointHitsElement(wp.x, wp.y, el, camera.z);
+                if (!isHit) return;
 
                 e.stopPropagation();
-                if (el.type !== "path" && el.type !== "graph") onStartEdit(el.id);
+                if (!["path", "graph", "code", "video"].includes(el.type)) {
+                    onStartEdit(el.id);
+                }
             }}
         >
             {(isSelected || isEditing || ["video", "code", "graph", "text", "sticky"].includes(el.type)) ? (
@@ -633,7 +589,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                                 onChange({ ...el, language: newLang });
                                             }
                                         }}
-                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                     >
                                         <option value="javascript">JavaScript</option>
                                         <option value="python">Python</option>
@@ -642,10 +598,11 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                         <option value="go">Go</option>
                                         <option value="rust">Rust</option>
                                     </select>
+
                                     <button
                                         className="bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4] border-none flex items-center justify-center rounded cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Reset to boilerplate"
-                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                         disabled={isViewer}
                                         onClick={() => {
                                             const boilerplates = {
@@ -669,7 +626,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 </div>
                                 <button
                                     className="bg-green-600 hover:bg-green-500 text-white border-none flex items-center font-semibold rounded cursor-pointer"
-                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     onClick={handleExecute}
                                     disabled={isRunning || isViewer}
                                     style={{
@@ -695,8 +652,41 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                     value={el.code}
                                     readOnly={isViewer}
                                     onChange={(e) => onChange({ ...el, code: e.target.value })}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onKeyDown={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === "Tab") {
+                                            e.preventDefault();
+                                            const start = e.target.selectionStart;
+                                            const end = e.target.selectionEnd;
+                                            const newCode = el.code.substring(0, start) + "    " + el.code.substring(end);
+                                            e.target.value = newCode;
+                                            e.target.selectionStart = e.target.selectionEnd = start + 4;
+                                            onChange({ ...el, code: newCode });
+                                        } else if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            const start = e.target.selectionStart;
+                                            const textBeforeCursor = el.code.substring(0, start);
+                                            const lines = textBeforeCursor.split("\n");
+                                            const currentLine = lines[lines.length - 1];
+                                            
+                                            // Find existing leading spaces
+                                            const match = currentLine.match(/^(\s*)/);
+                                            let indent = match ? match[1] : "";
+                                            
+                                            // Smart indent: if line ends with {, [, (, or :, add 4 spaces
+                                            const trimmedLine = currentLine.trimEnd();
+                                            if (trimmedLine.endsWith("{") || trimmedLine.endsWith(":") || trimmedLine.endsWith("(") || trimmedLine.endsWith("[")) {
+                                                indent += "    ";
+                                            }
+                                            
+                                            const insertText = "\n" + indent;
+                                            const newCode = el.code.substring(0, start) + insertText + el.code.substring(e.target.selectionEnd);
+                                            e.target.value = newCode;
+                                            e.target.selectionStart = e.target.selectionEnd = start + insertText.length;
+                                            onChange({ ...el, code: newCode });
+                                        }
+                                    }}
                                     onWheel={(e) => {
                                         // Allow board zoom (bubbles to window) but stop regular internal scroll panning
                                         if (e.ctrlKey || e.metaKey) return;
@@ -707,20 +697,25 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 />
                             </div>
 
-                            {/* Output */}
-                            {el.output !== undefined && (
-                                <div
-                                    className="h-1/3 bg-[#11111b] border-t border-[#313244] overflow-y-auto font-mono text-[#a6adc8]"
+                            {/* Native Terminal Interface */}
+                            {isTerminalActive && (
+                                <div className="h-1/3 min-h-[100px] border-t border-[#313244]" 
+                                    onPointerDown={(e) => e.stopPropagation()} 
                                     onMouseDown={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    onKeyUp={(e) => e.stopPropagation()}
                                     onWheel={(e) => {
-                                        // Allow board zoom (bubbles to window) but stop regular internal scroll panning
                                         if (e.ctrlKey || e.metaKey) return;
                                         e.stopPropagation();
-                                    }}
-                                    style={{ padding: 8 * camera.z }}
-                                >
-                                    <div className="text-[#6c7086] font-bold" style={{ fontSize: 11 * camera.z, marginBottom: 4 * camera.z }}>Output:</div>
-                                    <pre className="whitespace-pre-wrap font-mono m-0" style={{ fontSize: 12 * camera.z }}>{el.output}</pre>
+                                    }}>
+                                    <CodeTerminal
+                                        key={`${el.id}-${terminalSessionKey}`}
+                                        code={el.code}
+                                        language={el.language}
+                                        onStop={() => setIsTerminalActive(false)}
+                                        isViewer={isViewer}
+                                        camera={camera}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -781,7 +776,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                                 }
                                                 onChange({ ...el, url, videoId });
                                             }}
-                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onPointerDown={(e) => e.stopPropagation()}
                                         />
                                         <p style={{ fontSize: 11 * camera.z, color: '#6c7086' }}>
                                             Supports youtube.com and youtu.be links

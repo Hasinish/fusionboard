@@ -2,9 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import ElementsLayer from "./ElementsLayer";
 import { getElementBounds } from "./canvas/geometryUtils";
 
-import EraserCursor from "./canvas/overlays/EraserCursor";
 import FollowBanner from "./canvas/overlays/FollowBanner";
-import BoardElement from "./canvas/BoardElement";
 
 import CanvasToolbar from "./canvas/ui/CanvasToolbar";
 import ShapeMenu from "./canvas/ui/ShapeMenu";
@@ -29,10 +27,12 @@ import useCanvasInteraction from "../hooks/useCanvasInteraction";
 import useBoardRecording from "../hooks/useBoardRecording";
 import useYjsBoard from "../hooks/useYjsBoard";
 import { useCanvasRenderer } from "../canvas/useCanvasRenderer";
-
-
-
-export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard Session", workspaceId, socket, initialSegments, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
+import {
+    useBoardElement,
+    useBoardElementsByIds,
+    useBoardVersion,
+} from "../lib/yjsBoard";
+export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard Session", workspaceId, me, renderTopLeftUI, talkingUserIds = [], isViewer = false }) {
     const {
         tool, setTool, toolRef,
         isViewerRef,
@@ -40,14 +40,12 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         width, setWidth,
         bgMode, setBgMode,
         isDark, setIsDark,
-        shapeType, setShapeType,
         lastShapeType, setLastShapeType,
-        toolbarClass, ghostBtnClass
+        ghostBtnClass
     } = useCanvasToolState(isViewer);
 
     const {
-        elements, setElements, elementsRef,
-        selectedIds, setSelectedIds, selectedIdsRef,
+        selectedIds, setSelectedIds,
         selectionBox, setSelectionBox, selectionBoxRef,
         ghostElement, setGhostElement,
         pendingEditId, setPendingEditId, clearPendingEditId
@@ -57,28 +55,23 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         shapesOpen, setShapesOpen, shapesRef,
         plusOpen, setPlusOpen, plusRef,
         colorOpen, setColorOpen, colorRef,
-        isMinimapVisible, setIsMinimapVisible, minimapCanvasRef, minimapCtxRef,
+        isMinimapVisible, setIsMinimapVisible, minimapCanvasRef,
         isMobile,
         toolbarRef, toolbarHeight,
-        mousePos, setMousePos,
-        statusMsg, setStatusMsg,
-        ctrlPressed
+        statusMsg,
     } = useCanvasUiState();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [sidebarElementId, setSidebarElementId] = useState(null);
 
     const yjsToken = localStorage.getItem("token");
-
-    // Canvas renderer
     const canvasRef = useRef(null);
-    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef);
 
     const {
-        yElementsRef,
-        yMetaRef,
-        providerRef,
-        yElements,
+        awareness,
+        boardStore,
+        boardActions,
+        undoManager,
         connected: yjsConnected,
         synced: yjsSynced,
     } = useYjsBoard({
@@ -87,13 +80,23 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         enabled: !!boardId && !!yjsToken,
     });
 
+    const boardVersion = useBoardVersion(boardStore);
+    const selectedItems = useBoardElementsByIds(boardStore, selectedIds);
+    const activeSidebarElementId = sidebarElementId && boardStore?.hasElement?.(sidebarElementId)
+        ? sidebarElementId
+        : null;
+    const sidebarElement = useBoardElement(boardStore, activeSidebarElementId);
+    const effectiveSidebarOpen = isSidebarOpen && !!activeSidebarElementId;
+
+    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef, boardStore);
+
     const {
         camera, setCamera, cameraRef,
-        targetCameraRef, isAnimatingRef,
+        targetCameraRef,
         startCameraAnimation,
         followedUserId, setFollowedUserId, followedUserIdRef,
         remoteCamerasRef,
-        screenToWorld, worldToScreen
+        screenToWorld
     } = useCanvasCamera();
 
     const {
@@ -106,34 +109,32 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     } = useBoardRecording({
         boardId,
         workspaceId: workspaceId || "unknown",
-        elements,
+        boardStore,
+        boardVersion,
         camera,
         userId: me?._id || me?.id,
         isDark,
         bgMode
     });
 
-    // --- history domain ---
-    const { 
-        undoStackRef, redoStackRef, pushAction, undo, redo 
-    } = useCanvasHistory({
-        socket, boardId, setElements, isViewerRef, recordEvent, yElements
+    useCanvasHistory({
+        undoManager,
+        isViewerRef,
     });
 
     const {
-        participants, setParticipants,
-        cursors, setCursors,
-        remoteLiveStrokes, setRemoteLiveStrokes,
-        emitCursorMove, emitCameraUpdate, emitClearBoard
+        participants,
+        emitCursorMove,
+        emitCameraUpdate,
+        emitStrokeProgress,
+        emitStrokeEnd,
     } = useCanvasRealtime({
-        boardId, socket, me,
-        setElements, setCamera,
+        awareness,
+        me,
+        setCamera,
         followedUserIdRef, remoteCamerasRef,
-        setStatusMsg,
-        undoStackRef, redoStackRef,
-        recordEvent,
         rendererRef,
-        yElements
+        recordEvent,
     });
 
     // Broadcast our camera continuously when it changes
@@ -147,28 +148,27 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         currentPath, eraserPath, handleMinimapPointer,
         autoShapePreview
     } = useCanvasInteraction({
-        tool, setTool, toolRef,
+        setTool, toolRef,
         isViewerRef,
         color, width,
         isDark,
-        lastShapeType, setLastShapeType,
-        elementsRef, setElements,
-        selectedIds, setSelectedIds,
+        setLastShapeType,
+        boardStore,
+        boardActions,
+        setSelectedIds,
         selectionBoxRef, setSelectionBox,
         ghostElement, setGhostElement,
-        pushAction,
         setPendingEditId,
-        camera, setCamera, cameraRef,
-        targetCameraRef, startCameraAnimation,
+        setCamera, cameraRef,
         screenToWorld,
         setFollowedUserId,
-        socket, boardId, me,
+        me,
         emitCursorMove,
-        setMousePos,
+        emitStrokeProgress,
+        emitStrokeEnd,
         minimapCanvasRef,
         recordEvent,
         rendererRef,
-        yElements
     });
 
     // ─── minimap ─────────────────────────────────────────────────────────────
@@ -176,24 +176,25 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     const drawMinimap = useCallback(() => {
         if (!isMinimapVisible) return;
         const mCanvas = minimapCanvasRef.current;
-        let mCtx = minimapCtxRef.current;
         if (!mCanvas) return;
 
-        if (!mCtx || mCanvas.width !== mCanvas.clientWidth || mCanvas.height !== mCanvas.clientHeight) {
+        if (mCanvas.width !== mCanvas.clientWidth || mCanvas.height !== mCanvas.clientHeight) {
             mCanvas.width = mCanvas.clientWidth;
             mCanvas.height = mCanvas.clientHeight;
-            mCtx = mCanvas.getContext("2d");
-            minimapCtxRef.current = mCtx;
         }
 
-        mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+        const ctx = mCanvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+        const elements = boardStore?.getOrderedElements?.() || [];
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-        if (elementsRef.current.length === 0) {
+        if (elements.length === 0) {
             minX = -1000; minY = -1000; maxX = 1000; maxY = 1000;
         } else {
-            for (const el of elementsRef.current) {
+            for (const el of elements) {
                 const b = getElementBounds(el);
                 if (b.x < minX) minX = b.x;
                 if (b.x + b.w > maxX) maxX = b.x + b.w;
@@ -214,113 +215,118 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         const offX = (mCanvas.width - bw * scale) / 2 - minX * scale;
         const offY = (mCanvas.height - bh * scale) / 2 - minY * scale;
 
-        mCtx.save();
-        mCtx.lineCap = "round"; mCtx.lineJoin = "round";
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-        for (const el of elementsRef.current) {
-            mCtx.save();
+        for (const el of elements) {
+            ctx.save();
             const b = getElementBounds(el);
             const ex = b.x * scale + offX;
             const ey = b.y * scale + offY;
             const ew = Math.max(1, b.w * scale);
             const eh = Math.max(1, b.h * scale);
 
-            mCtx.translate(ex + ew / 2, ey + eh / 2);
-            mCtx.rotate((el.rotation || 0) * Math.PI / 180);
-            mCtx.translate(-(ex + ew / 2), -(ey + eh / 2));
+            ctx.translate(ex + ew / 2, ey + eh / 2);
+            ctx.rotate((el.rotation || 0) * Math.PI / 180);
+            ctx.translate(-(ex + ew / 2), -(ey + eh / 2));
 
-            mCtx.lineWidth = Math.max(1, (el.strokeWidth || 2) * scale);
+            ctx.lineWidth = Math.max(1, (el.strokeWidth || 2) * scale);
 
             if (el.type === "path") {
-                mCtx.strokeStyle = el.color || "#000";
-                mCtx.lineWidth = Math.max(1, (el.width || 2) * scale);
+                ctx.strokeStyle = el.color || "#000";
+                ctx.lineWidth = Math.max(1, (el.width || 2) * scale);
                 if (el.points && el.points.length > 0) {
-                    mCtx.beginPath();
-                    mCtx.moveTo(el.points[0].x * scale + offX, el.points[0].y * scale + offY);
+                    ctx.beginPath();
+                    ctx.moveTo(el.points[0].x * scale + offX, el.points[0].y * scale + offY);
                     for (let i = 1; i < el.points.length; i++) {
-                        mCtx.lineTo(el.points[i].x * scale + offX, el.points[i].y * scale + offY);
+                        ctx.lineTo(el.points[i].x * scale + offX, el.points[i].y * scale + offY);
                     }
-                    mCtx.stroke();
+                    ctx.stroke();
                 }
             } else if (el.type === "sticky") {
-                mCtx.fillStyle = el.fill || "#fef08a";
-                mCtx.strokeStyle = el.stroke || "#e2c94e";
-                mCtx.fillRect(ex, ey, ew, eh);
-                mCtx.strokeRect(ex, ey, ew, eh);
+                ctx.fillStyle = el.fill || "#fef08a";
+                ctx.strokeStyle = el.stroke || "#e2c94e";
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.strokeRect(ex, ey, ew, eh);
             } else if (el.type === "rect") {
-                mCtx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
-                mCtx.strokeStyle = el.stroke || "#000";
-                if (el.fill !== "none") mCtx.fillRect(ex, ey, ew, eh);
-                mCtx.strokeRect(ex, ey, ew, eh);
+                ctx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
+                ctx.strokeStyle = el.stroke || "#000";
+                if (el.fill !== "none") ctx.fillRect(ex, ey, ew, eh);
+                ctx.strokeRect(ex, ey, ew, eh);
             } else if (el.type === "ellipse") {
-                mCtx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
-                mCtx.strokeStyle = el.stroke || "#000";
-                mCtx.beginPath();
-                mCtx.ellipse(ex + ew / 2, ey + eh / 2, Math.max(0, ew / 2 - mCtx.lineWidth / 2), Math.max(0, eh / 2 - mCtx.lineWidth / 2), 0, 0, 2 * Math.PI);
-                if (el.fill !== "none") mCtx.fill();
-                mCtx.stroke();
+                ctx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
+                ctx.strokeStyle = el.stroke || "#000";
+                ctx.beginPath();
+                ctx.ellipse(ex + ew / 2, ey + eh / 2, Math.max(0, ew / 2 - ctx.lineWidth / 2), Math.max(0, eh / 2 - ctx.lineWidth / 2), 0, 0, 2 * Math.PI);
+                if (el.fill !== "none") ctx.fill();
+                ctx.stroke();
             } else if (el.type === "triangle") {
-                mCtx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
-                mCtx.strokeStyle = el.stroke || "#000";
-                mCtx.beginPath();
-                mCtx.moveTo(ex + ew / 2, ey + mCtx.lineWidth);
-                mCtx.lineTo(ex + ew - mCtx.lineWidth, ey + eh - mCtx.lineWidth);
-                mCtx.lineTo(ex + mCtx.lineWidth, ey + eh - mCtx.lineWidth);
-                mCtx.closePath();
-                if (el.fill !== "none") mCtx.fill();
-                mCtx.stroke();
+                ctx.fillStyle = el.fill === "none" ? "transparent" : (el.fill || "transparent");
+                ctx.strokeStyle = el.stroke || "#000";
+                ctx.beginPath();
+                ctx.moveTo(ex + ew / 2, ey + ctx.lineWidth);
+                ctx.lineTo(ex + ew - ctx.lineWidth, ey + eh - ctx.lineWidth);
+                ctx.lineTo(ex + ctx.lineWidth, ey + eh - ctx.lineWidth);
+                ctx.closePath();
+                if (el.fill !== "none") ctx.fill();
+                ctx.stroke();
             } else if (el.type === "arrow") {
-                mCtx.strokeStyle = el.stroke || "#000";
-                mCtx.beginPath();
-                mCtx.moveTo(ex + mCtx.lineWidth, ey + eh / 2);
-                mCtx.lineTo(ex + ew - 4, ey + eh / 2);
-                mCtx.stroke();
-                mCtx.beginPath();
-                mCtx.moveTo(ex + ew, ey + eh / 2);
-                mCtx.lineTo(ex + ew - 6, ey + eh / 2 - 3);
-                mCtx.lineTo(ex + ew - 6, ey + eh / 2 + 3);
-                mCtx.fillStyle = mCtx.strokeStyle;
-                mCtx.fill();
+                ctx.strokeStyle = el.stroke || "#000";
+                ctx.beginPath();
+                ctx.moveTo(ex + ctx.lineWidth, ey + eh / 2);
+                ctx.lineTo(ex + ew - 4, ey + eh / 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(ex + ew, ey + eh / 2);
+                ctx.lineTo(ex + ew - 6, ey + eh / 2 - 3);
+                ctx.lineTo(ex + ew - 6, ey + eh / 2 + 3);
+                ctx.fillStyle = ctx.strokeStyle;
+                ctx.fill();
             } else if (el.type === "code") {
-                mCtx.fillStyle = "#374151"; 
-                mCtx.fillRect(ex, ey, ew, eh);
+                ctx.fillStyle = "#374151";
+                ctx.fillRect(ex, ey, ew, eh);
             } else if (el.type === "video") {
-                mCtx.fillStyle = "#1f2937"; 
-                mCtx.fillRect(ex, ey, ew, eh);
-                mCtx.fillStyle = "#ef4444";
-                mCtx.beginPath();
-                mCtx.moveTo(ex + ew / 2 - 2, ey + eh / 2 - 3);
-                mCtx.lineTo(ex + ew / 2 + 4, ey + eh / 2);
-                mCtx.lineTo(ex + ew / 2 - 2, ey + eh / 2 + 3);
-                mCtx.fill();
+                ctx.fillStyle = "#1f2937";
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.fillStyle = "#ef4444";
+                ctx.beginPath();
+                ctx.moveTo(ex + ew / 2 - 2, ey + eh / 2 - 3);
+                ctx.lineTo(ex + ew / 2 + 4, ey + eh / 2);
+                ctx.lineTo(ex + ew / 2 - 2, ey + eh / 2 + 3);
+                ctx.fill();
             } else if (el.type === "graph") {
-                mCtx.fillStyle = "#dbeafe"; // Light blue
-                mCtx.strokeStyle = "#3b82f6"; // Blue
-                mCtx.fillRect(ex, ey, ew, eh);
-                mCtx.strokeRect(ex, ey, ew, eh);
+                ctx.fillStyle = "#dbeafe";
+                ctx.strokeStyle = "#3b82f6";
+                ctx.fillRect(ex, ey, ew, eh);
+                ctx.strokeRect(ex, ey, ew, eh);
             }
-            mCtx.restore();
+            ctx.restore();
         }
 
         const mainW = window.innerWidth;
         const mainH = window.innerHeight;
-        const vtl = screenToWorld(0, 0); const vbr = screenToWorld(mainW, mainH);
-        mCtx.fillStyle = "rgba(59, 130, 246, 0.2)"; mCtx.strokeStyle = "rgba(59, 130, 246, 0.8)";
-        mCtx.lineWidth = 1;
-        const vx = vtl.x * scale + offX, vy = vtl.y * scale + offY;
-        const vw = (vbr.x - vtl.x) * scale, vh = (vbr.y - vtl.y) * scale;
-        mCtx.fillRect(vx, vy, vw, vh); mCtx.strokeRect(vx, vy, vw, vh);
+        const vtl = screenToWorld(0, 0);
+        const vbr = screenToWorld(mainW, mainH);
+        ctx.fillStyle = "rgba(59, 130, 246, 0.2)";
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.8)";
+        ctx.lineWidth = 1;
+        const vx = vtl.x * scale + offX;
+        const vy = vtl.y * scale + offY;
+        const vw = (vbr.x - vtl.x) * scale;
+        const vh = (vbr.y - vtl.y) * scale;
+        ctx.fillRect(vx, vy, vw, vh);
+        ctx.strokeRect(vx, vy, vw, vh);
 
-        mCtx.restore();
-    }, [isMinimapVisible, elements, camera, screenToWorld]);
+        ctx.restore();
+    }, [boardStore, isMinimapVisible, minimapCanvasRef, screenToWorld]);
 
     useEffect(() => {
         drawMinimap();
-    }, [elements, isMinimapVisible, camera, drawMinimap]);
+    }, [boardVersion, isMinimapVisible, camera, drawMinimap]);
 
     useEffect(() => {
         if (isMinimapVisible) {
-            minimapCtxRef.current = null;
             setTimeout(() => drawMinimap(), 0);
         }
     }, [isMinimapVisible, drawMinimap]);
@@ -333,8 +339,6 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     // ─── sync overlay state into canvas renderer ──────────────────────────
     useEffect(() => {
         syncOverlays({
-            remoteLiveStrokes,
-            cursors,
             eraserPath,
             selectionBox,
             currentPath,
@@ -343,8 +347,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             myUserId: me?.userId || me?.id || null,
             autoShapePreview
         });
-    }, [remoteLiveStrokes, cursors, eraserPath, selectionBox,
-        currentPath, bgMode, isDark, me, syncOverlays, autoShapePreview]);
+    }, [eraserPath, selectionBox, currentPath, bgMode, isDark, me, syncOverlays, autoShapePreview]);
 
     // ─── sync camera into canvas renderer ─────────────────────────────────
     useEffect(() => {
@@ -352,11 +355,6 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     }, [camera, rendererRef]);
 
     // ─── sync elements into canvas renderer ──────────────────────────────
-    useEffect(() => {
-        rendererRef.current?.setElements(elements);
-    }, [elements, rendererRef]);
-
-
     // ─── wheel zoom / pan ────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -367,7 +365,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 const currentTarget = targetCameraRef.current;
                 let nZ = currentTarget.z * zoomFactor;
                 nZ = Math.min(10, Math.max(0.1, nZ));
-                
+
                 const sx = e.clientX, sy = e.clientY;
                 targetCameraRef.current = {
                     x: sx - (sx - currentTarget.x) * (nZ / currentTarget.z),
@@ -377,6 +375,10 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 startCameraAnimation();
                 return;
             }
+
+            // Let scrollable elements handle their own vertical/horizontal scrolling
+            const isScrollable = e.target.closest("textarea") || e.target.closest(".overflow-y-auto") || e.target.closest(".xterm") || e.target.closest(".xterm-viewport");
+            if (isScrollable) return;
 
             e.preventDefault();
             setFollowedUserId(null);
@@ -396,40 +398,33 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
     // ─── middle-click panning (window level) ─────────────────────────────────
     useEffect(() => {
-        const onMidDown = (e) => {
-            if (e.button !== 1) return;
-            e.preventDefault();
-            setFollowedUserId(null);
-            // This ref is still used internally via useCanvasInteraction if we pass it,
-            // but for simple pan we can just use setCamera directly here or use interaction's onPointerDown.
-            // Actually, interaction's onPointerDown handles middle click too.
-            // But window level listeners are for robustness.
-        };
-        // For now, interaction hook handles pointer events on the container.
-        // Middle click panning at the window level can be simplified if needed.
-    }, [setFollowedUserId]);
+        setSelectedIds((prev) => {
+            const next = prev.filter((id) => boardStore?.hasElement?.(id));
+            return next.length === prev.length ? prev : next;
+        });
+    }, [boardStore, boardVersion, setSelectedIds]);
 
-
-
-    const resetCamera = () => setCamera({ x: 0, y: 0, z: 1 });
+    useEffect(() => {
+        if (pendingEditId && !boardStore?.hasElement?.(pendingEditId)) {
+            clearPendingEditId();
+        }
+    }, [boardStore, boardVersion, clearPendingEditId, pendingEditId]);
 
     return (
         <div
-            className={`relative w-full h-full overflow-hidden select-none touch-none ${
-                tool === "hand" ? "cursor-grab active:cursor-grabbing" : 
-                tool === "eraser" ? "cursor-none" : 
-                tool === "select" ? "cursor-default" :
-                tool === "text" ? "cursor-text" :
-                "cursor-crosshair"
-            }`}
+            className={`relative w-full h-full overflow-hidden select-none touch-none ${tool === "hand" ? "cursor-grab active:cursor-grabbing" :
+                    tool === "eraser" ? "cursor-none" :
+                        tool === "select" ? "cursor-default" :
+                            tool === "text" ? "cursor-text" :
+                                "cursor-crosshair"
+                }`}
             style={{ backgroundColor: isDark ? "#121212" : "#F0F0F0" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={(e) => { 
-                setMousePos({ x: -100, y: -100 }); 
+            onPointerLeave={(e) => {
                 if (rendererRef.current) rendererRef.current.localCursor = null;
-                onPointerUp(e); 
+                onPointerUp(e);
             }}
             onPointerCancel={(e) => {
                 if (rendererRef.current) rendererRef.current.localCursor = null;
@@ -514,26 +509,21 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
             <ElementsLayer
                 tool={tool}
-                bgMode={bgMode}
+                boardStore={boardStore}
+                boardActions={boardActions}
                 isDark={isDark}
-                elements={elements}
                 camera={camera}
-                boardId={boardId}
-                socket={socket}
-                onElementsChange={setElements}
                 selectedIds={selectedIds}
                 setSelectedIds={setSelectedIds}
                 ghostElement={ghostElement}
-                pushAction={pushAction}
                 pendingEditId={pendingEditId}
                 onPendingEditConsumed={clearPendingEditId}
                 isViewer={isViewer}
                 onOpenSidebar={setIsSidebarOpen}
-                isSidebarOpen={isSidebarOpen}
+                isSidebarOpen={effectiveSidebarOpen}
                 onSidebarElementIdChange={setSidebarElementId}
-                sidebarElementId={sidebarElementId}
+                sidebarElementId={activeSidebarElementId}
                 recordEvent={recordEvent}
-                yElements={yElements}
                 rendererRef={rendererRef}
             />
 
@@ -544,16 +534,16 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             <div className="absolute inset-0 pointer-events-none z-30">
 
                 {/* Follow mode banner */}
-                <FollowBanner 
-                    followedUserId={followedUserId} 
-                    participants={participants} 
-                    onStopFollow={() => setFollowedUserId(null)} 
-                    isMobile={isMobile} 
+                <FollowBanner
+                    followedUserId={followedUserId}
+                    participants={participants}
+                    onStopFollow={() => setFollowedUserId(null)}
+                    isMobile={isMobile}
                 />
-                
+
                 <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
                     <div className="flex items-center gap-2">
-                        <ParticipantsStrip 
+                        <ParticipantsStrip
                             participants={participants}
                             followedUserId={followedUserId}
                             setFollowedUserId={setFollowedUserId}
@@ -567,10 +557,12 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                         <div
                             className="ui-container pointer-events-none flex items-center"
                             title={yjsSynced ? "Yjs synced" : yjsConnected ? "Yjs syncing..." : "Yjs disconnected"}
-                            style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                                background: yjsSynced ? "#22c55e" : yjsConnected ? "#eab308" : "#6b7280" }}
+                            style={{
+                                width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                                background: yjsSynced ? "#22c55e" : yjsConnected ? "#eab308" : "#6b7280"
+                            }}
                         />
-                        <StatusBadge 
+                        <StatusBadge
                             statusMsg={statusMsg}
                             isMinimapVisible={isMinimapVisible}
                             setIsMinimapVisible={setIsMinimapVisible}
@@ -580,7 +572,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                         />
                     </div>
 
-                    <ZoomControls 
+                    <ZoomControls
                         camera={camera}
                         targetCameraRef={targetCameraRef}
                         startCameraAnimation={startCameraAnimation}
@@ -588,7 +580,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                         isMobile={isMobile}
                     />
 
-                    <Minimap 
+                    <Minimap
                         isMinimapVisible={isMinimapVisible}
                         minimapCanvasRef={minimapCanvasRef}
                         handleMinimapPointer={handleMinimapPointer}
@@ -602,7 +594,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                     />
                 </div>
 
-                <CanvasToolbar 
+                <CanvasToolbar
                     isViewer={isViewer}
                     tool={tool}
                     setTool={setTool}
@@ -612,7 +604,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 >
                     {!isViewer && (
                         <>
-                            <ShapeMenu 
+                            <ShapeMenu
                                 tool={tool}
                                 setTool={setTool}
                                 shapesOpen={shapesOpen}
@@ -624,7 +616,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                                 ghostBtnClass={ghostBtnClass}
                                 toolbarHeight={toolbarHeight}
                             />
-                            <InsertMenu 
+                            <InsertMenu
                                 tool={tool}
                                 setTool={setTool}
                                 plusOpen={plusOpen}
@@ -640,7 +632,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 {!isViewer && (
                     <>
                         {colorOpen && (
-                            <ColorPopup 
+                            <ColorPopup
                                 color={color}
                                 setColor={setColor}
                                 setColorOpen={setColorOpen}
@@ -650,7 +642,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                             />
                         )}
 
-                        <PenControls 
+                        <PenControls
                             tool={tool}
                             color={color}
                             colorRef={colorRef}
@@ -670,7 +662,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                     <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3">
                         {!isViewer && (
                             <div className="flex items-center pointer-events-auto">
-                                <RecordButton 
+                                <RecordButton
                                     isRecording={isRecording}
                                     status={recordingStatus}
                                     duration={duration}
@@ -679,7 +671,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                                         const dateStr = now.toLocaleDateString();
                                         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         const defaultTitle = `${boardTitle} - ${dateStr} ${timeStr}`;
-                                        
+
                                         const title = window.prompt("Recording Title:", defaultTitle);
                                         if (title !== null) startRecording(title);
                                     }}
@@ -696,15 +688,16 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                                 setBgMode,
                                 clearBoard: () => {
                                     if (window.confirm("Clear board?")) {
-                                        setElements([]);
-                                        rendererRef.current?.setElements([]);
-                                        emitClearBoard();
+                                        boardActions?.clearBoard();
+                                        setSelectedIds([]);
+                                        setSidebarElementId(null);
+                                        setIsSidebarOpen(false);
                                         recordEvent("board.cleared", null, {});
                                     }
                                 }
                             })}
                         </div>
-                        <MobileParticipantsStrip 
+                        <MobileParticipantsStrip
                             isMobile={isMobile}
                             participants={participants}
                             followedUserId={followedUserId}
@@ -718,22 +711,21 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             </div>
 
             {/* Status Messages removed as they are now in StatusBadge or could be kept as toast */}
-            
-            <PropertySidebar 
-                isOpen={isSidebarOpen}
+
+            <PropertySidebar
+                isOpen={effectiveSidebarOpen}
                 setIsOpen={(val) => {
                     setIsSidebarOpen(val);
                     if (!val) setSidebarElementId(null);
                 }}
-                element={elements.find(el => el.id === sidebarElementId)}
+                element={sidebarElement}
                 onChange={(updates) => {
-                    const elId = sidebarElementId;
-                    setElements(prev => prev.map(el => el.id === elId ? { ...el, ...updates } : el));
-                    // Emit update to others
-                    const updatedEl = elements.find(el => el.id === elId);
-                    if (updatedEl && socket?.connected) {
-                        socket.emit("updateElement", { boardId, element: { ...updatedEl, ...updates } });
-                    }
+                    const elId = activeSidebarElementId;
+                    if (!elId) return;
+                    boardActions?.updateElement(elId, (current) => {
+                        if (!current) return current;
+                        return { ...current, ...updates };
+                    });
                 }}
                 isDark={isDark}
                 zoom={camera.z}

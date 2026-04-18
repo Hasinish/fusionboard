@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { CanvasRenderer } from './CanvasRenderer.js'
 
-export function useCanvasRenderer(canvasRef) {
+export function useCanvasRenderer(canvasRef, boardStore) {
   const rendererRef = useRef(null)
 
   useEffect(() => {
@@ -33,6 +33,39 @@ export function useCanvasRenderer(canvasRef) {
       rendererRef.current = null
     }
   }, [canvasRef])
+
+  useEffect(() => {
+    const renderer = rendererRef.current
+    if (!renderer) return
+
+    if (!boardStore) {
+      renderer.setElements([])
+      renderer.setOrder([])
+      return
+    }
+
+    renderer.setElements(boardStore.getOrderedElements())
+    renderer.setOrder(boardStore.getOrderedIds())
+
+    const unsubscribeChanges = boardStore.subscribeToChanges((batch) => {
+      batch.forEach((change) => {
+        if (change.type === 'delete') {
+          renderer.deleteElement(change.id)
+        } else if (change.type === 'set' && change.element) {
+          renderer.updateElement(change.element)
+        }
+      })
+    })
+
+    const unsubscribeOrder = boardStore.subscribeToOrder(() => {
+      renderer.setOrder(boardStore.getOrderedIds())
+    })
+
+    return () => {
+      unsubscribeChanges()
+      unsubscribeOrder()
+    }
+  }, [boardStore])
 
   const syncOverlays = useCallback((overrides) => {
     if (rendererRef.current) rendererRef.current.syncOverlays(overrides)

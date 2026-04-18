@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { io } from "socket.io-client";
+
 import { ArrowLeft, Settings2, Trash2, Check, Loader2, History } from "lucide-react";
 import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
 import VoiceChat from "../components/VoiceChat";
@@ -14,7 +14,7 @@ function WhiteboardPage() {
   const me = getUser();
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const [socket, setSocket] = useState(null);
+
   const [talkingUserIds, setTalkingUserIds] = useState([]);
   const [boardTitle, setBoardTitle] = useState("Loading...");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -64,9 +64,6 @@ function WhiteboardPage() {
         { title: tempTitle },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (socket?.connected) {
-        socket.emit("board:update-title", { boardId, title: tempTitle });
-      }
     } catch {
       // Revert on failure
       api.get(`/boards/${boardId}`, {
@@ -75,34 +72,7 @@ function WhiteboardPage() {
     }
   };
 
-  // Wire up the realtime connection
-  useEffect(() => {
-    const socketUrl = API_URL.replace("/api", "");
 
-    const newSocket = io(socketUrl, {
-      auth: { token },
-      transports: ["websocket", "polling"],
-      reconnection: true,
-    });
-    setSocket(newSocket);
-
-    newSocket.on("connect", () => {
-      newSocket.emit("joinBoard", {
-        boardId,
-        user: { name: me?.name || "User" },
-      });
-    });
-
-    newSocket.on("board:title-updated", ({ title }) => {
-      setBoardTitle(title);
-    });
-
-    return () => {
-      newSocket.emit("cursorLeave");
-      newSocket.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardId]);
 
   // Show loading until role is resolved (prevents viewer toolbar flash)
   if (userRole === null) {
@@ -118,8 +88,6 @@ function WhiteboardPage() {
       <TestInfiniteCanvas
         boardId={boardId}
         boardTitle={boardTitle}
-        socket={socket}
-        initialSegments={[]}
         me={me}
         talkingUserIds={talkingUserIds}
         isViewer={isViewer}
