@@ -358,6 +358,7 @@ function DashboardPage() {
         getFileIcon={fileData.getFileIcon}
         formatFileSize={fileData.formatFileSize}
         handleFileDelete={fileData.handleFileDelete}
+        handleFileDownload={fileData.handleFileDownload}
       />
 
       <FloatingChat

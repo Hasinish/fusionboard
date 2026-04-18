@@ -242,3 +242,91 @@ export async function oauthCallback(req, res) {
     res.redirect(`${frontendUrl}/workspaces/${workspaceId}/files?status=error&message=${encodeURIComponent(error.message)}`);
   }
 }
+
+export async function proxyDownload(req, res) {
+  const { fileId } = req.params;
+  const { workspaceId } = req.query;
+  console.log(`[Drive] Proxy download request: fileId=${fileId}, workspaceId=${workspaceId}`);
+
+  try {
+
+    if (!workspaceId) return res.status(400).json({ message: "workspaceId is required" });
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace || !workspace.googleDriveRefreshToken) {
+      return res.status(400).json({ message: "Workspace Drive not configured" });
+    }
+
+    // viewers are not allowed to download files (consistent with listFiles)
+    const role = getMemberRole(workspace, req.userId);
+    if (role === "viewer") return res.status(403).json({ message: "Viewers cannot download files" });
+
+    const drive = getDriveClient(workspace.googleDriveRefreshToken);
+
+    // 1. Get file metadata
+    const fileMeta = await drive.files.get({
+      fileId,
+      fields: "name, mimeType, size",
+    });
+
+    const isGoogleDoc = fileMeta.data.mimeType.startsWith("application/vnd.google-apps.");
+    let fileName = fileMeta.data.name;
+    let mimeType = fileMeta.data.mimeType;
+    let downloadResponse;
+
+    if (isGoogleDoc) {
+      // Map Google Docs to PDF or Office formats for download
+      let exportMimeType = "application/pdf";
+      if (mimeType.includes("document")) {
+        exportMimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        fileName += ".docx";
+      } else if (mimeType.includes("spreadsheet")) {
+        exportMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        fileName += ".xlsx";
+      } else if (mimeType.includes("presentation")) {
+        exportMimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        fileName += ".pptx";
+      } else {
+        fileName += ".pdf";
+      }
+      
+      console.log(`[Drive] Exporting Google Doc: ${fileId} as ${exportMimeType}`);
+      mimeType = exportMimeType;
+      downloadResponse = await drive.files.export(
+        { fileId, mimeType: exportMimeType },
+        { responseType: "stream" }
+      );
+    } else {
+      console.log(`[Drive] Getting regular file: ${fileId}`);
+      downloadResponse = await drive.files.get(
+        { fileId, alt: "media" },
+        { responseType: "stream" }
+      );
+    }
+
+    // 3. Set headers
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}"`
+    );
+    // Don't set Content-Length for Google Doc exports as the size is unknown until streaming completes
+    if (!isGoogleDoc && fileMeta.data.size) {
+      res.setHeader("Content-Length", fileMeta.data.size);
+    }
+
+    // 4. Pipe the stream
+    downloadResponse.data
+      .on("error", (err) => {
+        console.error("Stream error:", err);
+        if (!res.headersSent) res.status(500).end();
+      })
+      .pipe(res);
+
+  } catch (error) {
+    console.error("Proxy download error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Download failed", error: error.message });
+    }
+  }
+}

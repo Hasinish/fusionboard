@@ -25,7 +25,7 @@ export const registerRoutes = (app) => {
     app.use("/api/notes", authMiddleware, noteRoutes);
     app.use("/api/notifications", authMiddleware, notificationRoutes);
     app.use("/api/users", authMiddleware, userRoutes);
-    app.use("/api/drive", authMiddleware, driveRoutes);
+    app.use("/api/drive", driveRoutes);
     app.use("/api/activities", authMiddleware, activityRoutes);
     app.use("/api/recordings", authMiddleware, recordingRoutes);
     app.use("/api/reminders", authMiddleware, reminderRoutes);

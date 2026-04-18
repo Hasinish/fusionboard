@@ -87,6 +87,30 @@ export function useFiles(selectedWorkspaceId, setShowFilesModal) {
     }
   };
 
+  const handleFileDownload = (fileId, fileName) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You must be logged in to download files.");
+      return;
+    }
+    if (!selectedWorkspaceId) {
+      alert("No workspace selected.");
+      return;
+    }
+
+    // Construct the direct download URL with token
+    const downloadUrl = `${api.defaults.baseURL}/drive/download/${fileId}?workspaceId=${selectedWorkspaceId}&token=${token}`;
+    
+    // Use an invisible link to trigger download (better than window.open for "download" attribute)
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.setAttribute("download", fileName); // Though server headers will also handle this
+    link.target = "_blank"; // Open in new tab just in case it's not a download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleConnectDrive = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -185,6 +209,7 @@ export function useFiles(selectedWorkspaceId, setShowFilesModal) {
     fetchWorkspaceFiles,
     handleFileUpload,
     handleFileDelete,
+    handleFileDownload,
     handleConnectDrive,
     getFileIcon,
     formatFileSize,

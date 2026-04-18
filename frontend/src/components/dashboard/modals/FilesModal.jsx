@@ -29,6 +29,7 @@ export default function FilesModal({
   getFileIcon,
   formatFileSize,
   handleFileDelete,
+  handleFileDownload,
 }) {
   if (!isOpen) return null;
 
@@ -217,13 +218,13 @@ export default function FilesModal({
                       </a>
                     )}
                     {f.webContentLink && (
-                      <a
-                        href={f.webContentLink}
+                      <button
+                        onClick={() => handleFileDownload(f.id, f.name)}
                         className="w-9 h-9 rounded-xl border border-[#E8DDD0] bg-white hover:bg-[#244e8a] hover:text-white flex items-center justify-center transition-all shadow-sm"
                         title="Download"
                       >
                         <Download size={15} />
-                      </a>
+                      </button>
                     )}
                     <button
                       onClick={() => handleFileDelete(f.id)}

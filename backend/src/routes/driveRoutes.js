@@ -6,7 +6,8 @@ import {
     listFiles,
     deleteFile,
     getAuthUrl,
-    oauthCallback
+    oauthCallback,
+    proxyDownload
 } from "../controllers/driveController.js";
 
 const router = express.Router();
@@ -24,6 +25,9 @@ router.get("/workspace/:workspaceId", authMiddleware, listFiles);
 
 // upload a new file
 router.post("/upload", authMiddleware, upload.single("file"), uploadFile);
+
+// download/proxy a file
+router.get("/download/:fileId", authMiddleware, proxyDownload);
 
 // trash a file
 router.delete("/:fileId", authMiddleware, deleteFile);
