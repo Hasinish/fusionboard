@@ -3,6 +3,7 @@ import { getElementBounds, getPathBounds } from "./geometryUtils";
 
 export function useGroupTransform({
     camera,
+    elements,
     elementsRef,
     selectedIds,
     selectedIdsRef,
@@ -28,7 +29,7 @@ export function useGroupTransform({
 
     // Recompute bounds immediately whenever selected elements change
     useEffect(() => {
-        if (!selectedIds || selectedIds.length <= 1) {
+        if (!selectedIds || selectedIds.length === 0) {
             selectionBoundsRef.current = null;
             setSelectionBounds(null);
             setSelectionRotation(0);
@@ -36,11 +37,7 @@ export function useGroupTransform({
             return;
         }
 
-        const selKey = [...selectedIds].sort().join(",");
-        if (selKey === prevSelectedRef.current) return; // same set, keep existing
-        prevSelectedRef.current = selKey;
-
-        const selected = elementsRef.current.filter(el => selectedIds.includes(el.id));
+        const selected = elements.filter(el => selectedIds.includes(el.id));
         if (!selected.length) return;
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -54,8 +51,8 @@ export function useGroupTransform({
         const bounds = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
         selectionBoundsRef.current = bounds;
         setSelectionBounds(bounds);
-        setSelectionRotation(0); // fresh selection always resets rotation
-    }, [selectedIds]); // eslint-disable-line react-hooks/exhaustive-deps
+        setSelectionRotation(0); 
+    }, [selectedIds, elements]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const onGroupTransformStart = (type, e) => {
         e.stopPropagation();

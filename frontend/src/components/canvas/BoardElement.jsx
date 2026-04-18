@@ -811,7 +811,7 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                     ) : (
                         <>
                             {/* Visual Background */}
-                            {el.type === "sticky" ? (
+                            {el.type === "sticky" && (
                                 <div
                                     className="absolute inset-0 rounded-sm"
                                     style={{
@@ -832,8 +832,6 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                         <path d="M 0 24 L 24 0 L 0 0 Z" fill="white" opacity="0.2" />
                                     </svg>
                                 </div>
-                            ) : (
-                                <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
                             )}
 
                             {/* Text Area with Vertical Align */}

@@ -51,40 +51,16 @@ export default function useCanvasRealtime({
                 }, "server-init");
             }
         });
-        socket.on("elementAdded", (el) => {
-            setElements(prev => [...prev, el]);
-            rendererRef?.current?.updateElement(el);
-            recordEvent("element.created", el.id, { element: el });
-        });
-        socket.on("elementUpdated", (el) => {
-            setElements(prev => prev.map(e => e.id === el.id ? el : e));
-            rendererRef?.current?.updateElement(el);
-            recordEvent("element.updated", el.id, { element: el });
-        });
-        socket.on("elementsUpdated", (newElements) => {
-            if (!Array.isArray(newElements)) return;
-            setElements(prev => {
-                const map = new Map(prev.map(e => [e.id, e]));
-                newElements.forEach(el => {
-                    if (el && el.id) {
-                        map.set(el.id, el);
-                        rendererRef?.current?.updateElement(el);
-                    }
-                });
-                return Array.from(map.values());
-            });
-        });
-        socket.on("elementDeleted", ({ elementId }) => {
-            setElements(prev => prev.filter(e => e.id !== elementId));
-            rendererRef?.current?.deleteElement(elementId);
-            recordEvent("element.deleted", elementId, {});
-        });
-
         socket.on("cleared", () => {
             if (undoStackRef) undoStackRef.current = [];
             if (redoStackRef) redoStackRef.current = [];
             setElements([]);
             rendererRef?.current?.setElements([]);
+            if (yElements) {
+                yElements.doc.transact(() => {
+                    yElements.clear();
+                });
+            }
             setStatusMsg?.("Cleared ✅");
             recordEvent("board.cleared", null, {});
             setTimeout(() => setStatusMsg?.(""), 1500);
@@ -194,10 +170,7 @@ export default function useCanvasRealtime({
             socket.emit("cursorLeave");
 
             socket.off("boardElements");
-            socket.off("elementAdded");
-            socket.off("elementUpdated");
-            socket.off("elementsUpdated");
-            socket.off("elementDeleted");
+
             socket.off("cleared");
             socket.off("saved");
             socket.off("boardParticipants");

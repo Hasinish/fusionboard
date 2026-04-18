@@ -341,11 +341,10 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             bgMode,
             isDark,
             myUserId: me?.userId || me?.id || null,
-            selectedIds: new Set(selectedIds),
             autoShapePreview
         });
     }, [remoteLiveStrokes, cursors, eraserPath, selectionBox,
-        currentPath, bgMode, isDark, me, syncOverlays, selectedIds, autoShapePreview]);
+        currentPath, bgMode, isDark, me, syncOverlays, autoShapePreview]);
 
     // ─── sync camera into canvas renderer ─────────────────────────────────
     useEffect(() => {
@@ -535,6 +534,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 sidebarElementId={sidebarElementId}
                 recordEvent={recordEvent}
                 yElements={yElements}
+                rendererRef={rendererRef}
             />
 
 

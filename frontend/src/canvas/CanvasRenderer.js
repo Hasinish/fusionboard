@@ -22,7 +22,6 @@ export class CanvasRenderer {
     this.bgMode = 'white'
     this.isDark = false
     this.myUserId = null
-    this.selectedIds = new Set()
     this.autoShapePreview = null
     this.localCursor = null // { tool, x, y, width, color } in screen coords
 
@@ -106,13 +105,7 @@ export class CanvasRenderer {
 
     // Draw all committed elements
     for (const el of this.elements.values()) {
-      // Skip elements that are handled by React (BoardElement)
-      // Skip elements that are handled by React (BoardElement)
-      // 1. Types that are always React-managed
       if (['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)) continue
-      // 2. Currently selected items (unless they are paths, which React skips)
-      if (this.selectedIds.has(el.id) && el.type !== 'path') continue
-
       drawElement(ctx, el)
     }
 

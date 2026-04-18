@@ -375,53 +375,6 @@ export const setupSocket = (io) => {
 
         // ─── Elements (sticky notes, shapes, paths, text, code, video) ──────────────
 
-        socket.on("addElement", async ({ boardId, element }) => {
-            if (!boardId || !element) return;
-            if (isViewerSocket(socket.id)) return;
-            socket.to(`board:${boardId}`).emit("elementAdded", element);
-            try {
-                await Board.findByIdAndUpdate(boardId, { $push: { elements: element } });
-            } catch (e) { /* ignore */ }
-        });
-
-        socket.on("updateElement", async ({ boardId, element }) => {
-            if (!boardId || !element?.id) return;
-            if (isViewerSocket(socket.id)) return;
-            socket.to(`board:${boardId}`).emit("elementUpdated", element);
-            try {
-                await Board.findOneAndUpdate(
-                    { _id: boardId, "elements.id": element.id },
-                    { $set: { "elements.$": element } }
-                );
-            } catch (e) { /* ignore */ }
-        });
-
-        socket.on("updateElements", async ({ boardId, elements }) => {
-            if (!boardId || !Array.isArray(elements)) return;
-            if (isViewerSocket(socket.id)) return;
-            socket.to(`board:${boardId}`).emit("elementsUpdated", elements);
-            try {
-                const ops = elements.map(el => ({
-                    updateOne: {
-                        filter: { _id: boardId, "elements.id": el.id },
-                        update: { $set: { "elements.$": el } }
-                    }
-                }));
-                await Board.bulkWrite(ops);
-            } catch (e) {
-                console.error("updateElements error:", e);
-            }
-        });
-
-        socket.on("deleteElement", async ({ boardId, elementId }) => {
-            if (!boardId || !elementId) return;
-            if (isViewerSocket(socket.id)) return;
-            io.to(`board:${boardId}`).emit("elementDeleted", { elementId });
-            try {
-                await Board.findByIdAndUpdate(boardId, { $pull: { elements: { id: elementId } } });
-            } catch (e) { /* ignore */ }
-        });
-
         socket.on("clearBoard", async ({ boardId }) => {
             if (!boardId) return;
             if (isViewerSocket(socket.id)) return;

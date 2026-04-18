@@ -20,7 +20,8 @@ export default React.memo(function ElementsLayer({
     pendingEditId, onPendingEditConsumed, isViewer = false,
     onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen,
     recordEvent,
-    yElements
+    yElements,
+    rendererRef
 }) {
     const [editingId, setEditingId] = useState(null);
     const [dragGuide, setDragGuide] = useState(null); // { x1, y1, x2, y2, angle } in world coords
@@ -66,6 +67,7 @@ export default React.memo(function ElementsLayer({
 
     const handleChange = useCallback((updated, persist = false, beforeState = null) => {
         if (isViewer) return;
+        rendererRef?.current?.updateElement(updated);
         onElementsChange(prev => prev.map(e => (e.id === updated.id ? updated : e)));
 
         const now = Date.now();
@@ -89,13 +91,14 @@ export default React.memo(function ElementsLayer({
             }
             yElements?.set(updated.id, updated);
         }
-    }, [boardId, onElementsChange, pushAction]);
+    }, [boardId, onElementsChange, pushAction, yElements, rendererRef]);
 
     const handleDelete = useCallback(() => {
         if (isViewer) return;
         if (selectedIds.length === 0) return;
         const deletedItems = elements.filter(el => selectedIds.includes(el.id));
         onElementsChange(prev => prev.filter(e => !selectedIds.includes(e.id)));
+        deletedItems.forEach(el => rendererRef?.current?.deleteElement(el.id));
         setSelectedIds([]);
         setEditingId(null);
         pushAction({ type: "DELETE_ELEMENTS", elements: deletedItems });
@@ -110,6 +113,7 @@ export default React.memo(function ElementsLayer({
 
     const handleDuplicate = useCallback((clone) => {
         onElementsChange(prev => [...prev, clone]);
+        rendererRef?.current?.updateElement(clone);
         setSelectedIds([clone.id]);
         if (socketRef.current?.connected) {
             socketRef.current.emit("addElement", { boardId, element: clone });
@@ -141,6 +145,7 @@ export default React.memo(function ElementsLayer({
             });
             selectedIds.forEach(id => {
                 const el = updatedElements.find(e => e.id === id);
+                rendererRef?.current?.updateElement(el);
                 recordEvent("element.updated", id, { element: el });
                 if (socketRef.current?.connected) {
                     socketRef.current.emit("updateElement", { boardId, element: el });
@@ -150,7 +155,6 @@ export default React.memo(function ElementsLayer({
         }
     };
 
-    // Group Transform Handlers
     const { 
         tState, 
         selectionBounds, 
@@ -158,6 +162,7 @@ export default React.memo(function ElementsLayer({
         onGroupTransformStart 
     } = useGroupTransform({
         camera,
+        elements,
         elementsRef,
         selectedIds,
         selectedIdsRef,

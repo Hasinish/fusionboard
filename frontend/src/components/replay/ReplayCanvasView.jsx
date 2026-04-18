@@ -1,6 +1,5 @@
 import React from "react";
 import ElementsLayer from "../ElementsLayer";
-import CursorOverlay from "../canvas/overlays/CursorOverlay";
 
 export default function ReplayCanvasView({ 
   elements, 
@@ -59,11 +58,7 @@ export default function ReplayCanvasView({
         selectedIds={[]}
         setSelectedIds={() => {}}
         onElementsChange={() => {}}
-        onOpenSidebar={() => {}}
-        onSidebarElementIdChange={() => {}}
       />
-
-      <CursorOverlay cursors={cursors} worldToScreen={worldToScreen} />
     </div>
   );
 }
