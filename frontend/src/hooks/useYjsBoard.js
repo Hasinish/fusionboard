@@ -40,10 +40,15 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
         if (!boardId || !token || !enabled) return;
         let disposed = false;
 
-        // Build WebSocket URL from VITE_API_URL
-        const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:5001/api")
-            .replace(/\/api$/, "");
-        const wsBase = apiBase.replace(/^https/, "wss").replace(/^http/, "ws");
+        // Smart URL Discovery
+        let apiBase = import.meta.env.VITE_API_URL;
+        if (!apiBase) {
+            const isProd = window.location.hostname.includes("vercel.app") || window.location.hostname.includes("fusionboard");
+            // FALLBACK: Update this with your actual Render URL
+            apiBase = isProd ? "https://fusionboard-backend.onrender.com/api" : "http://localhost:5001/api";
+        }
+        
+        const wsBase = apiBase.replace(/\/api$/, "").replace(/^https/, "wss").replace(/^http/, "ws");
 
         const doc = new Y.Doc();
         const provider = new WebsocketProvider(

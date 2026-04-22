@@ -4,7 +4,12 @@ import { FitAddon } from "@xterm/addon-fit";
 import { io } from "socket.io-client";
 import "@xterm/xterm/css/xterm.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+let baseApi = import.meta.env.VITE_API_URL;
+if (!baseApi) {
+    const isProd = typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("fusionboard"));
+    baseApi = isProd ? "https://fusionboard-backend.onrender.com" : "http://localhost:5001";
+}
+const API_URL = baseApi;
 
 const stripAnsi = (str) =>
     str
