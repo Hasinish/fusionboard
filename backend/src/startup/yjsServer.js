@@ -32,6 +32,10 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("[Yjs] Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+process.on("uncaughtException", (err) => {
+  console.error("[Yjs] UNCAUGHT EXCEPTION (server kept alive):", err);
+});
+
 function cloneValue(value) {
   if (value == null) return value;
   if (typeof structuredClone === "function") {
@@ -220,16 +224,36 @@ async function getOrCreateDoc(docName) {
   }
 
   const docPromise = (async () => {
-    const ydoc = await persistence.getYDoc(docName);
-    ensureBoardSchema(ydoc);
+    let ydoc;
+    try {
+      ydoc = await persistence.getYDoc(docName);
+    } catch (err) {
+      console.error(`[Yjs] LevelDB load failed for ${docName}, creating fresh doc:`, err);
+      ydoc = new Y.Doc();
+    }
+
+    try {
+      ensureBoardSchema(ydoc);
+    } catch (err) {
+      console.error(`[Yjs] Schema init failed for ${docName}:`, err);
+    }
 
     ydoc.on("update", (update) => {
-      persistence.storeUpdate(docName, update).catch((error) => {
-        console.error(`[Yjs] Persistence error for ${docName}:`, error);
-      });
+      try {
+        persistence.storeUpdate(docName, update).catch((error) => {
+          console.error(`[Yjs] Persistence error for ${docName}:`, error);
+        });
+      } catch (err) {
+        console.error(`[Yjs] Persistence sync error for ${docName}:`, err);
+      }
     });
 
-    await bootstrapDocFromMongo(docName, ydoc);
+    try {
+      await bootstrapDocFromMongo(docName, ydoc);
+    } catch (err) {
+      console.error(`[Yjs] Mongo bootstrap failed for ${docName}:`, err);
+    }
+
     return ydoc;
   })();
 
