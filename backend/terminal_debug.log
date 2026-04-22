@@ -11158,3 +11158,803 @@ The square of 5 is 25[K
 Test Complete![K
 [K
 [K[?25h
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exejavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  MainHello from Java!
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  MainHello from Java!
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyTraceback (most recent call last):
+  File [35m"C:\Users\Hasin\Desktop\fusionboard\backend\temp\57015a85-
+ce69-4110-a2f3-2fde418960ea\main.py"[m, line [35m1[m, in [35m<module>[m        
+    asdasd[K[1m[95m
+NameError[m: [35mname 'asdasd' is not defined[m[K
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (go) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hgo run main.go
+'go' is not recognized as an internal or external command,
+operable program or batch file.[27X
+[58X
+[58X[1C
+--- NEW SESSION (cpp) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hg++ main.cpp -o main.exe && ./main.exe
+'g++' is not recognized as an internal or external command,
+operable program or batch file.[28X
+[59X
+[59X[1C[25l[H[K
+ g++ main.cpp -o main.exe && ./main.exe[K
+'g++' is not recognized as an internal or external command,      
+operable program or batch file.[K
+[K
+[K
+[K
+[K
+[K[6;1H[?25h[25l[H[K
+ g++ main.cpp -o main.exe && ./main.exe[K
+'g++' is not recognized as an internal or external command,      
+operable program or batch file.[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[6;1H[?25h[25l[H[K
+ g++ main.cpp -o main.exe && ./main.exe[K
+'g++' is not recognized as an internal or external command,      
+operable program or batch file.[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[6;1H[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py🚀 Initializing FusionBoard Python Test...
+[00]           ⭐ Processing Collaborative Data...
+[01]               ⭐ Processing Collaborative Data...
+[02]                   ⭐ Processing Collaborative Data...
+[03]                    ⭐ Processing Collaborative Data...
+[04]                    ⭐ Processing Collaborative Data...
+[05]                ⭐ Processing Collaborative Data...
+[06]            ⭐ Processing Collaborative Data...
+[07]       ⭐ Processing Collaborative Data...
+[08]   ⭐ Processing Collaborative Data...
+[09] ⭐ Processing Collaborative Data...
+
+✅ SYNC COMPLETE!
+Character-level typing is now ACTIVE.[13X
+Multiple users can edit this block simultaneously.
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h[25l[H[K
+ python -u main.py[K
+Hello from Python![K
+[K
+[K
+[K
+[K
+[K[5;1H[?25h[25l[H[K
+ python -u main.py[K
+Hello from Python![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[5;1H[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py🚀 Initializing FusionBoard Python Test...
+[00]           ⭐ Processing Collaborative Data...
+[01]               ⭐ Processing Collaborative Data...
+[02]                   ⭐ Processing Collaborative Data...
+[03]                    ⭐ Processing Collaborative Data...
+[04]                    ⭐ Processing Collaborative Data...
+[05]                ⭐ Processing Collaborative Data...
+[06]            ⭐ Processing Collaborative Data...
+[07]       ⭐ Processing Collaborative Data...
+[08]   ⭐ Processing Collaborative Data...
+[09] ⭐ Processing Collaborative Data...
+
+✅ SYNC COMPLETE!
+Character-level typing is now ACTIVE.
+Multiple users can edit this block simultaneously.
+Hello from Python!
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py🚀 Initializing FusionBoard Python Test...
+[00]           ⭐ Processing Collaborative Data...
+[01]               ⭐ Processing Collaborative Data...
+[02]                   ⭐ Processing Collaborative Data...
+[03]                    ⭐ Processing Collaborative Data...
+[04]                    ⭐ Processing Collaborative Data...
+[05]                ⭐ Processing Collaborative Data...
+[06]            ⭐ Processing Collaborative Data...
+[07]       ⭐ Processing Collaborative Data...
+[08]   ⭐ Processing Collaborative Data...
+[09] ⭐ Processing Collaborative Data...
+
+✅ SYNC COMPLETE!
+Character-level typing is now ACTIVE.
+Multiple users can edit this block simultaneously.
+Hello from Python!
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py--- 🛡️ FusionBoard RPG Character Creator ---[1C[25l[5;1H[Input Required] Enter Character Name:
+[?25hHello
+[Input Required] Enter Class (Warrior/Mage/Rogue):
+idk
+[Input Required] Enter Level:
+maybe
+
+==============================
+✨ CHARACTER CREATED: Hello    
+==============================
+🔹 Class: Idk
+🔹 Level: 1
+🔹 HP:    100
+🔹 Mana:  10
+==============================
+
+Check the 'Input' tab if you want to try different stats!        
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1Cm
+'m' is not recognized as an internal or external command,
+operable program or batch file.
+
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py--- 🛡️ FusionBoard RPG Character Creator ---[1C[25l[5;1H[Input Required] Enter Character Name:
+[?25h[25l[H[K
+ python -u main.py[K
+--- 🛡️ FusionBoard RPG Character Creator ---[K
+[K
+[Input Required] Enter Character Name:[K
+[K
+[K
+[K
+[K[6;1H[?25h^C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py--- 🛡️ FusionBoard RPG Character Creator ---[1C[25l[5;1H[Input Required] Enter Character Name:
+[?25hss
+[Input Required] Enter Class (Warrior/Mage/Rogue):
+dd
+[Input Required] Enter Level:
+dd
+✨ CHARACTER CREATED: ss
+==============================
+🔹 Class: Dd
+🔹 Level: 1
+🔹 HP:    100
+🔹 Mana:  10
+==============================
+
+Check the 'Input' tab if you want to try different stats!        
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py--- 🛡️ FusionBoard RPG Character Creator ---[1C[25l[5;1H[Input Required] Enter Character Name:
+[?25hsdfg
+[Input Required] Enter Class (Warrior/Mage/Rogue):
+sdf
+[Input Required] Enter Level:
+sdf
+✨ CHARACTER CREATED: sdfg
+==============================
+🔹 Class: Sdf
+🔹 Level: 1
+🔹 HP:    100
+🔹 Mana:  10
+==============================
+
+Check the 'Input' tab if you want to try different stats!        
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py--- 🛡️ FusionBoard RPG Character Creator ---[1C[25l[5;1H[Input Required] Enter Character Name:
+[?25hdawdad
+[Input Required] Enter Class (Warrior/Mage/Rogue):
+ad
+[Input Required] Enter Level:
+awd
+🔹 Class: Ad
+🔹 Level: 1
+🔹 HP:    100
+🔹 Mana:  10
+==============================
+
+Check the 'Input' tab if you want to try different stats!        
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C[25l[H🔹 Class: Ad[K
+🔹 Level: 1[K
+🔹 HP:    100[K
+🔹 Mana:  10[K
+==============================[K
+[K
+Check the 'Input' tab if you want to try different stats!        
+[K
+[K
+[K
+[K
+[K
+[K
+[K[9;1H[?25h[25l[H🔹 Class: Ad[K
+🔹 Level: 1[K
+🔹 HP:    100[K
+🔹 Mana:  10[K
+==============================[K
+[K
+Check the 'Input' tab if you want to try different stats![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[9;1H[?25h

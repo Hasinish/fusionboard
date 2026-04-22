@@ -6,7 +6,7 @@ import { getPathBounds, pointHitsElement } from "./geometryUtils";
 import GraphElement from "./graph/GraphElement";
 import { CodeTerminal } from "./CodeTerminal";
 import { useBoardElementContent } from "../../lib/yjsBoard";
-import { BOARD_COMMIT_ORIGIN } from "../../lib/yjsConstants";
+import { BOARD_COMMIT_ORIGIN, BOARD_RESET_ORIGIN } from "../../lib/yjsConstants";
 
 export { pointHitsElement, boxHitsElement } from "./geometryUtils";
 
@@ -152,12 +152,12 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     const [terminalSessionKey, setTerminalSessionKey] = useState(0);
     const [localTerminalHeight, setLocalTerminalHeight] = useState(null);
 
-    const effectiveTerminalHeight = localTerminalHeight || el.terminalHeight || (sh / 3);
-
     const sx = el.x * camera.z + camera.x;
     const sy = el.y * camera.z + camera.y;
     const sw = el.w * camera.z;
     const sh = el.h * camera.z;
+
+    const effectiveTerminalHeight = localTerminalHeight || el.terminalHeight || (sh / 3);
 
     // ── drag to move (Alt = duplicate, Shift = angle-snap) ───────────────────
     const handlePointerDown = (e) => {
@@ -299,7 +299,17 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     // ── Execute Code (Native Terminal Approach) ─────────────────────────────────
     const handleExecute = async (e) => {
         e.stopPropagation();
-        if (!el.code) return;
+        
+        // Ensure we execute the LATEST version from the shared buffer
+        const shared = boardStore.getContent(el.id);
+        const latestCode = shared ? shared.toString() : el.code;
+        
+        if (!latestCode) return;
+
+        // Force a sync of the metadata code property so the terminal sees it
+        if (latestCode !== el.code) {
+            onChange({ ...el, code: latestCode }, true);
+        }
         
         // If already active, toggle it or just update key to force remount
         if (isTerminalActive) {
@@ -718,9 +728,19 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                             const isAnyBoilerplate = Object.values(boilerplates).some(b => b.trim() === currentCode);
 
                                             if (!currentCode || isAnyBoilerplate) {
-                                                onChange({ ...el, language: newLang, code: boilerplates[newLang] });
+                                                const newCode = boilerplates[newLang];
+                                                const shared = boardStore.getContent(el.id);
+                                                if (shared) {
+                                                    boardStore.transact(() => {
+                                                        shared.delete(0, shared.length);
+                                                        shared.insert(0, newCode);
+                                                        onChange({ ...el, language: newLang, code: newCode }, true);
+                                                    }, BOARD_RESET_ORIGIN);
+                                                } else {
+                                                    onChange({ ...el, language: newLang, code: newCode }, true);
+                                                }
                                             } else {
-                                                onChange({ ...el, language: newLang });
+                                                onChange({ ...el, language: newLang }, true);
                                             }
                                         }}
                                         onPointerDown={(e) => e.stopPropagation()}
@@ -747,7 +767,19 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                                 go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Go!\")\n}",
                                                 rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
                                             };
-                                            onChange({ ...el, code: boilerplates[el.language] });
+                                            const newCode = boilerplates[el.language];
+                                            
+                                            // Synchronize both metadata and shared text buffer
+                                            const shared = boardStore.getContent(el.id);
+                                            if (shared) {
+                                                boardStore.transact(() => {
+                                                    shared.delete(0, shared.length);
+                                                    shared.insert(0, newCode);
+                                                    onChange({ ...el, code: newCode }, true);
+                                                }, BOARD_RESET_ORIGIN);
+                                            } else {
+                                                onChange({ ...el, code: newCode }, true);
+                                            }
                                         }}
                                         style={{
                                             width: 24 * camera.z,

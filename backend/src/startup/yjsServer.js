@@ -14,7 +14,10 @@ const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
 
 const BOARD_SCHEMA_VERSION = 2;
-const BOARD_BOOTSTRAP_ORIGIN = "fusionboard:server-bootstrap";
+const BOARD_COMMIT_ORIGIN = "fusionboard:commit";
+const BOARD_BOOTSTRAP_ORIGIN = "fusionboard:bootstrap";
+const BOARD_CLEAR_ORIGIN = "fusionboard:clear";
+const BOARD_META_ORIGIN = "fusionboard:meta";
 const MONGO_MIRROR_DEBOUNCE_MS = 1000;
 
 const persistence = new LeveldbPersistence("./data/yjs");

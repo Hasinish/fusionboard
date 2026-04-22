@@ -134,7 +134,7 @@ export function ensureBoardSchema(doc) {
     };
 }
 
-export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
+export function createBoardActions({ doc, elementsById, elementOrder, elementContents, meta }) {
     function insertIntoOrder(id, index = null) {
         const currentOrder = elementOrder.toArray();
         if (currentOrder.includes(id)) return;
