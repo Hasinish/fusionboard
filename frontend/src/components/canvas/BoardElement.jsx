@@ -5,7 +5,8 @@ import { ShapeSVG, PathSVG } from "./ShapeRenderers";
 import { getPathBounds, pointHitsElement } from "./geometryUtils";
 import GraphElement from "./graph/GraphElement";
 import { CodeTerminal } from "./CodeTerminal";
-import { useBoardElementContent, BOARD_COMMIT_ORIGIN } from "../../lib/yjsBoard";
+import { useBoardElementContent } from "../../lib/yjsBoard";
+import { BOARD_COMMIT_ORIGIN } from "../../lib/yjsConstants";
 
 export { pointHitsElement, boxHitsElement } from "./geometryUtils";
 

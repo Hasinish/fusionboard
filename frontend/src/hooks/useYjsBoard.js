@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import {
-    BOARD_CLEAR_ORIGIN,
-    BOARD_COMMIT_ORIGIN,
-    BOARD_META_ORIGIN,
     createBoardActions,
     createBoardStore,
     ensureBoardSchema,
 } from "../lib/yjsBoard";
+import {
+    BOARD_CLEAR_ORIGIN,
+    BOARD_COMMIT_ORIGIN,
+    BOARD_META_ORIGIN,
+} from "../lib/yjsConstants";
 
 export default function useYjsBoard({ boardId, token, enabled = true }) {
     const yDocRef = useRef(null);

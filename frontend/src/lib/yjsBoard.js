@@ -1,9 +1,19 @@
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import * as Y from "yjs";
+import { useCallback, useRef } from "react";
+import { useSyncExternalStore } from "use-sync-external-store/shim";
+import { 
+    BOARD_COMMIT_ORIGIN, 
+    BOARD_BOOTSTRAP_ORIGIN, 
+    BOARD_CLEAR_ORIGIN, 
+    BOARD_META_ORIGIN 
+} from "./yjsConstants";
 
-export const BOARD_COMMIT_ORIGIN = "fusionboard:board-commit";
-export const BOARD_META_ORIGIN = "fusionboard:board-meta";
-export const BOARD_BOOTSTRAP_ORIGIN = "fusionboard:board-bootstrap";
-export const BOARD_CLEAR_ORIGIN = "fusionboard:board-clear";
+export { 
+    BOARD_COMMIT_ORIGIN, 
+    BOARD_BOOTSTRAP_ORIGIN, 
+    BOARD_CLEAR_ORIGIN, 
+    BOARD_META_ORIGIN 
+};
 
 const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
 
