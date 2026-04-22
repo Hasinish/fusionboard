@@ -1,4 +1,5 @@
-import * as Y from "yjs";
+import { Doc as YDoc, Text as YText, Map as YMap, UndoManager as YUndoManager } from "yjs";
+const Y = { Doc: YDoc, Text: YText, Map: YMap, UndoManager: YUndoManager };
 import { useCallback, useRef } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim";
 import { 
