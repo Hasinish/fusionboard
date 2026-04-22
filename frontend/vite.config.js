@@ -10,7 +10,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('yjs') || id.includes('y-websocket')) return 'yjs-vendor';
             if (id.includes('react')) return 'react-vendor';
             return 'vendor';
           }

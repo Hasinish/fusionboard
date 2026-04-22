@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Doc as YDoc, UndoManager as YUndoManager } from "yjs";
-const Y = { Doc: YDoc, UndoManager: YUndoManager };
+import Y from "../lib/yjsCore";
 import { WebsocketProvider } from "y-websocket";
 import {
     createBoardActions,
