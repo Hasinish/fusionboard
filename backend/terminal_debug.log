@@ -911,3 +911,10127 @@ SyntaxError[m: [35munterminated string literal (detected at line 1)[m
 operable program or batch file.[26X
 
 [1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+hey
+[25lhey
+   
+   [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+'javac' is not recognized as an internal or external command,
+operable program or batch file.[30X
+[61X
+[61X[1C
+
+ 
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exejavac Main.java && java Main
+'javac' is not recognized as an internal or external command,
+operable program or batch file.[30X
+[61X
+[61X[1C
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+'javac' is not recognized as an internal or external command,
+operable program or batch file.[30X
+[61X
+[61X[1C
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+'javac' is not recognized as an internal or external command,
+operable program or batch file.[30X
+[61X
+[61X[1C
+
+ 
+
+[1C
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exejavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  MainHello from Java!
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  MainHello from Java!
+]0;C:\Windows\SYSTEM32\cmd.exe
+ 
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync
+  [2] Infinite Canvas   
+  [3] Multi-user Cursors
+[24X
+Mathematics Test:       
+  Fibonacci sequence at index 10 is: 55
+
+--- All tests completed successfully ---
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync
+  [2] Infinite Canvas   
+  [3] Multi-user Cursors
+[24X
+Mathematics Test:       
+  Fibonacci sequence at index 10 is: 55
+
+--- All tests completed successfully ---
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exejavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java [25l[H[K
+ javac Main.java && java Main[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[3;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[3;1H[?25h]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[11X
+  [2] Infinite Canvas[14X
+  [3] Multi-user Cursors[11X
+[35X
+Mathematics Test:[18X
+  Fibonacci sequence at index 10 is: 55
+
+--- All tests completed successfully ---
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[1C[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[15X
+  [2] Infinite Canvas[18X
+  [3] Multi-user Cursors[15X
+[39X
+Mathematics Test:[22X
+  Fibonacci sequence at index 10 is: 55
+
+--- All tests completed successfully ---
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[15X
+  [2] Infinite Canvas[18X
+  [3] Multi-user Cursors[15X
+[39X
+Mathematics Test:[22X
+  Fibonacci sequence at index 10 is: 55
+
+--- All tests completed successfully ---
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[HTesting iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[16X
+  [2] Infinite Canvas[19X
+  [3] Multi-user Cursors[16X
+[40X
+Mathematics Test:[23X
+  Fibonacci sequence at index 10 is: 55 
+[40X
+--- All tests completed successfully ---
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;2H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h
+
+ 
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[16X
+  [2] Infinite Canvas[19X
+  [3] Multi-user Cursors[16X
+[40X
+Mathematics Test:[23X
+  Fibonacci sequence at index 10 is: 55 
+[40X
+--- All tests completed successfully ---
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;2H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h
+
+ 
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[11X
+  [2] Infinite Canvas[14X
+  [3] Multi-user Cursors[11X
+[35X
+Mathematics Test:[18X
+  Fibonacci sequence at index 10 is: 55 
+[40X
+--- All tests completed successfully ---
+[40X
+[40X[1C]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;2H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h[25l[H javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[13;1H[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync
+  [2] Infinite Canvas   
+  [3] Multi-user Cursors
+[24X
+Mathematics Test:       
+  Fibonacci sequence at index 10 is: 55 
+[40X
+--- All tests completed successfully ---
+[40X
+[40X[1C]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h
+
+ 
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Java Test ===
+Testing iteration over collections:
+  [1] Real-time Yjs Sync[11X
+  [2] Infinite Canvas[14X
+  [3] Multi-user Cursors[11X
+[35X
+Mathematics Test:[18X
+  Fibonacci sequence at index 10 is: 55 
+[40X
+--- All tests completed successfully ---
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Java Test ===[K
+Testing iteration over collections:[K
+  [1] Real-time Yjs Sync[K
+  [2] Infinite Canvas[K
+  [3] Multi-user Cursors[K
+[K
+Mathematics Test:[K
+  Fibonacci sequence at index 10 is: 55[K
+[K
+--- All tests completed successfully ---[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[14;1H[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Interactive Test ===
+Enter your name: hello
+Hello, hello![43X
+Try resizing the terminal while I'm waiting for input...
+Pick a number:[42X[1C[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number:[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[7;16H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number:[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[7;16H[?25h5
+The square of 5 is 25
+Test Complete!       
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hello[K
+Hello, hello![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h

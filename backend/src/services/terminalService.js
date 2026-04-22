@@ -46,6 +46,24 @@ export const handleTerminalConnection = (socket) => {
                 commandString = os.platform() === 'win32' ? `rustc main.rs && ./main.exe` : `rustc main.rs && ./main`;
             }
 
+            const env = { ...process.env, PYTHONUNBUFFERED: "1" };
+            
+            // On Windows, if javac isn't in PATH, try to find the standard Microsoft OpenJDK path
+            if (os.platform() === 'win32' && language === 'java') {
+                const msJdkPath = "C:\\Program Files\\Microsoft";
+                if (fs.existsSync(msJdkPath)) {
+                    const dirs = fs.readdirSync(msJdkPath);
+                    const jdkDir = dirs.find(d => d.startsWith('jdk-'));
+                    if (jdkDir) {
+                        const binPath = path.join(msJdkPath, jdkDir, 'bin');
+                        if (fs.existsSync(binPath)) {
+                            // Append to PATH
+                            env.PATH = `${binPath}${path.delimiter}${env.PATH || ''}`;
+                        }
+                    }
+                }
+            }
+
             const shell = os.platform() === "win32" ? "cmd.exe" : "bash";
             const shellArgs = os.platform() === 'win32' ? ['/Q', '/K', 'prompt $S'] : [];
 
@@ -55,7 +73,7 @@ export const handleTerminalConnection = (socket) => {
                 cols: cols,
                 rows: rows,
                 cwd: tempDir,
-                env: { ...process.env, PYTHONUNBUFFERED: "1" }
+                env
             });
 
             activeTerminals.set(socket.id, ptyProcess);

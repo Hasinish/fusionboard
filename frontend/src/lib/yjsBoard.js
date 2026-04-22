@@ -487,7 +487,7 @@ export function createBoardStore({ elementsById, elementOrder, meta }) {
 
 export function useBoardVersion(boardStore) {
     const subscribe = useCallback(
-        (listener) => (boardStore ? boardStore.subscribe(listener) : () => {}),
+        (listener) => (boardStore ? boardStore.subscribe(listener) : () => { }),
         [boardStore]
     );
     const getSnapshot = useCallback(
@@ -503,7 +503,7 @@ const EMPTY_ARRAY = [];
 export function useBoardInteractiveIds(boardStore) {
     const cacheRef = useRef(EMPTY_ARRAY);
     const subscribe = useCallback(
-        (listener) => (boardStore ? boardStore.subscribeToInteractiveIds(listener) : () => {}),
+        (listener) => (boardStore ? boardStore.subscribeToInteractiveIds(listener) : () => { }),
         [boardStore]
     );
     const getSnapshot = useCallback(
@@ -532,7 +532,7 @@ export function useBoardInteractiveIds(boardStore) {
 
 export function useBoardElement(boardStore, id) {
     const subscribe = useCallback(
-        (listener) => (boardStore && id ? boardStore.subscribeToElement(id, listener) : () => {}),
+        (listener) => (boardStore && id ? boardStore.subscribeToElement(id, listener) : () => { }),
         [boardStore, id]
     );
     const getSnapshot = useCallback(
@@ -554,7 +554,7 @@ export function useBoardElementsByIds(boardStore, ids) {
         (listener) => {
             const store = storeRef.current;
             const currentIds = idsRef.current;
-            if (!store) return () => {};
+            if (!store) return () => { };
             return store.subscribeToElements(currentIds, listener);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -586,7 +586,7 @@ export function useBoardElementsByIds(boardStore, ids) {
 export function useBoardMeta(boardStore, key) {
     const cacheRef = useRef(undefined);
     const subscribe = useCallback(
-        (listener) => (boardStore && key ? boardStore.subscribeToMeta(key, listener) : () => {}),
+        (listener) => (boardStore && key ? boardStore.subscribeToMeta(key, listener) : () => { }),
         [boardStore, key]
     );
     const getSnapshot = useCallback(

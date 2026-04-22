@@ -19,6 +19,9 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
     const [isRunning, setIsRunning] = useState(false);
     const [isTerminalActive, setIsTerminalActive] = useState(false);
     const [terminalSessionKey, setTerminalSessionKey] = useState(0);
+    const [localTerminalHeight, setLocalTerminalHeight] = useState(null);
+
+    const effectiveTerminalHeight = localTerminalHeight || el.terminalHeight || (sh / 3);
 
     const sx = el.x * camera.z + camera.x;
     const sy = el.y * camera.z + camera.y;
@@ -697,9 +700,42 @@ export function BoardElement({ el, camera, tool, isSelected, isMultiSelected, on
                                 />
                             </div>
 
+                            {/* Terminal Resizer / Top Edge */}
+                            {isTerminalActive && (
+                                <div 
+                                    className="h-1.5 w-full cursor-row-resize bg-transparent hover:bg-blue-500/30 transition-colors z-20 shrink-0" 
+                                    onPointerDown={(e) => {
+                                        e.stopPropagation();
+                                        const startY = e.clientY;
+                                        const startH = effectiveTerminalHeight;
+                                        
+                                        const handleMove = (moveEvent) => {
+                                            const deltaY = startY - moveEvent.clientY;
+                                            const newH = Math.max(80, Math.min(sh - 100, startH + deltaY));
+                                            setLocalTerminalHeight(newH);
+                                        };
+                                        
+                                        const handleUp = () => {
+                                            window.removeEventListener("pointermove", handleMove);
+                                            window.removeEventListener("pointerup", handleUp);
+                                            // Persist height to Yjs on finish
+                                            setLocalTerminalHeight((finalH) => {
+                                                onChange({ ...el, terminalHeight: finalH }, true);
+                                                return null; // Reset local state as prop will take over
+                                            });
+                                        };
+                                        
+                                        window.addEventListener("pointermove", handleMove);
+                                        window.addEventListener("pointerup", handleUp);
+                                    }}
+                                />
+                            )}
+
                             {/* Native Terminal Interface */}
                             {isTerminalActive && (
-                                <div className="h-1/3 min-h-[100px] border-t border-[#313244]" 
+                                <div 
+                                    className="border-t border-[#313244] shrink-0" 
+                                    style={{ height: effectiveTerminalHeight }}
                                     onPointerDown={(e) => e.stopPropagation()} 
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onKeyDown={(e) => e.stopPropagation()}

@@ -75,11 +75,10 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             dataBuffer = "";
 
             if (!readyRef.current) {
-                // Evaluate line by line even in pre-ready state
+                // Pre-ready filtering for startup noise
                 const lines = rawData.split(/\r\n|\n|\r/);
                 lines.forEach(line => {
                     const cleaned = stripAnsi(line);
-                    // Only discard genuine startup noise lines
                     if (cleaned && !cleaned.includes("@echo off") && !cleaned.includes("python -u") && !cleaned.includes("prompt $S")) {
                         preReadyBufferRef.current += line + "\r\n";
                     }
@@ -87,22 +86,11 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
                 return;
             }
 
-            const lines = rawData.split(/\r\n|\n|\r/);
-            lines.forEach((line, idx) => {
-                const cleanedLine = stripAnsi(line);
-                if (lastSentRef.current.length > 0 && cleanedLine !== "") {
-                    const matchIdx = lastSentRef.current.indexOf(cleanedLine);
-                    if (matchIdx !== -1) {
-                        lastSentRef.current.splice(matchIdx, 1);
-                        return;
-                    }
-                }
-                const suffix = (idx < lines.length - 1) ? "\r\n" : "";
-                if (line || suffix) {
-                    xtermRef.current.write(line + suffix);
-                }
-            });
-
+            // NATIVE STREAMING: Once ready, let xterm handle the raw ANSI stream.
+            // This is critical for handling shell re-draws during resize without duplication.
+            xtermRef.current.write(rawData);
+            
+            // Ensure we stay at the bottom
             setTimeout(() => xtermRef.current?.scrollToBottom(), 10);
         };
 
@@ -140,19 +128,42 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
         };
         containerEl.addEventListener("wheel", wheelHandler, { passive: false });
 
+        let resizeTimeout = null;
         const handleResize = () => {
             if (fitAddonRef.current && xtermRef.current) {
-                fitAddonRef.current.fit();
-                socketRef.current?.emit("terminal:resize", { cols: term.cols, rows: term.rows });
+                try {
+                    // Update visual layout immediately
+                    fitAddonRef.current.fit();
+                    
+                    // DEBOUNCE the backend resize. 
+                    // Only tell the shell to re-draw once the user has finished/paused the resize interaction.
+                    if (resizeTimeout) clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (xtermRef.current && socketRef.current?.connected) {
+                            socketRef.current.emit("terminal:resize", { 
+                                cols: xtermRef.current.cols, 
+                                rows: xtermRef.current.rows 
+                            });
+                        }
+                    }, 250);
+                } catch (e) {
+                    // fit might fail if element is not in DOM or invisible
+                }
             }
         };
-        window.addEventListener("resize", handleResize);
+
+        const resizeObserver = new ResizeObserver(() => {
+            handleResize();
+        });
+        resizeObserver.observe(containerEl);
+
         setTimeout(handleResize, 100);
 
         return () => {
             if (bufferTimeout) clearTimeout(bufferTimeout);
+            if (resizeTimeout) clearTimeout(resizeTimeout);
             containerEl.removeEventListener("wheel", wheelHandler);
-            window.removeEventListener("resize", handleResize);
+            resizeObserver.disconnect();
             socket.disconnect();
             term.dispose();
         };
