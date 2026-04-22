@@ -25,6 +25,7 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
     const [boardApi, setBoardApi] = useState({
         yElements: null,
         yElementOrder: null,
+        yElementContents: null,
         yMeta: null,
         awareness: null,
         boardStore: null,
@@ -56,9 +57,11 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
         yDocRef.current = doc;
         providerRef.current = provider;
         const schema = ensureBoardSchema(doc);
-        const boardStore = createBoardStore(schema);
-        const boardActions = createBoardActions(schema);
-        const undoManager = new Y.UndoManager([schema.elementsById, schema.elementOrder, schema.meta], {
+        const { elementsById, elementOrder, elementContents, meta } = schema;
+        
+        const boardStore = createBoardStore({ doc, elementsById, elementOrder, elementContents, meta });
+        const boardActions = createBoardActions({ doc, elementsById, elementOrder, elementContents, meta });
+        const undoManager = new Y.UndoManager([elementsById, elementOrder, elementContents, meta], {
             trackedOrigins: new Set([
                 BOARD_COMMIT_ORIGIN,
                 BOARD_META_ORIGIN,
@@ -67,19 +70,21 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
             captureTimeout: 500,
         });
 
-        yElementsRef.current = schema.elementsById;
-        yElementOrderRef.current = schema.elementOrder;
-        yMetaRef.current = schema.meta;
+        yElementsRef.current = elementsById;
+        yElementOrderRef.current = elementOrder;
+        yMetaRef.current = meta;
         awarenessRef.current = provider.awareness;
         boardStoreRef.current = boardStore;
         boardActionsRef.current = boardActions;
         undoManagerRef.current = undoManager;
+
         queueMicrotask(() => {
             if (disposed) return;
             setBoardApi({
-                yElements: schema.elementsById,
-                yElementOrder: schema.elementOrder,
-                yMeta: schema.meta,
+                yElements: elementsById,
+                yElementOrder: elementOrder,
+                yElementContents: elementContents,
+                yMeta: meta,
                 awareness: provider.awareness,
                 boardStore,
                 boardActions,

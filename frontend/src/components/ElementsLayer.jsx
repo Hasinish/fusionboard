@@ -48,7 +48,9 @@ function OverlayBoardElement({
 
     return (
         <MemoizedBoardElement
+            id={id}
             el={element}
+            boardStore={boardStore}
             camera={camera}
             tool={tool}
             isSelected={isSelected}

@@ -11035,3 +11035,126 @@ Test Complete![K
 [K
 [K
 [K[11;1H[?25h
+--- NEW SESSION (java) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hjavac Main.java && java Main
+]0;C:\Windows\SYSTEM32\cmd.exe - javac  Main.java ]0;C:\Windows\SYSTEM32\cmd.exe]0;C:\Windows\SYSTEM32\cmd.exe - java  Main=== FusionBoard Interactive Test ===
+Enter your name: hasin
+Hello, hasin![43X
+Try resizing the terminal while I'm waiting for input...
+Pick a number:[42X[1C[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hasin[K
+Hello, hasin![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number:[K
+[K
+[K
+[K
+[K
+[K[7;16H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hasin[K
+Hello, hasin![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number:[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[7;16H[?25h5
+The square of 5 is 25
+Test Complete!       
+
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hasin[K
+Hello, hasin![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H[K
+ javac Main.java && java Main[K
+=== FusionBoard Interactive Test ===[K
+Enter your name: hasin[K
+Hello, hasin![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[11;1H[?25h[25l[H=== FusionBoard Interactive Test ===[K
+Enter your name: hasin[K
+Hello, hasin![K
+Try resizing the terminal while I'm waiting for input...[K
+Pick a number: 5[K
+The square of 5 is 25[K
+Test Complete![K
+[K
+[K[?25h

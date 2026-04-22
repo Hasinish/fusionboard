@@ -24,3 +24,6 @@ GEMINI.md
 # Yjs LevelDB persistence
 data/
 data/yjs/
+
+# Terminal Temp Files
+backend/temp/

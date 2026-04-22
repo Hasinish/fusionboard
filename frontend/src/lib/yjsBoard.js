@@ -74,6 +74,7 @@ function deriveOrderedIds(elementsById, elementOrder) {
 export function ensureBoardSchema(doc) {
     const elementsById = doc.getMap("elementsById");
     const elementOrder = doc.getArray("elementOrder");
+    const elementContents = doc.getMap("elementContents");
     const meta = doc.getMap("meta");
     const legacyElements = doc.getMap("elements");
 
@@ -100,16 +101,24 @@ export function ensureBoardSchema(doc) {
                 meta.set("schemaVersion", 2);
             }
         }, BOARD_BOOTSTRAP_ORIGIN);
-    } else if (!meta.has("schemaVersion")) {
-        doc.transact(() => {
-            meta.set("schemaVersion", 2);
-        }, BOARD_BOOTSTRAP_ORIGIN);
     }
+
+    // Backfill mission: Ensure every interactive element has character-sync content
+    const INTERACTIVE_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+    doc.transact(() => {
+        elementsById.forEach((el, id) => {
+            if (el && INTERACTIVE_TYPES.has(el.type) && !elementContents.has(id)) {
+                const initialContent = el.code || el.text || "";
+                elementContents.set(id, new Y.Text(initialContent));
+            }
+        });
+    }, BOARD_BOOTSTRAP_ORIGIN);
 
     return {
         doc,
         elementsById,
         elementOrder,
+        elementContents,
         meta,
     };
 }
@@ -151,6 +160,16 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
             const value = elementsById.get(id);
             return value ? cloneValue(value) : null;
         },
+        getContent(id, type = "text") {
+            if (!id) return null;
+            if (!elementContents.has(id)) {
+                doc.transact(() => {
+                    const shared = type === "xml" ? new Y.XmlFragment() : new Y.Text();
+                    elementContents.set(id, shared);
+                }, BOARD_COMMIT_ORIGIN);
+            }
+            return elementContents.get(id);
+        },
         getOrderedIds() {
             return elementOrder.toArray();
         },
@@ -158,6 +177,12 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
             if (!element?.id) return;
             doc.transact(() => {
                 elementsById.set(element.id, normalizeElement(element));
+                // Initialize Y.Text content if it's an interactive type
+                if (isInteractiveElementType(element.type) && !elementContents.has(element.id)) {
+                    const initialText = element.code || element.text || "";
+                    const yText = new Y.Text(initialText);
+                    elementContents.set(element.id, yText);
+                }
                 insertIntoOrder(element.id, index);
             }, origin);
         },
@@ -199,6 +224,7 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
             if (!id) return;
             doc.transact(() => {
                 elementsById.delete(id);
+                elementContents.delete(id);
                 removeFromOrder([id]);
             }, origin);
         },
@@ -206,17 +232,25 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
             const validIds = Array.from(new Set((ids || []).filter(Boolean)));
             if (validIds.length === 0) return;
             doc.transact(() => {
-                validIds.forEach((id) => elementsById.delete(id));
+                validIds.forEach((id) => {
+                    elementsById.delete(id);
+                    elementContents.delete(id);
+                });
                 removeFromOrder(validIds);
             }, origin);
         },
         replaceAll(elements, { origin = BOARD_COMMIT_ORIGIN } = {}) {
             doc.transact(() => {
                 elementsById.clear();
+                elementContents.clear();
                 elementOrder.delete(0, elementOrder.length);
                 (elements || []).forEach((element) => {
                     if (!element?.id) return;
                     elementsById.set(element.id, normalizeElement(element));
+                    if (isInteractiveElementType(element.type)) {
+                        const content = element.code || element.text || "";
+                        elementContents.set(element.id, new Y.Text(content));
+                    }
                     elementOrder.push([element.id]);
                 });
             }, origin);
@@ -224,6 +258,7 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
         clearBoard({ origin = BOARD_CLEAR_ORIGIN } = {}) {
             doc.transact(() => {
                 elementsById.clear();
+                elementContents.clear();
                 if (elementOrder.length > 0) {
                     elementOrder.delete(0, elementOrder.length);
                 }
@@ -244,7 +279,7 @@ export function createBoardActions({ doc, elementsById, elementOrder, meta }) {
     };
 }
 
-export function createBoardStore({ elementsById, elementOrder, meta }) {
+export function createBoardStore({ doc, elementsById, elementOrder, elementContents, meta }) {
     const allListeners = new Set();
     const orderListeners = new Set();
     const interactiveListeners = new Set();
@@ -299,9 +334,9 @@ export function createBoardStore({ elementsById, elementOrder, meta }) {
             if (
                 !orderChanged &&
                 !interactiveChanged &&
-                changedElementIds.size === 0 &&
-                changedMetaKeys.size === 0 &&
-                pendingChanges.length === 0
+                !changedElementIds.size &&
+                !changedMetaKeys.size &&
+                !pendingChanges.length
             ) {
                 return;
             }
@@ -462,6 +497,10 @@ export function createBoardStore({ elementsById, elementOrder, meta }) {
         getElement(id) {
             return elements.get(id) || null;
         },
+        getContent(id) {
+            if (!elementContents || !id) return null;
+            return elementContents.get(id);
+        },
         hasElement(id) {
             return elements.has(id);
         },
@@ -482,12 +521,15 @@ export function createBoardStore({ elementsById, elementOrder, meta }) {
         getMeta(key) {
             return metaState.get(key);
         },
+        transact(fn, origin) {
+            doc.transact(fn, origin);
+        },
     };
 }
 
 export function useBoardVersion(boardStore) {
     const subscribe = useCallback(
-        (listener) => (boardStore ? boardStore.subscribe(listener) : () => { }),
+        (listener) => (boardStore ? boardStore.subscribe(listener) : () => {}),
         [boardStore]
     );
     const getSnapshot = useCallback(
@@ -503,7 +545,7 @@ const EMPTY_ARRAY = [];
 export function useBoardInteractiveIds(boardStore) {
     const cacheRef = useRef(EMPTY_ARRAY);
     const subscribe = useCallback(
-        (listener) => (boardStore ? boardStore.subscribeToInteractiveIds(listener) : () => { }),
+        (listener) => (boardStore ? boardStore.subscribeToInteractiveIds(listener) : () => {}),
         [boardStore]
     );
     const getSnapshot = useCallback(
@@ -511,9 +553,6 @@ export function useBoardInteractiveIds(boardStore) {
             if (!boardStore) return EMPTY_ARRAY;
             const next = boardStore.getInteractiveIds();
             const prev = cacheRef.current;
-            // The store already swaps the interactiveIds reference only when content changes,
-            // but queueMicrotask can cause the swap between React render and commit.
-            // Use identity check first (fast path), then shallow compare.
             if (next === prev) return prev;
             if (
                 prev.length === next.length &&
@@ -532,11 +571,24 @@ export function useBoardInteractiveIds(boardStore) {
 
 export function useBoardElement(boardStore, id) {
     const subscribe = useCallback(
-        (listener) => (boardStore && id ? boardStore.subscribeToElement(id, listener) : () => { }),
+        (listener) => (boardStore && id ? boardStore.subscribeToElement(id, listener) : () => {}),
         [boardStore, id]
     );
     const getSnapshot = useCallback(
         () => (boardStore && id ? boardStore.getElement(id) : null),
+        [boardStore, id]
+    );
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+export function useBoardElementContent(boardStore, id) {
+    const subscribe = useCallback(
+        (listener) => (boardStore && id ? boardStore.subscribeToElement(id, listener) : () => {}),
+        [boardStore, id]
+    );
+    const getSnapshot = useCallback(
+        () => (boardStore && id ? boardStore.getContent(id) : null),
         [boardStore, id]
     );
 
@@ -554,10 +606,9 @@ export function useBoardElementsByIds(boardStore, ids) {
         (listener) => {
             const store = storeRef.current;
             const currentIds = idsRef.current;
-            if (!store) return () => { };
+            if (!store) return () => {};
             return store.subscribeToElements(currentIds, listener);
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [boardStore, ids]
     );
 
@@ -586,14 +637,13 @@ export function useBoardElementsByIds(boardStore, ids) {
 export function useBoardMeta(boardStore, key) {
     const cacheRef = useRef(undefined);
     const subscribe = useCallback(
-        (listener) => (boardStore && key ? boardStore.subscribeToMeta(key, listener) : () => { }),
+        (listener) => (boardStore && key ? boardStore.subscribeToMeta(key, listener) : () => {}),
         [boardStore, key]
     );
     const getSnapshot = useCallback(
         () => {
             if (!boardStore || !key) return undefined;
             const next = boardStore.getMeta(key);
-            // For primitive values, Object.is works. For objects, compare by reference.
             if (Object.is(next, cacheRef.current)) return cacheRef.current;
             cacheRef.current = next;
             return next;

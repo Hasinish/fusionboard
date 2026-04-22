@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as encoding from "lib0/encoding";
@@ -73,6 +74,7 @@ function repairElementOrder(elementsById, elementOrder) {
 function ensureBoardSchema(ydoc) {
   const elementsById = ydoc.getMap("elementsById");
   const elementOrder = ydoc.getArray("elementOrder");
+  const elementContents = ydoc.getMap("elementContents");
   const meta = ydoc.getMap("meta");
   const legacyElements = ydoc.getMap("elements");
 
@@ -105,9 +107,21 @@ function ensureBoardSchema(ydoc) {
     }, BOARD_BOOTSTRAP_ORIGIN);
   }
 
+  // Backfill mission: Ensure every interactive element has character-sync content
+  const INTERACTIVE_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+  ydoc.transact(() => {
+    elementsById.forEach((el, id) => {
+      if (el && INTERACTIVE_TYPES.has(el.type) && !elementContents.has(id)) {
+        const initialContent = el.code || el.text || "";
+        elementContents.set(id, new Y.Text(initialContent));
+      }
+    });
+  }, BOARD_BOOTSTRAP_ORIGIN);
+
   return {
     elementsById,
     elementOrder,
+    elementContents,
     meta,
   };
 }
