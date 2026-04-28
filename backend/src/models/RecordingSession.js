@@ -38,6 +38,8 @@ const recordingSessionSchema = new mongoose.Schema(
         y: Number,
         z: Number,
       },
+      isDark: { type: Boolean },
+      bgMode: { type: String },
     },
     thumbnailUrl: { type: String },
   },

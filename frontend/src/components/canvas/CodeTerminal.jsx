@@ -15,10 +15,25 @@ const stripAnsi = (str) =>
     str
         .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
         .replace(/\x1b\][^\x07]*\x07/g, "")
-        .replace(/\x1b\[\?[0-9;]*[a-zA-Z]/g, "")
-        .trim();
+        .replace(/\x1b\[\?[0-9;]*[a-zA-Z]/g, "");
 
-export function CodeTerminal({ code, language, onStop, isViewer, camera, terminalSessionKey }) {
+const serializeTerminalScreen = (term) => {
+    const buffer = term?.buffer?.active;
+    if (!term || !buffer) return "";
+
+    const rows = term.rows || 24;
+    const start = buffer.baseY || 0;
+    const lines = [];
+
+    for (let row = 0; row < rows; row += 1) {
+        const line = buffer.getLine(start + row);
+        lines.push(line ? line.translateToString(true) : "");
+    }
+
+    return lines.join("\n").replace(/\n+$/, "");
+};
+
+export function CodeTerminal({ code, language, onStop, isViewer, camera, terminalSessionKey, onTranscriptChange }) {
     const terminalRef = useRef(null);
     const xtermRef = useRef(null);
     const socketRef = useRef(null);
@@ -28,6 +43,79 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
     const lastSentRef = useRef([]);
     const readyRef = useRef(false);
     const preReadyBufferRef = useRef("");
+    const transcriptRef = useRef("");
+    const directInputRef = useRef("");
+    const terminalEventsRef = useRef([]);
+    const inputDraftRef = useRef("");
+
+    const publishTerminalState = () => {
+        if (!onTranscriptChange) return;
+        onTranscriptChange({
+            transcript: transcriptRef.current,
+            screen: serializeTerminalScreen(xtermRef.current),
+            events: terminalEventsRef.current,
+            inputDraft: inputDraftRef.current,
+        });
+    };
+
+    const appendTerminalEvent = (kind, text, publish = true) => {
+        if (!text && kind !== "input") return;
+        const cleanText = stripAnsi(String(text)).replace(/\r\n|\r/g, "\n");
+        terminalEventsRef.current = [
+            ...terminalEventsRef.current,
+            { kind, text: cleanText, ts: Date.now() },
+        ].slice(-300);
+        return cleanText;
+    };
+
+    const appendTranscript = (data, publish = true, kind = "output") => {
+        if (!data || !onTranscriptChange) return;
+        const cleanText = appendTerminalEvent(kind, data, false);
+        transcriptRef.current += cleanText;
+        if (publish) publishTerminalState();
+    };
+
+    const recordTerminalInput = (input, { submitted = true } = {}) => {
+        if (!input && submitted) return;
+        inputDraftRef.current = "";
+        appendTerminalEvent("input", `${input}\n`, false);
+        transcriptRef.current += `> ${input}\n`;
+        requestAnimationFrame(() => publishTerminalState());
+    };
+
+    const recordDirectTerminalInput = (data) => {
+        if (!data) return;
+
+        if (data === "\x03") {
+            directInputRef.current = "";
+            recordTerminalInput("^C");
+            return;
+        }
+
+        if (data === "\r" || data === "\n") {
+            recordTerminalInput(directInputRef.current);
+            directInputRef.current = "";
+            return;
+        }
+
+        if (data === "\u007f" || data === "\b") {
+            directInputRef.current = directInputRef.current.slice(0, -1);
+            inputDraftRef.current = directInputRef.current;
+            publishTerminalState();
+            return;
+        }
+
+        if (data.length === 1 && data >= " " && data !== "\x7f") {
+            directInputRef.current += data;
+            inputDraftRef.current = directInputRef.current;
+            onTranscriptChange?.({
+                transcript: `${transcriptRef.current}> ${directInputRef.current}`,
+                screen: serializeTerminalScreen(xtermRef.current),
+                events: terminalEventsRef.current,
+                inputDraft: inputDraftRef.current,
+            });
+        }
+    };
 
     useEffect(() => {
         if (!terminalRef.current) return;
@@ -82,6 +170,10 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
         readyRef.current = false;
         lastSentRef.current = [];
         preReadyBufferRef.current = "";
+        transcriptRef.current = "";
+        directInputRef.current = "";
+        terminalEventsRef.current = [];
+        inputDraftRef.current = "";
 
         const token = localStorage.getItem('token') || sessionStorage.getItem('token') || "";
         const socket = io(API_URL, {
@@ -123,7 +215,12 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
                 }
                 filtered = result.join("\r\n");
             }
-            if (filtered) xtermRef.current.write(filtered);
+            if (filtered) {
+                xtermRef.current.write(filtered, () => {
+                    appendTranscript(filtered, false, "output");
+                    publishTerminalState();
+                });
+            }
             
             // Ensure we stay at the bottom
             setTimeout(() => xtermRef.current?.scrollToBottom(), 10);
@@ -137,15 +234,23 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
 
         socket.on("connect", () => {
             if (term.cols === 0 || term.rows === 0) term.resize(80, 24);
+            const line = "[System] Launching Terminal...\n";
             term.writeln("\x1b[38;5;12m[System] Launching Terminal...\x1b[0m");
+            appendTranscript(line, true, "system");
             socket.emit("terminal:spawn", { language, code, cols: term.cols, rows: term.rows });
         });
 
         socket.on("terminal:ready", () => {
             readyRef.current = true;
+            const line = "[System] Ready.\n";
             term.writeln("\x1b[38;5;10m[System] Ready.\x1b[0m");
+            appendTranscript(line, true, "system");
             if (preReadyBufferRef.current) {
-                term.write(preReadyBufferRef.current);
+                const bufferedData = preReadyBufferRef.current;
+                term.write(bufferedData, () => {
+                    appendTranscript(bufferedData, false, "output");
+                    publishTerminalState();
+                });
                 preReadyBufferRef.current = "";
             }
             if (inputRef.current) inputRef.current.focus();
@@ -154,7 +259,10 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
 
 
         term.onData((data) => {
-            if (!isViewer) socket.emit("terminal:data", data);
+            if (!isViewer) {
+                recordDirectTerminalInput(data);
+                socket.emit("terminal:data", data);
+            }
         });
 
         const containerEl = terminalRef.current;
@@ -223,6 +331,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             const socket = socketRef.current;
             if (socket && !isViewer && inputValue) {
                 xtermRef.current?.writeln(`\x1b[38;5;14m${inputValue}\x1b[0m`);
+                recordTerminalInput(inputValue);
                 lastSentRef.current.push(inputValue.trim());
                 socket.emit("terminal:data", inputValue + "\r");
             }
@@ -230,8 +339,16 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
         }
     };
 
-    const handleInputChange = (e) => setInputValue(e.target.value);
-    const sendCtrlC = () => socketRef.current?.emit("terminal:data", "\x03");
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputValue(value);
+        inputDraftRef.current = value;
+        publishTerminalState();
+    };
+    const sendCtrlC = () => {
+        recordTerminalInput("^C");
+        socketRef.current?.emit("terminal:data", "\x03");
+    };
 
     const zs = camera?.z || 1;
 

@@ -15,8 +15,9 @@ export default function useBoardReplay({
   const [elements, setElements] = useState(initialSnapshot?.elements || []);
   const [camera, setCamera] = useState(initialSnapshot?.camera || { x: 0, y: 0, z: 1 });
   const [isDark, setIsDark] = useState(initialSnapshot?.isDark || false);
-  const [bgMode, setBgMode] = useState(initialSnapshot?.bgMode || "dots");
+  const [bgMode, setBgMode] = useState(initialSnapshot?.bgMode || "white");
   const [cursors, setCursors] = useState({});
+  const [liveStrokes, setLiveStrokes] = useState({});
   
   const lastProcessedTimeRef = useRef(-1);
   const elementsRef = useRef(initialSnapshot?.elements || []);
@@ -36,8 +37,9 @@ export default function useBoardReplay({
     setElements(newState.elements); // eslint-disable-line react-hooks/set-state-in-effect
     setCamera(newState.camera);
     setIsDark(newState.isDark);
-    setBgMode(newState.bgMode || "dots");
+    setBgMode(newState.bgMode || "white");
     setCursors(newState.cursors || {});
+    setLiveStrokes(newState.liveStrokes || {});
 
     if (onThemeChange && newState.isDark !== prevIsDarkRef.current) {
       onThemeChange(newState.isDark);
@@ -52,6 +54,7 @@ export default function useBoardReplay({
     camera,
     isDark,
     bgMode,
-    cursors
+    cursors,
+    liveStrokes
   };
 }

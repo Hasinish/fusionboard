@@ -29,6 +29,10 @@ export function applyReplayEvent(state, event) {
 
     case "element.updated": {
       if (!isValidUpdateEvent(event)) return state;
+      const existingElement = elements.find(el => el.id === targetElementId);
+      if (!existingElement && payload.element?.id) {
+        return { ...state, elements: [...elements, payload.element] };
+      }
       const newElements = elements.map(el => 
         el.id === targetElementId ? { ...el, ...payload.element } : el
       );
@@ -104,6 +108,24 @@ export function applyReplayEvent(state, event) {
         }
       };
       return { ...state, cursors: newCursors };
+    }
+
+    case "liveStroke.updated": {
+      if (!payload?.stroke || !targetElementId) return state;
+      return {
+        ...state,
+        liveStrokes: {
+          ...(state.liveStrokes || {}),
+          [targetElementId]: payload.stroke,
+        },
+      };
+    }
+
+    case "liveStroke.ended": {
+      if (!targetElementId) return state;
+      const nextLiveStrokes = { ...(state.liveStrokes || {}) };
+      delete nextLiveStrokes[targetElementId];
+      return { ...state, liveStrokes: nextLiveStrokes };
     }
 
     default:

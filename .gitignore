@@ -27,3 +27,6 @@ data/yjs/
 
 # Terminal Temp Files
 backend/temp/
+
+# Uploaded files
+backend/uploads/

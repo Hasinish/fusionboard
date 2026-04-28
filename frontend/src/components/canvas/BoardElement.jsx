@@ -14,6 +14,55 @@ export function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+function terminalEventsToText(events, fallbackText = "") {
+    if (!Array.isArray(events) || events.length === 0) return fallbackText || "";
+
+    return events.map((event) => {
+        const text = event?.text || "";
+        if (event?.kind === "input") return `> ${text}`;
+        return text;
+    }).join("");
+}
+
+function RecordedTerminal({ el, camera, height, text }) {
+    const zs = camera?.z || 1;
+    const inputDraft = el.terminalInputDraft || "";
+
+    return (
+        <div
+            className="border-t border-[#313244] shrink-0 bg-[#11111b] flex flex-col text-[#cdd6f4]"
+            style={{ height }}
+            onWheel={(e) => {
+                if (e.ctrlKey || e.metaKey) return;
+                e.stopPropagation();
+            }}
+        >
+            <div className="flex justify-between items-center px-2 shrink-0" style={{ height: 20 * zs }}>
+                <span className="text-[#6c7086] font-bold" style={{ fontSize: 11 * zs }}>
+                    Interactive Terminal ({el.language})
+                </span>
+                <span className="text-[#f38ba8] bg-[#313244] rounded font-bold select-none" style={{ fontSize: 10 * zs, padding: `${2 * zs}px ${6 * zs}px` }}>
+                    KILL
+                </span>
+            </div>
+            <div className="flex-1 overflow-auto px-1 font-mono" style={{ fontSize: 12 * zs }}>
+                <pre className="m-0 whitespace-pre-wrap font-mono">{text}</pre>
+            </div>
+            <div className="flex items-center gap-1 px-1 shrink-0 border-t border-[#313244]" style={{ padding: `${3 * zs}px ${4 * zs}px` }}>
+                <div
+                    className="flex-1 bg-[#1e1e2e] text-[#89b4fa] border border-[#313244] rounded font-mono truncate"
+                    style={{ fontSize: 12 * zs, padding: `${2 * zs}px ${6 * zs}px` }}
+                >
+                    {inputDraft || "Type input..."}
+                </div>
+                <span className="text-[#f38ba8] bg-[#313244] rounded font-bold select-none" style={{ fontSize: 10 * zs, padding: `${2 * zs}px ${6 * zs}px` }}>
+                    Ctrl+C
+                </span>
+            </div>
+        </div>
+    );
+}
+
 /** A sub-component that handles the character-level shared text binding for code blocks */
 function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }) {
     const sharedText = useBoardElementContent(boardStore, id);
@@ -21,16 +70,16 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
     const [localValue, setLocalValue] = useState(el.code || "");
     const isRemoteUpdateRef = useRef(false);
 
-    // Initial sync
     useEffect(() => {
-        if (sharedText && sharedText.toString() !== localValue) {
-            setLocalValue(sharedText.toString());
-        }
-    }, [sharedText]);
+        const nextValue = sharedText ? sharedText.toString() : (el.code || "");
+        setLocalValue((currentValue) => (
+            currentValue === nextValue ? currentValue : nextValue
+        ));
+    }, [sharedText, el.code, id]);
 
     // Track remote changes
     useEffect(() => {
-        if (!sharedText || isViewer) return;
+        if (!sharedText) return;
         
         const observer = (event) => {
             if (event.transaction.origin === BOARD_COMMIT_ORIGIN) return;
@@ -156,6 +205,8 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     const sh = el.h * camera.z;
 
     const effectiveTerminalHeight = localTerminalHeight || el.terminalHeight || (sh / 3);
+    const recordedTerminalText = terminalEventsToText(el.terminalEvents, el.terminalTranscript || el.terminalScreen || "");
+    const shouldShowRecordedTerminal = isViewer && (el.terminalActive || !!recordedTerminalText) && !isTerminalActive;
 
     // ── drag to move (Alt = duplicate, Shift = angle-snap) ───────────────────
     const handlePointerDown = (e) => {
@@ -308,9 +359,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
         if (!latestCode) return;
 
         // 2. Sync it to the metadata property (so it's saved in the document)
-        if (latestCode !== el.code) {
-            onChange({ ...el, code: latestCode }, true);
-        }
+        onChange({ id: el.id, code: latestCode, terminalTranscript: "", terminalScreen: "", terminalEvents: [], terminalInputDraft: "", terminalActive: true }, true);
 
         // 3. Set the code to run in local state to guarantee the terminal sees it immediately
         setCodeToRun(latestCode);
@@ -855,6 +904,16 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                 />
                             )}
 
+                            {/* Recorded Terminal Transcript */}
+                            {shouldShowRecordedTerminal && (
+                                <RecordedTerminal
+                                    el={el}
+                                    camera={camera}
+                                    height={effectiveTerminalHeight}
+                                    text={recordedTerminalText}
+                                />
+                            )}
+
                             {/* Native Terminal Interface */}
                             {isTerminalActive && (
                                 <div 
@@ -872,9 +931,36 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                         key={`${el.id}-${terminalSessionKey}`}
                                         code={codeToRun || el.code}
                                         language={el.language}
-                                        onStop={() => setIsTerminalActive(false)}
+                                        onStop={() => {
+                                            setIsTerminalActive(false);
+                                            onChange({ id: el.id, terminalActive: false }, true);
+                                        }}
                                         isViewer={isViewer}
                                         camera={camera}
+                                        terminalSessionKey={terminalSessionKey}
+                                        onTranscriptChange={(terminalState) => {
+                                            const terminalTranscript = typeof terminalState === "string"
+                                                ? terminalState
+                                                : terminalState?.transcript || "";
+                                            const terminalScreen = typeof terminalState === "object"
+                                                ? terminalState?.screen || ""
+                                                : "";
+                                            const terminalEvents = typeof terminalState === "object"
+                                                ? terminalState?.events || []
+                                                : [];
+                                            const terminalInputDraft = typeof terminalState === "object"
+                                                ? terminalState?.inputDraft || ""
+                                                : "";
+                                            onChange({
+                                                id: el.id,
+                                                code: codeToRun || el.code,
+                                                terminalTranscript,
+                                                terminalScreen,
+                                                terminalEvents,
+                                                terminalInputDraft,
+                                                terminalActive: true,
+                                            }, true);
+                                        }}
                                     />
                                 </div>
                             )}

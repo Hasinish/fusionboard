@@ -6,15 +6,17 @@ export default function ReplayCanvasView({
   elements, 
   camera, 
   cursors = {},
+  liveStrokes = {},
   isDark, 
-  bgMode = "dots" 
+  bgMode = "white" 
 }) {
   const canvasRef = React.useRef(null);
+  const overlayCanvasRef = React.useRef(null);
   const rendererRef = React.useRef(null);
 
   React.useEffect(() => {
     if (canvasRef.current && !rendererRef.current) {
-      rendererRef.current = new CanvasRenderer(canvasRef.current);
+      rendererRef.current = new CanvasRenderer(canvasRef.current, overlayCanvasRef.current);
       rendererRef.current.start();
     }
     return () => {
@@ -36,6 +38,13 @@ export default function ReplayCanvasView({
       rendererRef.current.setCamera(camera);
     }
   }, [camera]);
+
+  React.useEffect(() => {
+    rendererRef.current?.syncOverlays({
+      cursors,
+      remoteLiveStrokes: liveStrokes,
+    });
+  }, [cursors, liveStrokes]);
 
   const interactiveElements = React.useMemo(() => {
     return (elements || []).filter(el => 
@@ -77,6 +86,37 @@ export default function ReplayCanvasView({
           </div>
         );
       })()}
+      {bgMode === "grid" && (() => {
+        const z = camera.z; const logZ = Math.log10(z); const floorLogZ = Math.floor(logZ);
+        const scales = [Math.pow(10, -floorLogZ + 1), Math.pow(10, -floorLogZ), Math.pow(10, -floorLogZ - 1)];
+        return (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {scales.map((s) => {
+              const step = s * 100; const size = step * z;
+              let op = 0;
+              if (size > 10 && size < 1000) {
+                if (size < 50) op = (size - 10) / 40;
+                else if (size > 400) op = 1 - (size - 400) / 600;
+                else op = 1;
+              }
+              if (op <= 0) return null;
+              const majOp = op * 0.15; const minOp = op * 0.05;
+              const bS = `${(step / 5) * z}px ${(step / 5) * z}px`;
+              const bM = `${step * z}px ${step * z}px`;
+              const gridColor = isDark ? "255,255,255" : "0,0,0";
+              return (
+                <div key={s} className="absolute inset-0"
+                  style={{
+                    backgroundImage: `linear-gradient(to right, rgba(${gridColor},${minOp}) 1px, transparent 1px), linear-gradient(to bottom, rgba(${gridColor},${minOp}) 1px, transparent 1px), linear-gradient(to right, rgba(${gridColor},${majOp}) 1.5px, transparent 1.5px), linear-gradient(to bottom, rgba(${gridColor},${majOp}) 1.5px, transparent 1.5px)`,
+                    backgroundSize: `${bS}, ${bS}, ${bM}, ${bM}`,
+                    backgroundPosition: `${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px, ${camera.x}px ${camera.y}px`
+                  }}
+                />
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <canvas
         ref={canvasRef}
@@ -108,6 +148,12 @@ export default function ReplayCanvasView({
           />
         ))}
       </div>
+
+      <canvas
+        ref={overlayCanvasRef}
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%', pointerEvents: 'none', zIndex: 40 }}
+      />
     </div>
   );
 }

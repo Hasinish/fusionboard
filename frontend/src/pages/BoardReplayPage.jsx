@@ -77,7 +77,7 @@ export default function BoardReplayPage() {
     setIsDark(val);
   }, []);
 
-  const { elements, camera, cursors, bgMode } = useBoardReplay({
+  const { elements, camera, cursors, liveStrokes, bgMode } = useBoardReplay({
     events,
     initialSnapshot: recording?.initialSnapshot,
     checkpoints,
@@ -136,6 +136,7 @@ export default function BoardReplayPage() {
         elements={elements}
         camera={camera}
         cursors={cursors}
+        liveStrokes={liveStrokes}
         isDark={isDark}
         bgMode={bgMode}
       />

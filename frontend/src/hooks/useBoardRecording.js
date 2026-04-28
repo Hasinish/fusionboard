@@ -76,6 +76,26 @@ export default function useBoardRecording({
   useEffect(() => {
     elementsRef.current = boardStore?.getOrderedElements?.() || [];
   }, [boardStore, boardVersion]);
+
+  useEffect(() => {
+    if (!boardStore || !isRecording) return undefined;
+
+    return boardStore.subscribeToChanges((changes) => {
+      changes.forEach((change) => {
+        if (change.isLocal !== false) return;
+
+        if (change.type === "set" && change.element?.id) {
+          recordEvent("element.updated", change.element.id, {
+            element: change.element,
+            remote: true,
+          });
+        } else if (change.type === "delete" && change.id) {
+          recordEvent("element.deleted", change.id, { remote: true });
+        }
+      });
+    });
+  }, [boardStore, isRecording, recordEvent]);
+
   useEffect(() => { cameraRef.current = camera; }, [camera]);
   
   useEffect(() => { 
@@ -114,11 +134,13 @@ export default function useBoardRecording({
     let session = null;
     try {
       // 1. Create session first - use RENDER state for initial snapshot
+      const currentElements = boardStore?.getOrderedElements?.() || elementsRef.current;
+      elementsRef.current = currentElements;
       const initialSnapshot = {
-        elements: JSON.parse(JSON.stringify(elementsRef.current)),
+        elements: JSON.parse(JSON.stringify(currentElements)),
         camera: { ...cameraRef.current },
         isDark: isDarkRef.current,
-        bgMode: bgModeRef.current || "dots",
+        bgMode: bgModeRef.current || "white",
       };
 
       const res = await api.post(`/recordings`, {
@@ -196,7 +218,7 @@ export default function useBoardRecording({
          sessionRef.current = null;
       }
     }
-  }, [boardId, workspaceId, recordEvent]);
+  }, [boardId, workspaceId, boardStore, recordEvent]);
 
   const stopRecording = useCallback(async () => {
     if (!startTimeRef.current) return;
@@ -234,9 +256,11 @@ export default function useBoardRecording({
 
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const currentElements = boardStore?.getOrderedElements?.() || elementsRef.current;
+      elementsRef.current = currentElements;
       await api.post(`/recordings/${sessionId}/checkpoints`, {
         timestampMs: Date.now() - startTimeRef.current,
-        elementsSnapshot: elementsRef.current,
+        elementsSnapshot: currentElements,
         cameraSnapshot: cameraRef.current,
         isDark: isDarkRef.current,
         bgMode: bgModeRef.current
@@ -247,7 +271,7 @@ export default function useBoardRecording({
     } catch (err) {
       console.error("[Recording] Failed to create periodic checkpoint", err);
     }
-  }, []);
+  }, [boardStore]);
 
   useEffect(() => {
     if (!isRecording) return undefined;

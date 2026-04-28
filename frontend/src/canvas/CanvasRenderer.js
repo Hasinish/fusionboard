@@ -130,6 +130,12 @@ export class CanvasRenderer {
     canvas.width = w * dpr
     canvas.height = h * dpr
     this.ctx.scale(dpr, dpr)
+    if (this.overlayCanvas) {
+      this.overlayCanvas.width = w * dpr
+      this.overlayCanvas.height = h * dpr
+      this.overlayCtx = this.overlayCanvas.getContext('2d')
+      this.overlayCtx.scale(dpr, dpr)
+    }
     this._logicalW = w
     this._logicalH = h
   }

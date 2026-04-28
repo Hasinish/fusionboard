@@ -15,8 +15,9 @@ export function buildReplayStateAtTime({
     elements: JSON.parse(JSON.stringify(initialSnapshot?.elements || [])),
     camera: initialSnapshot?.camera || { x: 0, y: 0, z: 1 },
     isDark: initialSnapshot?.isDark !== undefined ? initialSnapshot.isDark : false,
-    bgMode: initialSnapshot?.bgMode || "dots",
-    cursors: {}
+    bgMode: initialSnapshot?.bgMode || "white",
+    cursors: {},
+    liveStrokes: {}
   };
 
   // 2. Find the best starting point (checkpoint)
@@ -30,7 +31,8 @@ export function buildReplayStateAtTime({
       camera: bestCheckpoint.cameraSnapshot || bestCheckpoint.camera || state.camera,
       isDark: bestCheckpoint.isDark !== undefined ? bestCheckpoint.isDark : state.isDark,
       bgMode: bestCheckpoint.bgMode !== undefined ? bestCheckpoint.bgMode : state.bgMode,
-      cursors: {}
+      cursors: {},
+      liveStrokes: {}
     };
     // Optimization: find where to start applying events
     eventStartIndex = events.findIndex(e => e.timestampMs > bestCheckpoint.timestampMs);

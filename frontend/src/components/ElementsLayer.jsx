@@ -218,6 +218,9 @@ export default React.memo(function ElementsLayer({
 
         if (!persist) {
             setPreviewById((prev) => ({ ...prev, [updated.id]: updated }));
+            if (origin !== "DRAG_PREVIEW") {
+                recordEvent?.("element.updated", updated.id, { element: updated, persist: false });
+            }
             return;
         }
 

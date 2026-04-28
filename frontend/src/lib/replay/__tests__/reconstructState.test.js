@@ -100,4 +100,44 @@ describe("Replay State Reconstruction", () => {
     expect(state.elements).toHaveLength(1);
     expect(state.elements[0].id).toBe("el1");
   });
+
+  it("captures cursor and live stroke state at the replay time", () => {
+    const events = [
+      {
+        timestampMs: 100,
+        type: "cursor.moved",
+        targetElementId: "user-1",
+        payload: { x: 10, y: 20, name: "Alex", color: "#2563eb" }
+      },
+      {
+        timestampMs: 120,
+        type: "liveStroke.updated",
+        targetElementId: "user-1",
+        payload: {
+          stroke: {
+            id: "stroke-1",
+            points: [{ x: 10, y: 20 }, { x: 12, y: 24 }],
+            color: "#2563eb",
+            width: 2
+          }
+        }
+      },
+      { timestampMs: 200, type: "liveStroke.ended", targetElementId: "user-1" }
+    ];
+
+    const duringStroke = buildReplayStateAtTime({
+      currentTime: 150,
+      initialSnapshot: { elements: [] },
+      events
+    });
+    const afterStroke = buildReplayStateAtTime({
+      currentTime: 250,
+      initialSnapshot: { elements: [] },
+      events
+    });
+
+    expect(duringStroke.cursors["user-1"].x).toBe(10);
+    expect(duringStroke.liveStrokes["user-1"].id).toBe("stroke-1");
+    expect(afterStroke.liveStrokes["user-1"]).toBeUndefined();
+  });
 });

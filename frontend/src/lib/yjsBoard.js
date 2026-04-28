@@ -29,6 +29,22 @@ function isInteractiveElementType(type) {
     return INTERACTIVE_ELEMENT_TYPES.has(type);
 }
 
+function hydrateElementContent(element, elementContents) {
+    if (!element || !isInteractiveElementType(element.type)) return element;
+
+    const shared = elementContents?.get(element.id);
+    if (!shared || typeof shared.toString !== "function") return element;
+
+    const content = shared.toString();
+    if (element.type === "code" && element.code !== content) {
+        return { ...element, code: content };
+    }
+    if ((element.type === "text" || element.type === "sticky") && element.text !== content) {
+        return { ...element, text: content };
+    }
+    return element;
+}
+
 function repairElementOrder(elementsById, elementOrder) {
     const seen = new Set();
     const nextOrder = [];
@@ -401,7 +417,12 @@ export function createBoardStore({ doc, elementsById, elementOrder, elementConte
             if (change.action === "delete") {
                 elements.delete(id);
                 changedElementIds.add(id);
-                pendingChanges.push({ type: "delete", id });
+                pendingChanges.push({
+                    type: "delete",
+                    id,
+                    isLocal: event.transaction.local,
+                    origin: event.transaction.origin,
+                });
                 if (previous && isInteractiveElementType(previous.type)) {
                     interactiveChanged = true;
                 }
@@ -410,7 +431,13 @@ export function createBoardStore({ doc, elementsById, elementOrder, elementConte
                 if (!next) return;
                 elements.set(id, next);
                 changedElementIds.add(id);
-                pendingChanges.push({ type: "set", id, element: next });
+                pendingChanges.push({
+                    type: "set",
+                    id,
+                    element: next,
+                    isLocal: event.transaction.local,
+                    origin: event.transaction.origin,
+                });
                 if (isInteractiveElementType(previous?.type) !== isInteractiveElementType(next.type)) {
                     interactiveChanged = true;
                 }
@@ -522,7 +549,7 @@ export function createBoardStore({ doc, elementsById, elementOrder, elementConte
         },
         getOrderedElements() {
             return orderedIds
-                .map((id) => elements.get(id))
+                .map((id) => hydrateElementContent(elements.get(id), elementContents))
                 .filter(Boolean);
         },
         getInteractiveIds() {
@@ -663,4 +690,3 @@ export function useBoardMeta(boardStore, key) {
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
-

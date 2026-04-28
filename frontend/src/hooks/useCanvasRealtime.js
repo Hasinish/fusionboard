@@ -47,6 +47,8 @@ export default function useCanvasRealtime({
     const lastCursorEmitRef = useRef(0);
     const lastStrokeEmitRef = useRef(0);
     const participantsRef = useRef([]);
+    const recordedRemoteCursorsRef = useRef(new Map());
+    const recordedRemoteStrokesRef = useRef(new Map());
 
     const userId = String(me?.userId || me?.id || "");
     const userColor = pickColor(userId || me?.name || "fusionboard-user");
@@ -133,6 +135,53 @@ export default function useCanvasRealtime({
                 remoteCamerasRef.current = nextRemoteCameras;
             }
 
+            const now = Date.now();
+            Object.entries(nextCursors).forEach(([uid, cursor]) => {
+                if (uid === userId) return;
+
+                const previous = recordedRemoteCursorsRef.current.get(uid);
+                const signature = `${Math.round(cursor.x * 10) / 10}:${Math.round(cursor.y * 10) / 10}`;
+                if (previous?.signature === signature || now - (previous?.ts || 0) < 40) return;
+
+                recordedRemoteCursorsRef.current.set(uid, { signature, ts: now });
+                recordEvent?.("cursor.moved", uid, {
+                    x: cursor.x,
+                    y: cursor.y,
+                    name: cursor.name,
+                    color: cursor.color,
+                    avatar: cursor.avatar,
+                });
+            });
+
+            Object.entries(nextLiveStrokes).forEach(([uid, stroke]) => {
+                if (uid === userId || !stroke?.points?.length) return;
+
+                const lastPoint = stroke.points[stroke.points.length - 1];
+                const signature = `${stroke.id || ""}:${stroke.points.length}:${Math.round(lastPoint.x * 10) / 10}:${Math.round(lastPoint.y * 10) / 10}`;
+                const previous = recordedRemoteStrokesRef.current.get(uid);
+                if (previous?.signature === signature || now - (previous?.ts || 0) < 40) return;
+
+                recordedRemoteStrokesRef.current.set(uid, { signature, ts: now, active: true });
+                recordEvent?.("liveStroke.updated", uid, {
+                    stroke: {
+                        ...stroke,
+                        userId: uid,
+                        name: nextCursors[uid]?.name || nextParticipantsMap.get(uid)?.name,
+                        color: stroke.color || nextCursors[uid]?.color || nextParticipantsMap.get(uid)?.color,
+                    },
+                });
+            });
+
+            Array.from(recordedRemoteStrokesRef.current.keys()).forEach((uid) => {
+                if (uid === userId || nextLiveStrokes[uid]) return;
+
+                const previous = recordedRemoteStrokesRef.current.get(uid);
+                if (!previous?.active) return;
+
+                recordedRemoteStrokesRef.current.set(uid, { ...previous, active: false });
+                recordEvent?.("liveStroke.ended", uid, {});
+            });
+
             if (followedUserIdRef?.current) {
                 const followedCamera = nextRemoteCameras[String(followedUserIdRef.current)];
                 if (followedCamera) {
@@ -152,7 +201,7 @@ export default function useCanvasRealtime({
         return () => {
             awareness.off("change", refreshPresence);
         };
-    }, [awareness, followedUserIdRef, remoteCamerasRef, rendererRef, setCamera]);
+    }, [awareness, followedUserIdRef, recordEvent, remoteCamerasRef, rendererRef, setCamera, userId]);
 
     const emitCursorMove = useCallback((x, y) => {
         if (!awareness || !userId) return;

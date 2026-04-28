@@ -9,6 +9,7 @@ describe("Replay Theme Fallback", () => {
       events: []
     });
     expect(state.isDark).toBe(false);
+    expect(state.bgMode).toBe("white");
   });
 
   it("uses initialSnapshot.isDark when present", () => {
@@ -36,5 +37,23 @@ describe("Replay Theme Fallback", () => {
     });
     expect(stateBefore.isDark).toBe(false);
     expect(stateAfter.isDark).toBe(true);
+  });
+
+  it("uses the recorded background mode and applies background changes", () => {
+    const events = [
+      { timestampMs: 500, type: "bgMode.changed", payload: { bgMode: "grid" } }
+    ];
+    const stateBefore = buildReplayStateAtTime({
+      currentTime: 400,
+      initialSnapshot: { elements: [], bgMode: "dots" },
+      events
+    });
+    const stateAfter = buildReplayStateAtTime({
+      currentTime: 600,
+      initialSnapshot: { elements: [], bgMode: "dots" },
+      events
+    });
+    expect(stateBefore.bgMode).toBe("dots");
+    expect(stateAfter.bgMode).toBe("grid");
   });
 });
