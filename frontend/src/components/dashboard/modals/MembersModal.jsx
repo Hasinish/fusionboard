@@ -31,7 +31,7 @@ export default function MembersModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-[#E8DDD0]"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-[#E8DDD0]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
