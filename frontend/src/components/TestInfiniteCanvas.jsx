@@ -122,6 +122,11 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         isViewerRef,
     });
 
+    const smoothFollowCamera = useCallback((cam) => {
+        targetCameraRef.current = cam;
+        startCameraAnimation();
+    }, [targetCameraRef, startCameraAnimation]);
+
     const {
         participants,
         emitCursorMove,
@@ -131,7 +136,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     } = useCanvasRealtime({
         awareness,
         me,
-        setCamera,
+        setCamera: smoothFollowCamera,
         followedUserIdRef, remoteCamerasRef,
         rendererRef,
         recordEvent,
@@ -345,9 +350,10 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
             bgMode,
             isDark,
             myUserId: me?.userId || me?.id || null,
-            autoShapePreview
+            autoShapePreview,
+            selectedIds: new Set(selectedIds)
         });
-    }, [eraserPath, selectionBox, currentPath, bgMode, isDark, me, syncOverlays, autoShapePreview]);
+    }, [eraserPath, selectionBox, currentPath, bgMode, isDark, me, syncOverlays, autoShapePreview, selectedIds]);
 
     // ─── sync camera into canvas renderer ─────────────────────────────────
     useEffect(() => {

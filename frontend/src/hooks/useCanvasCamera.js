@@ -40,12 +40,13 @@ export default function useCanvasCamera() {
             
             setCamera(prev => {
                 const target = targetCameraRef.current;
-                const speed = 0.22;
+                const speed = 0.45; // Increased speed to keep up with 50ms network ticks
                 const dx = (target.x - prev.x) * speed;
                 const dy = (target.y - prev.y) * speed;
                 const dz = (target.z - prev.z) * speed;
                 
-                if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05 && Math.abs(dz) < 0.0005) {
+                // Lowered threshold to prevent start/stop micro-stutters
+                if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01 && Math.abs(dz) < 0.0001) {
                     isAnimatingRef.current = false;
                     return target;
                 }

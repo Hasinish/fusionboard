@@ -20,6 +20,8 @@ export class CanvasRenderer {
     // Overlay state — set from outside via syncOverlays()
     this.remoteLiveStrokes = {}
     this.cursors = {}
+    this.lerpedCursors = new Map()
+    this.lerpedElements = new Map()
     this.eraserPath = null
     this.selectionBox = null
     this.currentPath = null
@@ -28,6 +30,7 @@ export class CanvasRenderer {
     this.myUserId = null
     this.autoShapePreview = null
     this.localCursor = null // { tool, x, y, width, color } in screen coords
+    this.selectedIds = new Set()
 
     this._rafId = null
     this._running = false
@@ -157,13 +160,49 @@ export class CanvasRenderer {
 
     // Draw all committed elements
     for (const id of this.elementOrder) {
-      const el = this.elements.get(id)
-      if (!el) continue
+      const rawEl = this.elements.get(id)
+      if (!rawEl) continue
 
       // Elements completely replaced by React (always rendered by React)
-      if (['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)) continue
+      if (['text', 'code', 'video', 'graph', 'sticky'].includes(rawEl.type)) continue
 
       if (this.previewElements.has(id)) continue
+
+      let el = rawEl
+      if (this.selectedIds && !this.selectedIds.has(id)) {
+        // Remote element: Lerp it
+        let current = this.lerpedElements.get(id)
+        if (!current) {
+          current = { ...rawEl }
+          this.lerpedElements.set(id, current)
+        } else {
+          // Keep non-lerpable properties updated
+          for (const key in rawEl) {
+            if (!['x', 'y', 'w', 'h', 'rotation'].includes(key)) {
+              current[key] = rawEl[key]
+            }
+          }
+          // Lerp properties
+          if (rawEl.x != null) current.x += (rawEl.x - current.x) * 0.3
+          if (rawEl.y != null) current.y += (rawEl.y - current.y) * 0.3
+          if (rawEl.w != null) current.w += (rawEl.w - current.w) * 0.3
+          if (rawEl.h != null) current.h += (rawEl.h - current.h) * 0.3
+          
+          if (rawEl.rotation != null) {
+              if (current.rotation == null) current.rotation = rawEl.rotation
+              else {
+                  let diff = rawEl.rotation - current.rotation;
+                  while (diff < -180) diff += 360;
+                  while (diff > 180) diff -= 360;
+                  current.rotation += diff * 0.3;
+              }
+          }
+        }
+        el = current
+      } else {
+        // Local element: Snap immediately, but update lerp cache to prevent rubber-banding on deselect
+        this.lerpedElements.set(id, { ...rawEl })
+      }
 
       if (this.hiddenElementIds.has(id)) {
         // Draw eraser-marked elements as faded ghosts
@@ -175,6 +214,13 @@ export class CanvasRenderer {
       // So tell the canvas to draw the shape, but NOT the text.
       const skipText = this.overlayElementIds.has(id)
       drawElement(ctx, skipText ? { ...el, text: null } : el)
+    }
+
+    // Garbage collect removed lerped elements
+    for (const id of this.lerpedElements.keys()) {
+        if (!this.elements.has(id)) {
+            this.lerpedElements.delete(id)
+        }
     }
 
     for (const el of this.previewElements.values()) {
@@ -211,9 +257,28 @@ export class CanvasRenderer {
       drawLiveStroke(ctx, userId, stroke, camera)
     }
 
+    // Clean up stale lerped cursors
+    for (const userId of this.lerpedCursors.keys()) {
+      if (!this.cursors[userId]) {
+        this.lerpedCursors.delete(userId)
+      }
+    }
+
     for (const [userId, state] of Object.entries(this.cursors)) {
       if (userId !== String(this.myUserId)) {
-        drawCursor(ctx, userId, state, camera)
+        let current = this.lerpedCursors.get(userId)
+        if (!current) {
+          current = { ...state }
+          this.lerpedCursors.set(userId, current)
+        } else {
+          // Lerp position
+          current.x += (state.x - current.x) * 0.3
+          current.y += (state.y - current.y) * 0.3
+          // Keep metadata up to date
+          current.name = state.name
+          current.color = state.color
+        }
+        drawCursor(ctx, userId, current, camera)
       }
     }
 
