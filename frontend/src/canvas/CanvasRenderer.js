@@ -7,9 +7,11 @@ import {
 } from './drawOverlays.js'
 
 export class CanvasRenderer {
-  constructor(canvasEl) {
+  constructor(canvasEl, overlayCanvasEl) {
     this.canvas = canvasEl
     this.ctx = canvasEl.getContext('2d')
+    this.overlayCanvas = overlayCanvasEl
+    this.overlayCtx = overlayCanvasEl ? overlayCanvasEl.getContext('2d') : null
     this.elements = new Map()
     this.elementOrder = []
     this.previewElements = new Map()
@@ -139,6 +141,7 @@ export class CanvasRenderer {
 
     // Background is drawn by CSS on the wrapper div, so we just clear
     ctx.clearRect(0, 0, w, h)
+    if (this.overlayCtx) { this.overlayCtx.clearRect(0, 0, w, h) }
   }
 
   _loop() {
@@ -253,8 +256,9 @@ export class CanvasRenderer {
     ctx.restore() // end world-space
 
     // Screen-space overlays (world→screen conversion is done internally)
+    const oCtx = this.overlayCtx || ctx;
     for (const [userId, stroke] of Object.entries(this.remoteLiveStrokes)) {
-      drawLiveStroke(ctx, userId, stroke, camera)
+      drawLiveStroke(oCtx, userId, stroke, camera)
     }
 
     // Clean up stale lerped cursors
@@ -278,37 +282,37 @@ export class CanvasRenderer {
           current.name = state.name
           current.color = state.color
         }
-        drawCursor(ctx, userId, current, camera)
+        drawCursor(oCtx, userId, current, camera)
       }
     }
 
-    if (this.eraserPath) drawEraserTrail(ctx, this.eraserPath, camera)
-    if (this.selectionBox) drawSelectionMarquee(ctx, this.selectionBox, camera)
+    if (this.eraserPath) drawEraserTrail(oCtx, this.eraserPath, camera)
+    if (this.selectionBox) drawSelectionMarquee(oCtx, this.selectionBox, camera)
 
     // Draw the local cursor (lag-free rendering)
     if (this.localCursor) {
       const { tool, x, y, width, color } = this.localCursor
       if (tool === 'eraser') {
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(x, y, 12, 0, Math.PI * 2)
-        ctx.strokeStyle = '#f87171' // red-400
-        ctx.lineWidth = 2
-        ctx.stroke()
-        ctx.fillStyle = 'rgba(239,68,68,0.1)'
-        ctx.fill()
-        ctx.restore()
+        oCtx.save()
+        oCtx.beginPath()
+        oCtx.arc(x, y, 12, 0, Math.PI * 2)
+        oCtx.strokeStyle = '#f87171'
+        oCtx.lineWidth = 2
+        oCtx.stroke()
+        oCtx.fillStyle = 'rgba(239,68,68,0.1)'
+        oCtx.fill()
+        oCtx.restore()
       } else if (tool === 'pen') {
-        ctx.save()
-        ctx.beginPath()
+        oCtx.save()
+        oCtx.beginPath()
         const z = this.camera.z
-        ctx.arc(x, y, (width || 2) * z / 2, 0, Math.PI * 2)
-        ctx.strokeStyle = color || '#000000'
-        ctx.lineWidth = 1
-        ctx.stroke()
-        ctx.fillStyle = `${color || '#000000'}20`
-        ctx.fill()
-        ctx.restore()
+        oCtx.arc(x, y, (width || 2) * z / 2, 0, Math.PI * 2)
+        oCtx.strokeStyle = color || '#000000'
+        oCtx.lineWidth = 1
+        oCtx.stroke()
+        oCtx.fillStyle = `${color || '#000000'}20`
+        oCtx.fill()
+        oCtx.restore()
       }
     }
 

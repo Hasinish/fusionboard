@@ -11958,3 +11958,74 @@ Check the 'Input' tab if you want to try different stats![K
 [K
 [K
 [K[9;1H[?25h
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (javascript) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h[25l[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+hey
+[25lhey
+   
+   [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25h

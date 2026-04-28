@@ -1,12 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { CanvasRenderer } from './CanvasRenderer.js'
 
-export function useCanvasRenderer(canvasRef, boardStore) {
+export function useCanvasRenderer(canvasRef, overlayCanvasRef, boardStore) {
   const rendererRef = useRef(null)
 
   useEffect(() => {
     if (!canvasRef.current) return
-    const renderer = new CanvasRenderer(canvasRef.current)
+    const renderer = new CanvasRenderer(canvasRef.current, overlayCanvasRef?.current)
     rendererRef.current = renderer
     renderer.start()
 
@@ -22,6 +22,14 @@ export function useCanvasRenderer(canvasRef, boardStore) {
       const ctx = canvas.getContext('2d')
       ctx.scale(dpr, dpr)
       renderer.ctx = ctx
+      if (overlayCanvasRef?.current) {
+        const overlayCanvas = overlayCanvasRef.current
+        overlayCanvas.width = w * dpr
+        overlayCanvas.height = h * dpr
+        const overlayCtx = overlayCanvas.getContext('2d')
+        overlayCtx.scale(dpr, dpr)
+        renderer.overlayCtx = overlayCtx
+      }
       renderer._logicalW = w
       renderer._logicalH = h
     })

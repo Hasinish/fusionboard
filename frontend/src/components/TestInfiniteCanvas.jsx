@@ -66,6 +66,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
     const yjsToken = localStorage.getItem("token");
     const canvasRef = useRef(null);
+    const overlayCanvasRef = useRef(null);
 
     const {
         awareness,
@@ -88,7 +89,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     const sidebarElement = useBoardElement(boardStore, activeSidebarElementId);
     const effectiveSidebarOpen = isSidebarOpen && !!activeSidebarElementId;
 
-    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef, boardStore);
+    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef, overlayCanvasRef, boardStore);
 
     const {
         camera, setCamera, cameraRef,
@@ -533,8 +534,16 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 rendererRef={rendererRef}
             />
 
-
-
+            {/* Overlay canvas for cursors — above all board elements */}
+            <canvas
+                ref={overlayCanvasRef}
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 25
+                }}
+            />
 
             {/* UI overlay container */}
             <div className="absolute inset-0 pointer-events-none z-30">
