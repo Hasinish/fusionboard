@@ -291,6 +291,13 @@ export async function updateMemberRole(req, res) {
     await workspace.save();
     
     emitToWorkspace(workspace._id, "workspace:members-updated", { workspaceId: workspace._id });
+    
+    if (role === "owner") {
+        emitToUser(memberId, "workspace:role-updated", { workspaceId: workspace._id, role: "owner" });
+        emitToUser(userId, "workspace:role-updated", { workspaceId: workspace._id, role: "editor" });
+    } else {
+        emitToUser(memberId, "workspace:role-updated", { workspaceId: workspace._id, role });
+    }
 
     return res.json({ message: "Member role updated" });
   } catch (e) {
@@ -336,6 +343,7 @@ export async function removeMember(req, res) {
     await workspace.save();
     
     emitToWorkspace(workspace._id, "workspace:members-updated", { workspaceId: workspace._id });
+    emitToUser(memberId, "workspace:kicked", { workspaceId: workspace._id });
 
     return res.json({ message: "Member removed from workspace" });
   } catch (e) {

@@ -50,7 +50,7 @@ export function useWorkspaces() {
     const token = localStorage.getItem("token");
     if (!token) {
       setLoadingWorkspaces(false);
-      return;
+      return [];
     }
 
     setError("");
@@ -71,8 +71,10 @@ export function useWorkspaces() {
           setSelectedWorkspaceId(wsData[0]._id);
         }
       }
+      return wsData;
     } catch (err) {
       setError("Failed to load workspaces.");
+      return [];
     } finally {
       setLoadingWorkspaces(false);
     }
@@ -96,6 +98,26 @@ export function useWorkspaces() {
 
       socket.on("workspace:members-updated", (data) => {
         setRefreshMembersTrigger(prev => prev + 1);
+      });
+
+      socket.on("workspace:role-updated", (data) => {
+        setRefreshMembersTrigger(prev => prev + 1);
+      });
+
+      socket.on("workspace:kicked", async ({ workspaceId }) => {
+        const updatedWorkspaces = await fetchWorkspaces();
+        setSelectedWorkspaceId((currentSelected) => {
+          if (String(currentSelected) === String(workspaceId)) {
+            if (updatedWorkspaces && updatedWorkspaces.length > 0) {
+              navigate(`/dashboard?wsId=${updatedWorkspaces[0]._id}`);
+              return updatedWorkspaces[0]._id;
+            } else {
+              navigate("/dashboard");
+              return null;
+            }
+          }
+          return currentSelected;
+        });
       });
     }
 
