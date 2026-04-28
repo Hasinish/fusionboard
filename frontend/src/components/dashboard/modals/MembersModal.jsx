@@ -31,7 +31,7 @@ export default function MembersModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-visible border border-[#E8DDD0]"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-[#E8DDD0]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -174,7 +174,7 @@ export default function MembersModal({
                     )}
                     {/* Role badge/dropdown */}
                     {isOwner && m.role !== "owner" ? (
-                      <div className="dropdown dropdown-bottom dropdown-end">
+                      <div className="dropdown dropdown-top dropdown-end">
                         <div
                           tabIndex={0}
                           role="button"
@@ -191,7 +191,7 @@ export default function MembersModal({
                         </div>
                         <ul
                           tabIndex={0}
-                          className="dropdown-content z-[50] menu p-1.5 shadow-xl bg-white rounded-xl w-36 mt-1 border border-[#E8DDD0] animate-in fade-in zoom-in duration-200"
+                          className="dropdown-content z-[70] menu p-1.5 shadow-xl bg-white rounded-xl w-36 mb-1 border border-[#E8DDD0] animate-in fade-in zoom-in duration-200"
                         >
                           <li>
                             <button
