@@ -44,7 +44,7 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
         if (!apiBase) {
             const isProd = window.location.hostname.includes("vercel.app") || window.location.hostname.includes("fusionboard");
             // FALLBACK: Update this with your actual Render URL
-            apiBase = isProd ? "https://fusionboard-backend.onrender.com/api" : "http://localhost:5001/api";
+            apiBase = isProd ? "https://fusionboard-backend-docker.onrender.com/api" : "http://localhost:5001/api";
         }
         
         const wsBase = apiBase.replace(/\/api$/, "").replace(/^https/, "wss").replace(/^http/, "ws");

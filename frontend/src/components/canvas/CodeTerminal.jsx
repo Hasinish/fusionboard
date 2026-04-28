@@ -7,7 +7,7 @@ import "@xterm/xterm/css/xterm.css";
 let baseApi = import.meta.env.VITE_API_URL;
 if (!baseApi) {
     const isProd = typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("fusionboard"));
-    baseApi = isProd ? "https://fusionboard-backend.onrender.com" : "http://localhost:5001";
+    baseApi = isProd ? "https://fusionboard-backend-docker.onrender.com" : "http://localhost:5001";
 }
 const API_URL = baseApi;
 
