@@ -20,29 +20,31 @@ export const handleTerminalConnection = (socket) => {
             let filename = "";
             let commandString = "";
 
+            const trimmedCode = code.trim();
+
             if (language === "python") {
                 filename = "main.py";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = `python -u main.py`;
             } else if (language === "javascript") {
                 filename = "main.js";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = `node main.js`;
             } else if (language === "cpp") {
                 filename = "main.cpp";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = os.platform() === 'win32' ? `g++ main.cpp -o main.exe && ./main.exe` : `g++ main.cpp -o main && ./main`;
             } else if (language === "java") {
                 filename = "Main.java";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = `javac Main.java && java Main`;
             } else if (language === "go") {
                 filename = "main.go";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = `go run main.go`;
             } else if (language === "rust") {
                 filename = "main.rs";
-                fs.writeFileSync(path.join(tempDir, filename), code);
+                fs.writeFileSync(path.join(tempDir, filename), trimmedCode);
                 commandString = os.platform() === 'win32' ? `rustc main.rs && ./main.exe` : `rustc main.rs && ./main`;
             }
 
