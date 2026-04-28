@@ -349,6 +349,31 @@ export const setupSocket = (io) => {
     });
 };
 
+export function getActiveBoardUsers(boardId) {
+    const unique = [];
+    const seen = new Set();
+    for (const [sid, meta] of socketMeta) {
+        if (ioInstance) {
+            const s = ioInstance.sockets.sockets.get(sid);
+            if (!s || !s.connected) {
+                socketMeta.delete(sid);
+                continue;
+            }
+        }
+        if (String(meta.boardId) === String(boardId)) {
+            if (!seen.has(String(meta.userId))) {
+                seen.add(String(meta.userId));
+                unique.push({
+                    userId: meta.userId,
+                    name: meta.name,
+                    avatar: meta.avatar
+                });
+            }
+        }
+    }
+    return unique;
+}
+
 export function getActiveUsersMap(boardIds) {
     const res = {};
     for (const boardId of boardIds) {
