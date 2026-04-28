@@ -65,6 +65,10 @@ export async function createBoard(req, res) {
 
       if (operations.length > 0) {
         await Notification.bulkWrite(operations);
+        // Emit real-time notification to each recipient
+        recipients.forEach((recipientId) => {
+          emitToUser(recipientId, "notification:refresh", {});
+        });
       }
     }
 

@@ -22,7 +22,7 @@ export const emitToUser = (userId, event, data) => {
 
 export const emitToWorkspace = (workspaceId, event, data) => {
     if (!ioInstance) return;
-    ioInstance.to(`ws:${workspaceId}`).emit(event, data);
+    ioInstance.to(`ws:${String(workspaceId)}`).emit(event, data);
 };
 
 export const setupSocket = (io) => {
@@ -227,6 +227,9 @@ export const setupSocket = (io) => {
                     }));
                     if (operations.length > 0) {
                         await Notification.bulkWrite(operations);
+                        recipients.forEach((recipientId) => {
+                            emitToUser(recipientId, "notification:refresh", {});
+                        });
                     }
                 }
                 await Activity.create({
@@ -271,7 +274,7 @@ export const setupSocket = (io) => {
                 if (oldMeta.workspaceId) {
                     socketMeta.delete(socket.id);
                     const updatedUsersForOldBoard = getActiveBoardUsers(oldMeta.boardId);
-                    io.to(`ws:${oldMeta.workspaceId}`).emit("board:users-updated", {
+                    io.to(`ws:${String(oldMeta.workspaceId)}`).emit("board:users-updated", {
                         boardId: oldMeta.boardId,
                         activeUsers: updatedUsersForOldBoard
                     });
@@ -290,7 +293,7 @@ export const setupSocket = (io) => {
 
             if (workspaceId) {
                 const updatedUsers = getActiveBoardUsers(boardId);
-                io.to(`ws:${workspaceId}`).emit("board:users-updated", {
+                io.to(`ws:${String(workspaceId)}`).emit("board:users-updated", {
                     boardId,
                     activeUsers: updatedUsers
                 });
@@ -333,7 +336,7 @@ export const setupSocket = (io) => {
             if (workspaceId && boardId) {
                 const updatedUsers = getActiveBoardUsers(boardId);
                 console.log(`[Socket] Emitting board:users-updated for board ${boardId} to ws:${workspaceId}`);
-                io.to(`ws:${workspaceId}`).emit("board:users-updated", { 
+                io.to(`ws:${String(workspaceId)}`).emit("board:users-updated", { 
                     boardId: String(boardId), 
                     activeUsers: updatedUsers 
                 });

@@ -42,9 +42,17 @@ export function useBoards(selectedWorkspaceId) {
       });
       socketRef.current = socket;
 
-      socket.on("connect", () => {
-           socket.emit("workspace:join", { workspaceId: selectedWorkspaceId });
-         });
+      const joinWorkspace = () => {
+        if (selectedWorkspaceId) {
+          socket.emit("workspace:join", { workspaceId: selectedWorkspaceId });
+        }
+      };
+
+      if (socket.connected) {
+        joinWorkspace();
+      }
+      
+      socket.on("connect", joinWorkspace);
 
       socket.on("board:created", (board) => {
         setWorkspaceBoards(prev =>

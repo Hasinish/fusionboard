@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import api from "../lib/api";
+import api, { API_URL } from "../lib/api";
+import { io } from "socket.io-client";
 
 export function useNotifications() {
   const [invitations, setInvitations] = useState([]);
@@ -44,7 +45,22 @@ export function useNotifications() {
   useEffect(() => {
     fetchAll();
     const interval = setInterval(fetchAll, 30000); // refresh every 30s
-    return () => clearInterval(interval);
+    
+    const token = localStorage.getItem("token");
+    let socket = null;
+    if (token) {
+      socket = io(API_URL.replace("/api", ""), {
+        auth: { token },
+      });
+      socket.on("notification:refresh", () => {
+        fetchAll();
+      });
+    }
+
+    return () => {
+      clearInterval(interval);
+      socket?.disconnect();
+    };
   }, []);
 
   // Close notifications on outside click

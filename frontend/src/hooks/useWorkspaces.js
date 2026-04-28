@@ -230,12 +230,16 @@ export function useWorkspaces() {
       await api.delete(`/workspaces/${selectedWorkspaceId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setWorkspaces((prev) =>
-        prev.filter((w) => w._id !== selectedWorkspaceId)
-      );
-      setSelectedWorkspaceId(null);
+      const remaining = workspaces.filter((w) => w._id !== selectedWorkspaceId);
+      setWorkspaces(remaining);
       setShowDeleteModal(false);
-      navigate("/dashboard");
+      if (remaining.length > 0) {
+        setSelectedWorkspaceId(remaining[0]._id);
+        navigate(`/dashboard?wsId=${remaining[0]._id}`);
+      } else {
+        setSelectedWorkspaceId(null);
+        navigate("/dashboard");
+      }
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete workspace.");
     } finally {
