@@ -44,6 +44,11 @@ export default function PropertySidebar({
         } shadow-xl`}
         style={{ width: 360 }}
         onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
       >
         {element && element.type === "graph" ? (
           <GraphEditorPanel 

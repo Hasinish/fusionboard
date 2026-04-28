@@ -64,9 +64,15 @@ export default function GraphRenderer({
     const shouldPanInternally = isInternalPanMode || e.button === 1 || e.altKey;
     if (!shouldPanInternally) return;
 
+    if (e.cancelable) e.preventDefault();
     e.stopPropagation();
+    
+    // Explicit pointer capture to ensure we receive move/up events even if pointer leaves SVG
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     const startPoint = { x: e.clientX, y: e.clientY };
     const initialViewport = { ...viewport };
+    const target = e.currentTarget;
 
     const handlePointerMove = (moveEvent) => {
       const delta = {
@@ -74,16 +80,24 @@ export default function GraphRenderer({
         y: moveEvent.clientY - startPoint.y
       };
       const panned = panViewport(initialViewport, delta, blockDims);
-      onViewportChange(panned);
+      onViewportChange(panned, false);
     };
 
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
+    const handlePointerUp = (moveEvent) => {
+      const delta = {
+        x: moveEvent.clientX - startPoint.x,
+        y: moveEvent.clientY - startPoint.y
+      };
+      const panned = panViewport(initialViewport, delta, blockDims);
+      onViewportChange(panned, true);
+      
+      target.removeEventListener("pointermove", handlePointerMove);
+      target.removeEventListener("pointerup", handlePointerUp);
+      target.releasePointerCapture(e.pointerId);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
+    target.addEventListener("pointermove", handlePointerMove);
+    target.addEventListener("pointerup", handlePointerUp);
   };
 
   // Rendering helpers for grid/axes

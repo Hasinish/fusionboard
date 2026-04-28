@@ -23,9 +23,9 @@ export default function GraphElement({
   const [internalPanOverride, setInternalPanOverride] = useState(null);
   const zoom = camera.z || 1;
   const isInternalPanMode = !isViewer && (
-    isEditing && isSidebarOpen
-      ? (internalPanOverride ?? true)
-      : false
+    internalPanOverride !== null 
+      ? internalPanOverride 
+      : (isEditing && isSidebarOpen)
   );
 
   const triggerEdit = () => {
@@ -55,8 +55,8 @@ export default function GraphElement({
     onChange({ ...element, ...updates }, persist);
   };
 
-  const handleViewportChange = (viewport) => {
-    handleUpdate({ viewport }, true);
+  const handleViewportChange = (viewport, persist = true) => {
+    handleUpdate({ viewport }, persist);
   };
 
   return (
@@ -77,104 +77,85 @@ export default function GraphElement({
         zoom={zoom}
       />
 
-      {/* Floating View Controls - Scaled with camera.z for natural feel */}
+      {/* Floating View Controls - Scaled with camera.z and element width for natural feel */}
       {zoom > 0.25 && !isViewer && isHovered && (
         <div 
-          className="absolute flex gap-1 z-[20] pointer-events-auto animate-in fade-in duration-200"
+          className="absolute z-[20] pointer-events-auto animate-in fade-in duration-200"
           style={{ 
-            top: 8 * zoom, 
-            left: 8 * zoom,
-            gap: 6 * zoom 
+            top: 8 * zoom * (element.w / 500), 
+            left: 8 * zoom * (element.w / 500),
+            transform: `scale(${zoom * (element.w / 500)})`,
+            transformOrigin: "top left"
           }}
           onPointerDown={e => e.stopPropagation()}
         >
-          <div className={`flex ${isDark ? "bg-[#2d2d2d]/90 border-white/10" : "bg-white/90 border-gray-200"} backdrop-blur rounded shadow-sm border overflow-hidden`} style={{ borderRadius: 6 * zoom }}>
+          <div className="flex gap-1">
+            <div className={`flex ${isDark ? "bg-[#2d2d2d]/90 border-white/10" : "bg-white/90 border-gray-200"} backdrop-blur rounded shadow-sm border overflow-hidden`}>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInternalPanOverride((prev) => {
+                    const currentValue = prev ?? (isEditing && isSidebarOpen);
+                    return !currentValue;
+                  });
+                }}
+                className={`transition-all active:scale-95 flex items-center justify-center border-r w-7 h-7 ${
+                  isInternalPanMode 
+                    ? "bg-blue-500 text-white" 
+                    : (isDark ? "text-gray-300 border-white/5 hover:bg-white/10" : "text-gray-600 border-gray-100 hover:bg-gray-50")
+                }`}
+                title={isInternalPanMode ? "Disable Internal Pan" : "Enable Internal Pan"}
+              >
+                <Hand size={14} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange({ ...element, viewport: { xMin: -10, xMax: 10, yMin: -10, yMax: 10 } }, true);
+                }}
+                className={`hover:bg-primary/10 ${isDark ? "text-gray-300 border-white/5" : "text-gray-600 border-gray-100"} transition-all active:scale-95 flex items-center justify-center border-r w-7 h-7`}
+                title="Reset View"
+              >
+                <RotateCcw size={14} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const factor = 1 / 1.5;
+                  const center = { x: sw / 2, y: sh / 2 };
+                  const newViewport = zoomViewportAt(element.viewport, center, factor, { w: sw, h: sh });
+                  handleViewportChange(newViewport, true);
+                }}
+                className={`hover:bg-primary/10 ${isDark ? "text-gray-300 border-white/5" : "text-gray-600 border-gray-100"} transition-all active:scale-95 flex items-center justify-center border-r w-7 h-7`}
+                title="Zoom In"
+              >
+                <Plus size={14} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const factor = 1.5;
+                  const center = { x: sw / 2, y: sh / 2 };
+                  const newViewport = zoomViewportAt(element.viewport, center, factor, { w: sw, h: sh });
+                  handleViewportChange(newViewport, true);
+                }}
+                className={`hover:bg-primary/10 ${isDark ? "text-gray-300" : "text-gray-600"} transition-all active:scale-95 flex items-center justify-center w-7 h-7`}
+                title="Zoom Out"
+              >
+                <Minus size={14} />
+              </button>
+            </div>
+
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                setInternalPanOverride((prev) => {
-                  const currentValue = prev ?? true;
-                  return !currentValue;
-                });
+                triggerEdit();
               }}
-              className={`transition-all active:scale-95 flex items-center justify-center border-r ${
-                isInternalPanMode 
-                  ? "bg-blue-500 text-white" 
-                  : (isDark ? "text-gray-300 border-white/5 hover:bg-white/10" : "text-gray-600 border-gray-100 hover:bg-gray-50")
-              }`}
-              style={{ 
-                width: 28 * zoom, 
-                height: 28 * zoom
-              }}
-              title={isInternalPanMode ? "Disable Internal Pan" : "Enable Internal Pan"}
+              className={`${isDark ? "bg-[#2d2d2d]/90 border-white/10 text-gray-200" : "bg-white/90 border-gray-200 text-gray-700"} backdrop-blur hover:bg-primary/10 rounded shadow-sm border transition-all active:scale-95 font-bold flex items-center justify-center h-7 px-2.5 text-xs`}
             >
-              <Hand size={14 * zoom} />
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange({ ...element, viewport: { xMin: -10, xMax: 10, yMin: -10, yMax: 10 } }, true);
-              }}
-              className={`hover:bg-primary/10 ${isDark ? "text-gray-300 border-white/5" : "text-gray-600 border-gray-100"} transition-all active:scale-95 flex items-center justify-center border-r`}
-              style={{ 
-                width: 28 * zoom, 
-                height: 28 * zoom
-              }}
-              title="Reset View"
-            >
-              <RotateCcw size={14 * zoom} />
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                const factor = 1 / 1.5;
-                const center = { x: sw / 2, y: sh / 2 };
-                const newViewport = zoomViewportAt(element.viewport, center, factor, { w: sw, h: sh });
-                handleViewportChange(newViewport);
-              }}
-              className={`hover:bg-primary/10 ${isDark ? "text-gray-300 border-white/5" : "text-gray-600 border-gray-100"} transition-all active:scale-95 flex items-center justify-center border-r`}
-              style={{ 
-                width: 28 * zoom, 
-                height: 28 * zoom
-              }}
-              title="Zoom In"
-            >
-              <Plus size={14 * zoom} />
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                const factor = 1.5;
-                const center = { x: sw / 2, y: sh / 2 };
-                const newViewport = zoomViewportAt(element.viewport, center, factor, { w: sw, h: sh });
-                handleViewportChange(newViewport);
-              }}
-              className={`hover:bg-primary/10 ${isDark ? "text-gray-300" : "text-gray-600"} transition-all active:scale-95 flex items-center justify-center`}
-              style={{ 
-                width: 28 * zoom, 
-                height: 28 * zoom
-              }}
-              title="Zoom Out"
-            >
-              <Minus size={14 * zoom} />
+              Edit
             </button>
           </div>
-
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              triggerEdit();
-            }}
-            className={`${isDark ? "bg-[#2d2d2d]/90 border-white/10 text-gray-200" : "bg-white/90 border-gray-200 text-gray-700"} backdrop-blur hover:bg-primary/10 rounded shadow-sm border transition-all active:scale-95 font-bold flex items-center justify-center`}
-            style={{ 
-              height: 28 * zoom, 
-              padding: `0 ${10 * zoom}px`,
-              fontSize: 12 * zoom,
-              borderRadius: 6 * zoom
-            }}
-          >
-            Edit
-          </button>
         </div>
       )}
     </div>
