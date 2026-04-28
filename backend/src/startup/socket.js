@@ -13,11 +13,7 @@ let ioInstance;
 
 export const emitToUser = (userId, event, data) => {
     if (!ioInstance) return;
-    for (const [sid, socket] of ioInstance.sockets.sockets) {
-        if (String(socket.userId) === String(userId)) {
-            socket.emit(event, data);
-        }
-    }
+    ioInstance.to(String(userId)).emit(event, data);
 };
 
 export const emitToWorkspace = (workspaceId, event, data) => {
@@ -118,6 +114,11 @@ export const setupSocket = (io) => {
     }
 
     io.on("connection", (socket) => {
+        // Automatically join a room for this specific user to receive direct events (like notifications)
+        if (socket.userId) {
+            socket.join(String(socket.userId));
+        }
+
         handleTerminalConnection(socket);
         // handling voice chat stuff
         socket.on("voice:join", ({ roomId }) => {
