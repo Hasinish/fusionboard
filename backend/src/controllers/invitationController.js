@@ -3,7 +3,7 @@ import Workspace from "../models/Workspace.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js"; // [NEW] Import User to get email
 import driveClient from "../config/googleDrive.js"; // [NEW] Import Drive Client
-import { emitToUser } from "../startup/socket.js";
+import { emitToUser, emitToWorkspace } from "../startup/socket.js";
 
 // fetch any invites waiting for me
 export async function getMyInvitations(req, res) {
@@ -162,6 +162,8 @@ export async function acceptInvitation(req, res) {
       workspaceId: workspace._id,
       workspaceName: workspace.name,
     });
+    
+    emitToWorkspace(workspace._id, "workspace:members-updated", { workspaceId: workspace._id });
 
     return res.json({ message: "Invitation accepted" });
   } catch (e) {

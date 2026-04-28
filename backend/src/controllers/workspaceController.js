@@ -2,7 +2,7 @@
 import Workspace from "../models/Workspace.js";
 import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
-import { emitToUser } from "../startup/socket.js";
+import { emitToUser, emitToWorkspace } from "../startup/socket.js";
 
 const ONLINE_THRESHOLD_MS = 1000 * 5; // 5 secs ative threshold
 
@@ -289,6 +289,8 @@ export async function updateMemberRole(req, res) {
     }
 
     await workspace.save();
+    
+    emitToWorkspace(workspace._id, "workspace:members-updated", { workspaceId: workspace._id });
 
     return res.json({ message: "Member role updated" });
   } catch (e) {
@@ -332,6 +334,8 @@ export async function removeMember(req, res) {
     }
 
     await workspace.save();
+    
+    emitToWorkspace(workspace._id, "workspace:members-updated", { workspaceId: workspace._id });
 
     return res.json({ message: "Member removed from workspace" });
   } catch (e) {

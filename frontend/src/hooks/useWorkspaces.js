@@ -18,6 +18,7 @@ export function useWorkspaces() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null);
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceMembers, setWorkspaceMembers] = useState([]);
+  const [refreshMembersTrigger, setRefreshMembersTrigger] = useState(0);
 
   // Create Workspace State
   const [creatingWs, setCreatingWs] = useState(false);
@@ -92,6 +93,10 @@ export function useWorkspaces() {
         console.log("Workspace joined event received:", data);
         fetchWorkspaces();
       });
+
+      socket.on("workspace:members-updated", (data) => {
+        setRefreshMembersTrigger(prev => prev + 1);
+      });
     }
 
     // Fallback: listen for custom DOM event from notifications UI
@@ -137,8 +142,8 @@ export function useWorkspaces() {
     };
 
     fetchWorkspaceData();
-    // Auto-refresh member data not explicitly requested, but good to have if we wanted polling here too
-  }, [selectedWorkspaceId]);
+    // Auto-refresh member data
+  }, [selectedWorkspaceId, refreshMembersTrigger]);
 
   // Handlers
   const handleCreateWorkspace = async (
