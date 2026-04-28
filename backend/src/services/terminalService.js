@@ -64,10 +64,18 @@ export const handleTerminalConnection = (socket) => {
                 }
             }
 
-            const shell = os.platform() === "win32" ? "cmd.exe" : "bash";
-            const shellArgs = os.platform() === 'win32' ? ['/Q', '/K', 'prompt $S'] : [];
+            const isWin = os.platform() === 'win32';
+            const shell = isWin ? 'cmd.exe' : 'bash';
 
-            // Start a PERSISTENT shell
+            // Use python3 on Linux
+            let finalCommand = commandString;
+            if (language === 'python' && !isWin) {
+                finalCommand = commandString.replace(/^python/, 'python3');
+            }
+
+            // Run command directly — no interactive shell, no prompt noise
+            const shellArgs = isWin ? ['/Q', '/C', finalCommand] : ['-c', finalCommand];
+
             const ptyProcess = pty.spawn(shell, shellArgs, {
                 name: "xterm-color",
                 cols: cols,
@@ -77,36 +85,24 @@ export const handleTerminalConnection = (socket) => {
             });
 
             activeTerminals.set(socket.id, ptyProcess);
-            
-            // Log for backend debugging
-            const debugLogPath = path.join(process.cwd(), "terminal_debug.log");
-            fs.appendFileSync(debugLogPath, `\n--- NEW SESSION (${language}) ---\n`);
 
             ptyProcess.onData((data) => {
-                fs.appendFileSync(debugLogPath, data);
                 socket.emit("terminal:data", data);
             });
 
-            // Start the user code, then exit the shell when it finishes
+            // Emit ready quickly — no startup noise with -c / /C
             setTimeout(() => {
-                if (activeTerminals.has(socket.id)) {
-                    const isWin = os.platform() === 'win32';
-                    const pythonCmd = (language === 'python' && !isWin) ? 'python3' : 'python';
-                    const cmd = commandString.replace(/^python/, pythonCmd);
-                    const exitSuffix = isWin ? ' & exit' : '; sleep 0.1; exit $?';
-                    ptyProcess.write(`${cmd}${exitSuffix}\r\n`);
-                    // Small delay to let the command echo be swallowed
-                    setTimeout(() => {
-                        if (activeTerminals.has(socket.id)) {
-                            socket.emit("terminal:ready");
-                        }
-                    }, 200);
+                if (socket.connected) {
+                    socket.emit("terminal:ready");
                 }
-            }, 600);
+            }, 100);
 
             ptyProcess.onExit(({ exitCode }) => {
-                socket.emit("terminal:data", `\r\n\x1b[38;5;240m[Shell Exited with code ${exitCode}]\x1b[0m\r\n`);
-                socket.emit("terminal:exit", { exitCode });
+                // Send styled exit message through the DATA stream (guarantees ordering)
+                const msg = exitCode === 0
+                    ? `\r\n\x1b[38;5;10m✔ Execution ended successfully.\x1b[0m\r\n`
+                    : `\r\n\x1b[38;5;9m✘ Execution ended with exit code ${exitCode}.\x1b[0m\r\n`;
+                socket.emit("terminal:data", msg);
                 activeTerminals.delete(socket.id);
                 setTimeout(() => {
                     fs.rm(tempDir, { recursive: true, force: true }, () => {});

@@ -80,14 +80,8 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             dataBuffer = "";
 
             if (!readyRef.current) {
-                // Pre-ready filtering for startup noise
-                const lines = rawData.split(/\r\n|\n|\r/);
-                lines.forEach(line => {
-                    const cleaned = stripAnsi(line);
-                    if (cleaned && !cleaned.includes("@echo off") && !cleaned.includes("python -u") && !cleaned.includes("prompt $S")) {
-                        preReadyBufferRef.current += line + "\r\n";
-                    }
-                });
+                // Buffer all data until ready (no filtering needed with bash -c / cmd /C)
+                preReadyBufferRef.current += rawData;
                 return;
             }
 
@@ -137,15 +131,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             if (inputRef.current) inputRef.current.focus();
         });
 
-        socket.on("terminal:exit", ({ exitCode }) => {
-            const term = xtermRef.current;
-            if (!term) return;
-            if (exitCode === 0) {
-                term.writeln(`\x1b[38;5;10m✔ Execution ended successfully.\x1b[0m`);
-            } else {
-                term.writeln(`\x1b[38;5;9m✘ Execution ended with exit code ${exitCode}.\x1b[0m`);
-            }
-        });
+
 
         term.onData((data) => {
             if (!isViewer) socket.emit("terminal:data", data);
