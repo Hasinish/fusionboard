@@ -9,7 +9,7 @@ if (!baseApi) {
     const isProd = typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("fusionboard"));
     baseApi = isProd ? "https://fusionboard-backend-docker.onrender.com" : "http://localhost:5001";
 }
-const API_URL = baseApi;
+const API_URL = baseApi.replace(/\/api$/, "");
 
 const stripAnsi = (str) =>
     str
