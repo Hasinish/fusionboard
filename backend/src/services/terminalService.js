@@ -87,10 +87,11 @@ export const handleTerminalConnection = (socket) => {
                 socket.emit("terminal:data", data);
             });
 
-            // Start the user code
+            // Start the user code, then exit the shell when it finishes
             setTimeout(() => {
                 if (activeTerminals.has(socket.id)) {
-                    ptyProcess.write(`${commandString}\r\n`);
+                    const exitSuffix = os.platform() === 'win32' ? ' & exit' : '; exit $?';
+                    ptyProcess.write(`${commandString}${exitSuffix}\r\n`);
                     // Small delay to let the command echo be swallowed
                     setTimeout(() => {
                         if (activeTerminals.has(socket.id)) {
@@ -102,6 +103,7 @@ export const handleTerminalConnection = (socket) => {
 
             ptyProcess.onExit(({ exitCode }) => {
                 socket.emit("terminal:data", `\r\n\x1b[38;5;240m[Shell Exited with code ${exitCode}]\x1b[0m\r\n`);
+                socket.emit("terminal:exit", { exitCode });
                 activeTerminals.delete(socket.id);
                 setTimeout(() => {
                     fs.rm(tempDir, { recursive: true, force: true }, () => {});

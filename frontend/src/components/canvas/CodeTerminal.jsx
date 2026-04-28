@@ -92,8 +92,24 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             }
 
             // NATIVE STREAMING: Once ready, let xterm handle the raw ANSI stream.
-            // This is critical for handling shell re-draws during resize without duplication.
-            xtermRef.current.write(rawData);
+            // Filter out PTY echo of user input (we already display it locally as "> input")
+            let filtered = rawData;
+            if (lastSentRef.current.length > 0) {
+                const lines = filtered.split(/\r\n|\n|\r/);
+                const result = [];
+                for (const line of lines) {
+                    const cleaned = stripAnsi(line).trim();
+                    const echoIdx = lastSentRef.current.indexOf(cleaned);
+                    if (echoIdx !== -1) {
+                        // This line is an echo of sent input — skip it and remove from tracking
+                        lastSentRef.current.splice(echoIdx, 1);
+                    } else {
+                        result.push(line);
+                    }
+                }
+                filtered = result.join("\r\n");
+            }
+            if (filtered) xtermRef.current.write(filtered);
             
             // Ensure we stay at the bottom
             setTimeout(() => xtermRef.current?.scrollToBottom(), 10);
@@ -119,6 +135,16 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
                 preReadyBufferRef.current = "";
             }
             if (inputRef.current) inputRef.current.focus();
+        });
+
+        socket.on("terminal:exit", ({ exitCode }) => {
+            const term = xtermRef.current;
+            if (!term) return;
+            if (exitCode === 0) {
+                term.writeln(`\x1b[38;5;10m✔ Execution ended successfully.\x1b[0m`);
+            } else {
+                term.writeln(`\x1b[38;5;9m✘ Execution ended with exit code ${exitCode}.\x1b[0m`);
+            }
         });
 
         term.onData((data) => {

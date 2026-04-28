@@ -12029,3 +12029,289 @@ hey
 [25lhey
    
    [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+]0;C:\Windows\SYSTEM32\cmd.exe
+[1C[25l[HHello from Python![K
+[K
+[K
+[K
+[K
+[K
+[K[3;1H[?25h[25l[HHello from Python![K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[3;1H[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+hey
+[25lhey
+   
+   [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python![25l[5;1H ]0;C:\Windows\SYSTEM32\cmd.exe[?25h
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py  File [35m"C:\Users\Hasin\Desktop\fusionboard\backend\temp\a532b5a6-
+7f9e-46af-a26e-fd413943011d\main.py"[m, line [35m2[m[K
+    print[1m[91m([minput()[16X
+[9X[1m[91m[9C^[m[23X[1m[95m
+SyntaxError[m: [35m'(' was never closed
+[m
+ ]0;C:\Windows\SYSTEM32\cmd.exe
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+hey
+[25lhey
+   
+   [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25hnice
+]0;C:\Windows\SYSTEM32\cmd.exe - nice0
+]0;C:\Windows\SYSTEM32\cmd.exe
+ niceee
+'niceee' is not recognized as an internal or external command,
+operable program or batch file.[31X
+[62X
+[62X[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exepython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.pyHello from Python!
+hey
+[25lhey
+   
+   [7;2H]0;C:\Windows\SYSTEM32\cmd.exe[?25h0
+'0' is not recognized as an internal or external command,
+operable program or batch file.[26X
+[57X
+[57X[1Cs
+'s' is not recognized as an internal or external command,
+operable program or batch file.[26X
+[57X
+[57X[1C
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exepython -u main.py & exit
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py Hello from Python!
+
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exepython -u main.py & exit
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py Hello from Python!
+
+--- NEW SESSION (python) ---
+[2J[m[H]0;C:\Windows\SYSTEM32\cmd.exe - prompt  $S[?25h
+ ]0;C:\Windows\SYSTEM32\cmd.exe[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25h[25l[H[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K
+[K[2;2H[?25hpython -u main.py & exit
+]0;C:\Windows\SYSTEM32\cmd.exe - python  -u main.py Hello from Python!
+hey
+hey
+]0;C:\Windows\SYSTEM32\cmd.exe
