@@ -90,8 +90,11 @@ export const handleTerminalConnection = (socket) => {
             // Start the user code, then exit the shell when it finishes
             setTimeout(() => {
                 if (activeTerminals.has(socket.id)) {
-                    const exitSuffix = os.platform() === 'win32' ? ' & exit' : '; exit $?';
-                    ptyProcess.write(`${commandString}${exitSuffix}\r\n`);
+                    const isWin = os.platform() === 'win32';
+                    const pythonCmd = (language === 'python' && !isWin) ? 'python3' : 'python';
+                    const cmd = commandString.replace(/^python/, pythonCmd);
+                    const exitSuffix = isWin ? ' & exit' : '; sleep 0.1; exit $?';
+                    ptyProcess.write(`${cmd}${exitSuffix}\r\n`);
                     // Small delay to let the command echo be swallowed
                     setTimeout(() => {
                         if (activeTerminals.has(socket.id)) {
