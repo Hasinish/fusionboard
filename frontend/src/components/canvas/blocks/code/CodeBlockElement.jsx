@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Loader2, RefreshCw, Terminal, Keyboard } from "lucide-react";
+import { Play, Loader2, RefreshCw, Terminal, Keyboard, Trash2 } from "lucide-react";
 import { useCodeEditorIndentation } from "./useCodeEditorIndentation";
 import { useCodeExecution } from "./useCodeExecution";
 import { LANGUAGES, BOILERPLATES } from "./codeExecutionUtils";
@@ -104,6 +104,21 @@ export function CodeBlockElement({
                         style={{ width: 24 * camera.z, height: 24 * camera.z, marginLeft: 4 * camera.z }}
                     >
                         <RefreshCw size={12 * camera.z} />
+                    </button>
+
+                    {/* Clear Button */}
+                    <button
+                        className="bg-[#313244] hover:bg-red-500/20 text-[#f87171] border-none flex items-center justify-center rounded cursor-pointer transition-colors"
+                        title="Clear all code"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => {
+                            if (window.confirm("Clear all code?")) {
+                                onChange({ ...el, code: "" });
+                            }
+                        }}
+                        style={{ width: 24 * camera.z, height: 24 * camera.z, marginLeft: 4 * camera.z }}
+                    >
+                        <Trash2 size={12 * camera.z} />
                     </button>
                 </div>
 

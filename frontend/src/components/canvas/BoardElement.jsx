@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { RotateCcw, Play, Loader2, RefreshCw, Youtube } from "lucide-react";
+import { RotateCcw, Play, Loader2, RefreshCw, Youtube, Trash2 } from "lucide-react";
 import getStroke from "perfect-freehand";
 import { ShapeSVG, PathSVG } from "./ShapeRenderers";
 import { getPathBounds, pointHitsElement } from "./geometryUtils";
