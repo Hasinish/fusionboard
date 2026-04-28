@@ -282,6 +282,7 @@ export default React.memo(function ElementsLayer({
         selectedIdsRef,
         selectedElements: selectedItemsWithPreview,
         onPreviewElementsChange: setPreviewElements,
+        recordEvent,
     });
 
     const activeGroupBounds = tState?.groupBounds || selectionBounds;

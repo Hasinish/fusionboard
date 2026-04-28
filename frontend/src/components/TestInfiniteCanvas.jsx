@@ -420,10 +420,10 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     return (
         <div
             className={`relative w-full h-full overflow-hidden select-none touch-none ${tool === "hand" ? "cursor-grab active:cursor-grabbing" :
-                    tool === "eraser" ? "cursor-none" :
-                        tool === "select" ? "cursor-default" :
-                            tool === "text" ? "cursor-text" :
-                                "cursor-crosshair"
+                tool === "eraser" ? "cursor-none" :
+                    tool === "select" ? "cursor-default" :
+                        tool === "text" ? "cursor-text" :
+                            "cursor-crosshair"
                 }`}
             style={{ backgroundColor: isDark ? "#121212" : "#F0F0F0" }}
             onPointerDown={onPointerDown}
@@ -737,9 +737,18 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 onChange={(updates) => {
                     const elId = activeSidebarElementId;
                     if (!elId) return;
-                    boardActions?.updateElement(elId, (current) => {
-                        if (!current) return current;
-                        return { ...current, ...updates };
+                    
+                    // Fetch the element from store to ensure we record the full state
+                    const current = boardStore?.getElement(elId);
+                    if (!current) return;
+                    
+                    const updated = { ...current, ...updates };
+                    boardActions?.updateElement(elId, updates);
+                    
+                    // Record the update event so it appears in the replay
+                    recordEvent?.("element.updated", elId, { 
+                        element: updated, 
+                        persist: true 
                     });
                 }}
                 isDark={isDark}

@@ -32,6 +32,7 @@ export function useGroupTransform({
     selectedIdsRef,
     selectedElements,
     onPreviewElementsChange,
+    recordEvent,
 }) {
     const [tState, setTState] = useState(null);
 
@@ -298,12 +299,15 @@ export function useGroupTransform({
         const committedElements = (updatedElements || []).filter((element) => selectedIdSet.has(element.id));
         if (committedElements.length > 0) {
             boardActions?.updateElements(committedElements);
+            committedElements.forEach((element) => {
+                recordEvent?.("element.updated", element.id, { element, persist: true });
+            });
         }
 
         onPreviewElementsChange([]);
         setTState(null);
         tStateRef.current = null;
-    }, [boardActions, onPreviewElementsChange, selectedIdsRef]);
+    }, [boardActions, onPreviewElementsChange, recordEvent, selectedIdsRef]);
 
     useEffect(() => {
         if (!tState) return;

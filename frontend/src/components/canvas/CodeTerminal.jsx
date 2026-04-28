@@ -61,6 +61,14 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
     const appendTerminalEvent = (kind, text, publish = true) => {
         if (!text && kind !== "input") return;
         const cleanText = stripAnsi(String(text)).replace(/\r\n|\r/g, "\n");
+        if (!cleanText && kind !== "input") return;
+
+        // Simple deduplication for output: if the last event was also output and had same text, skip
+        const lastEvent = terminalEventsRef.current[terminalEventsRef.current.length - 1];
+        if (lastEvent && lastEvent.kind === kind && lastEvent.text === cleanText && kind === "output") {
+            return cleanText;
+        }
+
         terminalEventsRef.current = [
             ...terminalEventsRef.current,
             { kind, text: cleanText, ts: Date.now() },
@@ -71,6 +79,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
     const appendTranscript = (data, publish = true, kind = "output") => {
         if (!data || !onTranscriptChange) return;
         const cleanText = appendTerminalEvent(kind, data, false);
+        if (!cleanText && kind !== "input") return; // If deduplicated or empty
         transcriptRef.current += cleanText;
         if (publish) publishTerminalState();
     };
@@ -78,8 +87,16 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
     const recordTerminalInput = (input, { submitted = true } = {}) => {
         if (!input && submitted) return;
         inputDraftRef.current = "";
-        appendTerminalEvent("input", `${input}\n`, false);
-        transcriptRef.current += `> ${input}\n`;
+
+        // When submitting input, we append it to events.
+        // We also add it to lastSentRef to filter out the subsequent PTY echo.
+        const cleanInput = `${input}\n`;
+        appendTerminalEvent("input", cleanInput, false);
+        transcriptRef.current += `> ${cleanInput}`;
+
+        // Also add to lastSentRef for filtering
+        lastSentRef.current.push(input.trim());
+
         requestAnimationFrame(() => publishTerminalState());
     };
 
@@ -221,7 +238,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
                     publishTerminalState();
                 });
             }
-            
+
             // Ensure we stay at the bottom
             setTimeout(() => xtermRef.current?.scrollToBottom(), 10);
         };
@@ -279,15 +296,15 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
                 try {
                     // Update visual layout immediately
                     fitAddonRef.current.fit();
-                    
+
                     // DEBOUNCE the backend resize. 
                     // Only tell the shell to re-draw once the user has finished/paused the resize interaction.
                     if (resizeTimeout) clearTimeout(resizeTimeout);
                     resizeTimeout = setTimeout(() => {
                         if (xtermRef.current && socketRef.current?.connected) {
-                            socketRef.current.emit("terminal:resize", { 
-                                cols: xtermRef.current.cols, 
-                                rows: xtermRef.current.rows 
+                            socketRef.current.emit("terminal:resize", {
+                                cols: xtermRef.current.cols,
+                                rows: xtermRef.current.rows
                             });
                         }
                     }, 250);
@@ -332,7 +349,6 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             if (socket && !isViewer && inputValue) {
                 xtermRef.current?.writeln(`\x1b[38;5;14m${inputValue}\x1b[0m`);
                 recordTerminalInput(inputValue);
-                lastSentRef.current.push(inputValue.trim());
                 socket.emit("terminal:data", inputValue + "\r");
             }
             setInputValue("");

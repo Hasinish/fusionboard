@@ -14,24 +14,35 @@ export function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-function terminalEventsToText(events, fallbackText = "") {
-    if (!Array.isArray(events) || events.length === 0) return fallbackText || "";
+function getTerminalSegments(events, fallbackText = "") {
+    if (!Array.isArray(events) || events.length === 0) {
+        return [{ kind: "output", text: fallbackText || "" }];
+    }
 
-    return events.map((event) => {
-        const text = event?.text || "";
-        if (event?.kind === "input") return `> ${text}`;
-        return text;
-    }).join("");
+    return events.map((event) => ({
+        kind: event?.kind || "output",
+        text: event?.text || ""
+    }));
 }
 
-function RecordedTerminal({ el, camera, height, text }) {
+function RecordedTerminal({ el, camera, height, segments }) {
     const zs = camera?.z || 1;
     const inputDraft = el.terminalInputDraft || "";
+
+    const getKindColor = (kind) => {
+        switch (kind) {
+            case "system": return "#89b4fa";
+            case "input": return "#89dceb";
+            case "error": return "#f38ba8";
+            default: return "#cdd6f4";
+        }
+    };
 
     return (
         <div
             className="border-t border-[#313244] shrink-0 bg-[#11111b] flex flex-col text-[#cdd6f4]"
             style={{ height }}
+            onPointerDown={(e) => e.stopPropagation()}
             onWheel={(e) => {
                 if (e.ctrlKey || e.metaKey) return;
                 e.stopPropagation();
@@ -45,15 +56,19 @@ function RecordedTerminal({ el, camera, height, text }) {
                     KILL
                 </span>
             </div>
-            <div className="flex-1 overflow-auto px-1 font-mono" style={{ fontSize: 12 * zs }}>
-                <pre className="m-0 whitespace-pre-wrap font-mono">{text}</pre>
+            <div className="flex-1 overflow-auto px-1 font-mono custom-scrollbar" style={{ fontSize: 12 * zs }}>
+                {segments.map((seg, i) => (
+                    <span key={i} style={{ color: getKindColor(seg.kind), whiteSpace: "pre-wrap" }}>
+                        {seg.kind === "input" ? `> ${seg.text}` : seg.text}
+                    </span>
+                ))}
             </div>
             <div className="flex items-center gap-1 px-1 shrink-0 border-t border-[#313244]" style={{ padding: `${3 * zs}px ${4 * zs}px` }}>
                 <div
                     className="flex-1 bg-[#1e1e2e] text-[#89b4fa] border border-[#313244] rounded font-mono truncate"
                     style={{ fontSize: 12 * zs, padding: `${2 * zs}px ${6 * zs}px` }}
                 >
-                    {inputDraft || "Type input..."}
+                    {inputDraft}
                 </div>
                 <span className="text-[#f38ba8] bg-[#313244] rounded font-bold select-none" style={{ fontSize: 10 * zs, padding: `${2 * zs}px ${6 * zs}px` }}>
                     Ctrl+C
@@ -80,10 +95,10 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
     // Track remote changes
     useEffect(() => {
         if (!sharedText) return;
-        
+
         const observer = (event) => {
             if (event.transaction.origin === BOARD_COMMIT_ORIGIN) return;
-            
+
             // Remote update - need to preserve cursor
             isRemoteUpdateRef.current = true;
             const textarea = textareaRef.current;
@@ -91,7 +106,7 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 setLocalValue(sharedText.toString());
-                
+
                 // Restore selection after React render
                 requestAnimationFrame(() => {
                     textarea.setSelectionRange(start, end);
@@ -102,7 +117,7 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
                 isRemoteUpdateRef.current = false;
             }
         };
-        
+
         sharedText.observe(observer);
         return () => sharedText.unobserve(observer);
     }, [sharedText, isViewer]);
@@ -139,7 +154,7 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
             if (insertText.length > 0) {
                 sharedText.insert(start, insertText);
             }
-            
+
             // Also update the metadata "code" property for the terminal to read
             onChange({ ...el, code: nextValue }, false);
         }, BOARD_COMMIT_ORIGIN);
@@ -205,8 +220,8 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     const sh = el.h * camera.z;
 
     const effectiveTerminalHeight = localTerminalHeight || el.terminalHeight || (sh / 3);
-    const recordedTerminalText = terminalEventsToText(el.terminalEvents, el.terminalTranscript || el.terminalScreen || "");
-    const shouldShowRecordedTerminal = isViewer && (el.terminalActive || !!recordedTerminalText) && !isTerminalActive;
+    const terminalSegments = getTerminalSegments(el.terminalEvents, el.terminalTranscript || el.terminalScreen || "");
+    const shouldShowRecordedTerminal = isViewer && (el.terminalActive || terminalSegments.some(s => s.text)) && !isTerminalActive;
 
     // ── drag to move (Alt = duplicate, Shift = angle-snap) ───────────────────
     const handlePointerDown = (e) => {
@@ -351,11 +366,11 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     // ── Execute Code (Native Terminal Approach) ─────────────────────────────────
     const handleExecute = async (e) => {
         if (e) e.stopPropagation();
-        
+
         // 1. Get the absolute latest code from the shared Y.Text buffer
         const shared = boardStore.getContent(el.id);
         const latestCode = shared ? shared.toString() : el.code;
-        
+
         if (!latestCode) return;
 
         // 2. Sync it to the metadata property (so it's saved in the document)
@@ -363,7 +378,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
 
         // 3. Set the code to run in local state to guarantee the terminal sees it immediately
         setCodeToRun(latestCode);
-        
+
         // 4. Force a fresh terminal mount with the new code
         if (isTerminalActive) {
             setIsTerminalActive(false);
@@ -822,7 +837,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                                 rust: "fn main() {\n    println!(\"Hello from Rust!\");\n}"
                                             };
                                             const newCode = boilerplates[el.language];
-                                            
+
                                             // Synchronize both metadata and shared text buffer
                                             const shared = boardStore.getContent(el.id);
                                             if (shared) {
@@ -875,19 +890,19 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
 
                             {/* Terminal Resizer / Top Edge */}
                             {isTerminalActive && (
-                                <div 
-                                    className="h-1.5 w-full cursor-row-resize bg-transparent hover:bg-blue-500/30 transition-colors z-20 shrink-0" 
+                                <div
+                                    className="h-1.5 w-full cursor-row-resize bg-transparent hover:bg-blue-500/30 transition-colors z-20 shrink-0"
                                     onPointerDown={(e) => {
                                         e.stopPropagation();
                                         const startY = e.clientY;
                                         const startH = effectiveTerminalHeight;
-                                        
+
                                         const handleMove = (moveEvent) => {
                                             const deltaY = startY - moveEvent.clientY;
                                             const newH = Math.max(80, Math.min(sh - 100, startH + deltaY));
                                             setLocalTerminalHeight(newH);
                                         };
-                                        
+
                                         const handleUp = () => {
                                             window.removeEventListener("pointermove", handleMove);
                                             window.removeEventListener("pointerup", handleUp);
@@ -897,7 +912,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                                 return null; // Reset local state as prop will take over
                                             });
                                         };
-                                        
+
                                         window.addEventListener("pointermove", handleMove);
                                         window.addEventListener("pointerup", handleUp);
                                     }}
@@ -910,16 +925,16 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                     el={el}
                                     camera={camera}
                                     height={effectiveTerminalHeight}
-                                    text={recordedTerminalText}
+                                    segments={terminalSegments}
                                 />
                             )}
 
                             {/* Native Terminal Interface */}
                             {isTerminalActive && (
-                                <div 
-                                    className="border-t border-[#313244] shrink-0" 
+                                <div
+                                    className="border-t border-[#313244] shrink-0"
                                     style={{ height: effectiveTerminalHeight }}
-                                    onPointerDown={(e) => e.stopPropagation()} 
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onKeyDown={(e) => e.stopPropagation()}
                                     onKeyUp={(e) => e.stopPropagation()}
