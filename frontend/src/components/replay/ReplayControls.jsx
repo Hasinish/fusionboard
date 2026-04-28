@@ -21,7 +21,7 @@ export default function ReplayControls({
   const progress = (currentTime / duration) * 100;
 
   return (
-    <div className={`flex flex-col w-full max-w-4xl ${isDark ? "bg-slate-900" : "bg-white"} border-2 ${isDark ? "border-white/20" : "border-black/15"} rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-5 gap-4 pointer-events-auto overflow-hidden`}>
+    <div className={`flex flex-col w-full max-w-4xl ${isDark ? "bg-slate-900" : "bg-white"} border-2 ${isDark ? "border-white/20" : "border-black/15"} rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-5 gap-4 pointer-events-auto`}>
       {/* Timeline with Draggable Slider */}
       <div className="relative w-full h-2 flex items-center group">
         <input 
@@ -109,7 +109,7 @@ export default function ReplayControls({
               ))}
             </ul>
           </div>
-          <button className={`${isDark ? "text-white/70 hover:text-white" : "text-black/70 hover:text-black"} transition-all active:rotate-45`}>
+          <button onClick={() => alert("Player settings coming soon!")} className={`${isDark ? "text-white/70 hover:text-white" : "text-black/70 hover:text-black"} transition-all active:rotate-45`}>
             <Settings size={22} />
           </button>
         </div>
