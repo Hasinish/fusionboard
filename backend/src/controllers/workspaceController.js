@@ -2,6 +2,7 @@
 import Workspace from "../models/Workspace.js";
 import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
+import { emitToUser } from "../startup/socket.js";
 
 const ONLINE_THRESHOLD_MS = 1000 * 5; // 5 secs ative threshold
 
@@ -59,6 +60,7 @@ export async function createWorkspace(req, res) {
             invitedBy: owner._id,
             invitedUser: invitedUser._id,
           });
+          emitToUser(invitedUser._id, "notification:refresh", {});
         }
       }
     }
@@ -126,6 +128,7 @@ export async function inviteMembers(req, res) {
         invitedBy: workspace.owner._id,
         invitedUser: invitedUser._id,
       });
+      emitToUser(invitedUser._id, "notification:refresh", {});
     }
 
     return res.json({ message: "Invitations sent (for registered users)." });
