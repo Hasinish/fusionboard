@@ -222,7 +222,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             e.preventDefault();
             const socket = socketRef.current;
             if (socket && !isViewer && inputValue) {
-                xtermRef.current?.writeln(`\x1b[38;5;14m> ${inputValue}\x1b[0m`);
+                xtermRef.current?.writeln(`\x1b[38;5;14m${inputValue}\x1b[0m`);
                 lastSentRef.current.push(inputValue.trim());
                 socket.emit("terminal:data", inputValue + "\r");
             }
@@ -249,8 +249,7 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             </div>
             <div ref={terminalRef} className="flex-1 overflow-hidden px-1" />
             <div className="flex items-center gap-1 px-1 shrink-0 border-t border-[#313244]" style={{ padding: `${3 * zs}px ${4 * zs}px` }}>
-                <span className="text-[#a6e3a1] font-bold select-none" style={{ fontSize: 12 * zs }}>❯</span>
-                <input ref={inputRef} type="text" className="flex-1 bg-[#1e1e2e] text-[#cdd6f4] outline-none border border-[#313244] rounded font-mono" style={{ fontSize: 12 * zs, padding: `${2 * zs}px ${6 * zs}px` }} placeholder="Type here..." value={inputValue} onChange={handleInputChange} onKeyDown={(e) => { e.stopPropagation(); handleInputSubmit(e); }} spellCheck={false} autoComplete="off" />
+                <input ref={inputRef} type="text" className="flex-1 bg-[#1e1e2e] text-[#89b4fa] outline-none border border-[#313244] rounded font-mono" style={{ fontSize: 12 * zs, padding: `${2 * zs}px ${6 * zs}px` }} placeholder="Type input..." value={inputValue} onChange={handleInputChange} onKeyDown={(e) => { e.stopPropagation(); handleInputSubmit(e); }} spellCheck={false} autoComplete="off" />
                 <button onClick={(e) => { e.stopPropagation(); sendCtrlC(); }} className="text-[#f38ba8] bg-[#313244] rounded font-bold cursor-pointer hover:bg-[#45475a] select-none" style={{ fontSize: 10 * zs, padding: `${2 * zs}px ${6 * zs}px` }}>Ctrl+C</button>
             </div>
         </div>
