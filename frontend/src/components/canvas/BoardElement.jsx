@@ -297,23 +297,30 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     };
 
     // ── Execute Code (Native Terminal Approach) ─────────────────────────────────
+    const [codeToRun, setCodeToRun] = useState("");
+
+    // ── Execute Code (Native Terminal Approach) ─────────────────────────────────
     const handleExecute = async (e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         
-        // Ensure we execute the LATEST version from the shared buffer
+        // 1. Get the absolute latest code from the shared Y.Text buffer
         const shared = boardStore.getContent(el.id);
         const latestCode = shared ? shared.toString() : el.code;
         
         if (!latestCode) return;
 
-        // Force a sync of the metadata code property so the terminal sees it
+        // 2. Sync it to the metadata property (so it's saved in the document)
         if (latestCode !== el.code) {
             onChange({ ...el, code: latestCode }, true);
         }
+
+        // 3. Set the code to run in local state to guarantee the terminal sees it immediately
+        setCodeToRun(latestCode);
         
-        // If already active, toggle it or just update key to force remount
+        // 4. Force a fresh terminal mount with the new code
         if (isTerminalActive) {
             setIsTerminalActive(false);
+            // Tiny delay to ensure React cycles the component
             setTimeout(() => {
                 setIsTerminalActive(true);
                 setTerminalSessionKey(Date.now());
@@ -865,7 +872,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                     }}>
                                     <CodeTerminal
                                         key={`${el.id}-${terminalSessionKey}`}
-                                        code={el.code}
+                                        code={codeToRun || el.code}
                                         language={el.language}
                                         onStop={() => setIsTerminalActive(false)}
                                         isViewer={isViewer}
