@@ -50,6 +50,26 @@ export function CodeTerminal({ code, language, onStop, isViewer, camera, termina
             },
             fontSize: 12 * (camera?.z || 1),
             fontFamily: "monospace",
+            rightClickSelectsWord: true,
+        });
+
+        // Allow Ctrl+C to copy when text is selected, otherwise send as terminal input
+        term.attachCustomKeyEventHandler((ev) => {
+            if (ev.type === 'keydown' && ev.ctrlKey && ev.key === 'c') {
+                const selection = term.getSelection();
+                if (selection) {
+                    navigator.clipboard.writeText(selection);
+                    term.clearSelection();
+                    return false; // Prevent xterm from handling it
+                }
+                // No selection → let it pass through as SIGINT
+                return true;
+            }
+            if (ev.type === 'keydown' && ev.ctrlKey && ev.key === 'v') {
+                // Allow browser paste
+                return false;
+            }
+            return true;
         });
 
         const fitAddon = new FitAddon();
