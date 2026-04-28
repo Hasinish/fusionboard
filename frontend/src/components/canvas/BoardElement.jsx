@@ -66,31 +66,29 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
 
         if (!sharedText) return;
 
-        // Calculate delta for Y.Text
-        const diffIndex = [...Array(Math.min(prevValue.length, nextValue.length))].findIndex((_, i) => prevValue[i] !== nextValue[i]);
-        const start = diffIndex === -1 ? Math.min(prevValue.length, nextValue.length) : diffIndex;
-        
-        const removed = prevValue.length - start;
-        const added = nextValue.length - start;
-        
-        // This is a simple back-end diff. For better results with many changes,
-        // we'd use a real diffing lib, but for single keystrokes this is perfect.
-        const deleteCount = Math.max(0, prevValue.length - nextValue.length + (nextValue.length > prevValue.length ? 0 : 0)); 
-        
-        // Actually, we can use the selection end to be more precise
-        const selEnd = e.target.selectionEnd;
-        const totalRemoved = prevValue.length - (nextValue.length - (selEnd - start));
-        
+        // Calculate the first index where old and new text differ
+        const minLen = Math.min(prevValue.length, nextValue.length);
+        let start = 0;
+        while (start < minLen && prevValue[start] === nextValue[start]) start++;
+
+        // Calculate the last index where old and new text differ (from the end)
+        let endOld = prevValue.length;
+        let endNew = nextValue.length;
+        while (endOld > start && endNew > start && prevValue[endOld - 1] === nextValue[endNew - 1]) {
+            endOld--;
+            endNew--;
+        }
+
+        const deleteCount = endOld - start;
+        const insertText = nextValue.slice(start, endNew);
+
         boardStore.transact(() => {
-            // Simplified diff for single character insertions/deletions
-            if (nextValue.length > prevValue.length) {
-                // Insertion
-                const insertedText = nextValue.slice(start, selEnd);
-                sharedText.insert(start, insertedText);
-            } else if (nextValue.length < prevValue.length) {
-                // Deletion
-                const deletedCount = prevValue.length - nextValue.length;
-                sharedText.delete(start, deletedCount);
+            // Delete the changed range from the old text, then insert the new text
+            if (deleteCount > 0) {
+                sharedText.delete(start, deleteCount);
+            }
+            if (insertText.length > 0) {
+                sharedText.insert(start, insertText);
             }
             
             // Also update the metadata "code" property for the terminal to read
