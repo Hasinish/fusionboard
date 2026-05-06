@@ -3,7 +3,7 @@ import { Plus, Trash2, Eye, EyeOff, RotateCcw, FunctionSquare, MapPin, Search, C
 import { GRAPH_COLORS } from "./graphDefaults";
 
 export default function GraphEditorPanel({ element, onChange, zoom = 1, isDark = false, onClose }) {
-  const { expressions, points } = element;
+  const { expressions = [], points = [] } = element;
   const [activeTab, setActiveTab] = useState('functions'); 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -47,8 +47,8 @@ export default function GraphEditorPanel({ element, onChange, zoom = 1, isDark =
     onChange({ viewport: { xMin: -10, xMax: 10, yMin: -10, yMax: 10 } });
   };
 
-  const filteredExprs = expressions.filter(ex => ex.latex.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredPoints = points.filter(p => p.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredExprs = expressions.filter(ex => (ex?.latex || "").toLowerCase().includes((searchQuery || "").toLowerCase()));
+  const filteredPoints = points.filter(p => (p?.label || "").toLowerCase().includes((searchQuery || "").toLowerCase()));
 
   return (
     <div className="flex flex-col h-full">

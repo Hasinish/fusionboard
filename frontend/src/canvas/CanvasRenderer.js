@@ -7,9 +7,11 @@ import {
 } from './drawOverlays.js'
 
 export class CanvasRenderer {
-  constructor(canvasEl, overlayCanvasEl) {
+  constructor(canvasEl, topCanvasEl, overlayCanvasEl) {
     this.canvas = canvasEl
     this.ctx = canvasEl.getContext('2d')
+    this.topCanvas = topCanvasEl
+    this.topCtx = topCanvasEl ? topCanvasEl.getContext('2d') : null
     this.overlayCanvas = overlayCanvasEl
     this.overlayCtx = overlayCanvasEl ? overlayCanvasEl.getContext('2d') : null
     this.elements = new Map()
@@ -130,6 +132,12 @@ export class CanvasRenderer {
     canvas.width = w * dpr
     canvas.height = h * dpr
     this.ctx.scale(dpr, dpr)
+    if (this.topCanvas) {
+      this.topCanvas.width = w * dpr
+      this.topCanvas.height = h * dpr
+      this.topCtx = this.topCanvas.getContext('2d')
+      this.topCtx.scale(dpr, dpr)
+    }
     if (this.overlayCanvas) {
       this.overlayCanvas.width = w * dpr
       this.overlayCanvas.height = h * dpr
@@ -147,6 +155,7 @@ export class CanvasRenderer {
 
     // Background is drawn by CSS on the wrapper div, so we just clear
     ctx.clearRect(0, 0, w, h)
+    if (this.topCtx) { this.topCtx.clearRect(0, 0, w, h) }
     if (this.overlayCtx) { this.overlayCtx.clearRect(0, 0, w, h) }
   }
 
@@ -167,13 +176,19 @@ export class CanvasRenderer {
     ctx.translate(camera.x, camera.y)
     ctx.scale(camera.z, camera.z)
 
+    if (this.topCtx) {
+      this.topCtx.save()
+      this.topCtx.translate(camera.x, camera.y)
+      this.topCtx.scale(camera.z, camera.z)
+    }
+
     // Draw all committed elements
     for (const id of this.elementOrder) {
       const rawEl = this.elements.get(id)
       if (!rawEl) continue
 
       // Elements completely replaced by React (always rendered by React)
-      if (['text', 'code', 'video', 'graph', 'sticky'].includes(rawEl.type)) continue
+      if (['text', 'code', 'video', 'graph', 'sticky', 'mermaid'].includes(rawEl.type)) continue
 
       if (this.previewElements.has(id)) continue
 
@@ -221,8 +236,9 @@ export class CanvasRenderer {
       
       // If it's in the overlay (e.g., selected rect), React is drawing the text box.
       // So tell the canvas to draw the shape, but NOT the text.
-      const skipText = this.overlayElementIds.has(id)
-      drawElement(ctx, skipText ? { ...el, text: null } : el)
+      const skipText = this.overlayElementIds.has(el.id)
+      const targetCtx = this.topCtx ? this.topCtx : ctx
+      drawElement(targetCtx, skipText ? { ...el, text: null } : el)
     }
 
     // Garbage collect removed lerped elements
@@ -236,15 +252,17 @@ export class CanvasRenderer {
       if (!el?.id || this.hiddenElementIds.has(el.id)) continue
 
       // Elements completely replaced by React
-      if (['text', 'code', 'video', 'graph', 'sticky'].includes(el.type)) continue
+      if (['text', 'code', 'video', 'graph', 'sticky', 'mermaid'].includes(el.type)) continue
 
       const skipText = this.overlayElementIds.has(el.id)
-      drawElement(ctx, skipText ? { ...el, text: null } : el)
+      const targetCtx = this.topCtx ? this.topCtx : ctx
+      drawElement(targetCtx, skipText ? { ...el, text: null } : el)
     }
 
     // Draw the local live stroke being drawn right now (already in world coords)
     if (this.currentPath && this.currentPath.points && this.currentPath.points.length >= 2) {
-      drawElement(ctx, {
+      const targetCtx = this.topCtx ? this.topCtx : ctx
+      drawElement(targetCtx, {
         type: 'path',
         points: this.currentPath.points,
         color: this.currentPath.color,
@@ -259,6 +277,7 @@ export class CanvasRenderer {
       ctx.restore()
     }
 
+    if (this.topCtx) this.topCtx.restore()
     ctx.restore() // end world-space
 
     // Screen-space overlays (world→screen conversion is done internally)

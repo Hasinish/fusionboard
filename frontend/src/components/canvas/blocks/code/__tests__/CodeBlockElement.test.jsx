@@ -10,7 +10,8 @@ vi.mock('lucide-react', () => ({
     Loader2: () => <div data-testid="icon-loader" />,
     RefreshCw: () => <div data-testid="icon-refresh" />,
     Terminal: () => <div data-testid="icon-terminal" />,
-    Keyboard: () => <div data-testid="icon-keyboard" />
+    Keyboard: () => <div data-testid="icon-keyboard" />,
+    Trash2: () => <div data-testid="icon-trash" />
 }));
 
 describe('CodeBlockElement', () => {

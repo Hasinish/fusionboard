@@ -7,9 +7,9 @@ export function useCanvasElementsState(tool) {
     // selected ids
     const [selectedIds, setSelectedIds] = useState([]);
 
-    // Clear selection if tool is not 'select'
+    // Clear selection when changing away from select tools
     useEffect(() => {
-        if (tool !== "select") {
+        if (!tool.startsWith("select")) {
             queueMicrotask(() => setSelectedIds([]));
         }
     }, [tool, setSelectedIds]);

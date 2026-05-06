@@ -4,14 +4,68 @@ import getStroke from "perfect-freehand";
 import { ShapeSVG, PathSVG } from "./ShapeRenderers";
 import { getPathBounds, pointHitsElement } from "./geometryUtils";
 import GraphElement from "./graph/GraphElement";
+import MermaidRenderer from "./MermaidRenderer";
 import { CodeTerminal } from "./CodeTerminal";
 import { useBoardElementContent } from "../../lib/yjsBoard";
 import { BOARD_COMMIT_ORIGIN, BOARD_RESET_ORIGIN } from "../../lib/yjsConstants";
+import { API_URL } from "../../lib/api";
 
 export { pointHitsElement, boxHitsElement } from "./geometryUtils";
 
+export const valignMap = {
+    top: "flex-start",
+    middle: "center",
+    bottom: "flex-end",
+};
+
 export function uid() {
     return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function ImageBlock({ el, sw, sh, camera }) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const isUploading = !el.driveFileId;
+    const token = localStorage.getItem("token");
+    const src = isUploading ? null : `${API_URL}/drive/download/${el.driveFileId}?token=${token}&workspaceId=${el.workspaceId}`;
+
+    return (
+        <div className="absolute inset-0 select-none overflow-hidden flex items-center justify-center rounded-lg" style={{ zIndex: 1, backgroundColor: "rgba(0,0,0,0.04)" }}>
+            {(isUploading || (loading && !error)) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ zIndex: 2 }}>
+                    <Loader2 
+                        className="animate-spin" 
+                        style={{ width: Math.max(24, sw * 0.06), height: Math.max(24, sh * 0.06), color: "#888" }} 
+                    />
+                    {isUploading && (
+                        <span style={{ fontSize: Math.max(10, 11 * camera.z), color: "#888" }}>Uploading…</span>
+                    )}
+                </div>
+            )}
+            {error && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-lg" style={{ zIndex: 2 }}>
+                    <span style={{ fontSize: Math.max(10, 12 * camera.z), color: "#888" }}>⚠ Image failed to load</span>
+                </div>
+            )}
+            {src && (
+                <img
+                    src={src}
+                    alt=""
+                    draggable={false}
+                    onLoad={() => setLoading(false)}
+                    onError={() => { setLoading(false); setError(true); }}
+                    style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "fill",
+                        pointerEvents: "none",
+                        opacity: loading ? 0 : 1,
+                        transition: "opacity 0.3s ease",
+                    }}
+                />
+            )}
+        </div>
+    );
 }
 
 function getTerminalSegments(events, fallbackText = "") {
@@ -228,7 +282,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
         if (e.button === 1 || tool === "hand") return; // Middle click or hand tool
         if (e.button !== 0) return;
         if (isViewer) return; // Viewers cannot drag elements
-        if (tool !== "select" || isEditing) return;
+        if (!tool.startsWith("select") || isEditing) return;
 
         // The parent element is the ElementsLayer which has NO camera translation applied.
         // We must subtract camera.x/y ourselves to get pure world space coordinates.
@@ -336,13 +390,15 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
             window.removeEventListener("mousemove", onMove);
             window.removeEventListener("mouseup", onUp);
             onDragGuide?.(null); // clear guide
-            const finalX = elRef.current._lastX !== undefined ? elRef.current._lastX : dragEl.x;
-            const finalY = elRef.current._lastY !== undefined ? elRef.current._lastY : dragEl.y;
+            const finalX = elRef.current?._lastX !== undefined ? elRef.current._lastX : dragEl.x;
+            const finalY = elRef.current?._lastY !== undefined ? elRef.current._lastY : dragEl.y;
             // Always clear stale position cache — critical for alt-drag where these
             // hold the CLONE's position on the ORIGINAL element's DOM ref, which
             // would cause the original to teleport on the next click.
-            delete elRef.current._lastX;
-            delete elRef.current._lastY;
+            if (elRef.current) {
+                delete elRef.current._lastX;
+                delete elRef.current._lastY;
+            }
             if (finalX !== origX || finalY !== origY) {
                 let updatedFinal = { ...dragEl, x: finalX, y: finalY };
                 if (dragEl.type === "path") {
@@ -724,6 +780,12 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
     } : {};
 
 
+    const isDomBlock = ["text", "code", "video", "graph", "sticky", "mermaid"].includes(el.type);
+    const shouldReceivePointer = isEditing || 
+        tool === "select" || 
+        (tool === "select-blocks" && isDomBlock) || 
+        (tool === "select-shapes" && !isDomBlock);
+
     return (
         <div
             ref={elRef}
@@ -735,7 +797,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 userSelect: isEditing ? "text" : "none",
                 zIndex: isSelected ? 20 : 10,
                 boxSizing: "border-box",
-                pointerEvents: (tool === "select" || isEditing) ? "auto" : "none",
+                pointerEvents: shouldReceivePointer ? "auto" : "none",
                 ...erasureStyle,
             }}
             onPointerDown={handlePointerDown}
@@ -757,7 +819,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 }
             }}
         >
-            {(isSelected || isEditing || ["video", "code", "graph", "text", "sticky", "rect", "ellipse", "triangle", "arrow", "line", "path"].includes(el.type)) ? (
+            {(isSelected || isEditing || ["video", "code", "graph", "mermaid", "text", "sticky", "rect", "ellipse", "triangle", "arrow", "line", "path", "image"].includes(el.type)) ? (
                 <>
                     {el.type === "code" ? (
                         <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: el.fill, border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
@@ -1064,10 +1126,18 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                         />
                     ) : el.type === "path" ? (
                         <PathSVG el={el} sw={sw} sh={sh} />
+                    ) : el.type === "image" ? (
+                        <ImageBlock el={el} sw={sw} sh={sh} camera={camera} />
                     ) : (
                         <>
                             {/* Visual Background */}
-                            <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
+                            {el.type === "mermaid" ? (
+                                <div className="absolute inset-0" style={{ zIndex: 1 }}>
+                                    <MermaidRenderer code={el.text} isDark={isDarkMode} />
+                                </div>
+                            ) : (
+                                <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
+                            )}
                             {el.type === "sticky" && (
                                 <div
                                     className="absolute inset-0 rounded-sm"
@@ -1112,15 +1182,18 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                     }}
                                     onBlur={handleEndEdit}
                                     style={{
-                                        fontSize: (el.fontSize || 14) * (sw / el.w),
+                                        fontSize: (el.type === "mermaid" && !isEditing) ? 0 : (el.fontSize || 14) * (sw / el.w),
                                         fontFamily: el.fontFamily || "Inter",
                                         fontWeight: el.bold ? "bold" : "normal",
                                         fontStyle: el.italic ? "italic" : "normal",
-                                        color: el.textColor || "#1e1e1e",
+                                        color: (el.type === "mermaid" && !isEditing) ? "transparent" : (el.type === "mermaid" && isEditing ? "#ffffff" : (el.textColor || "#1e1e1e")),
                                         textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
                                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                                         outline: "none", lineHeight: 1.4,
                                         minHeight: "1em",
+                                        backgroundColor: (el.type === "mermaid" && isEditing) ? "rgba(0,0,0,0.8)" : "transparent",
+                                        padding: (el.type === "mermaid" && isEditing) ? "10px" : "0",
+                                        borderRadius: (el.type === "mermaid" && isEditing) ? "8px" : "0",
                                     }}
                                     dangerouslySetInnerHTML={isEditing ? undefined : { __html: (el.text || "").replace(/\n/g, "<br>") }}
                                 />

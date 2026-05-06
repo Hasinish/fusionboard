@@ -12,7 +12,7 @@ export default function GraphRenderer({
   zoom,
   isInternalPanMode
 }) {
-  const { viewport, expressions, points, ui, grid } = element;
+  const { viewport = {}, expressions = [], points = [], ui = {}, grid = {} } = element;
   const blockDims = { w: sw, h: sh };
 
   // Memoize compiled expressions to avoid re-parsing on every render

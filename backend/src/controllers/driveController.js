@@ -306,9 +306,10 @@ export async function proxyDownload(req, res) {
 
     // 3. Set headers
     res.setHeader("Content-Type", mimeType);
+    const disposition = mimeType.startsWith("image/") ? "inline" : "attachment";
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodeURIComponent(fileName)}"`
+      `${disposition}; filename="${encodeURIComponent(fileName)}"`
     );
     // Don't set Content-Length for Google Doc exports as the size is unknown until streaming completes
     if (!isGoogleDoc && fileMeta.data.size) {

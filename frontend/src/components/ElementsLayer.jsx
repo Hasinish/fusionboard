@@ -13,7 +13,7 @@ import {
     useBoardVersion,
 } from "../lib/yjsBoard";
 
-const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky", "mermaid", "image"]);
 
 function OverlayBoardElement({
     id,

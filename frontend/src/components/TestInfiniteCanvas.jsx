@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { ChevronUp } from "lucide-react";
+import api from "../lib/api";
+import { resizeImage } from "../lib/imageUtils";
 import ElementsLayer from "./ElementsLayer";
 import { getElementBounds } from "./canvas/geometryUtils";
 
@@ -7,6 +10,7 @@ import FollowBanner from "./canvas/overlays/FollowBanner";
 import CanvasToolbar from "./canvas/ui/CanvasToolbar";
 import ShapeMenu from "./canvas/ui/ShapeMenu";
 import InsertMenu from "./canvas/ui/InsertMenu";
+import AIAssistant from "./canvas/ui/AIAssistant";
 import ColorPopup from "./canvas/ui/ColorPopup";
 import PenControls from "./canvas/ui/PenControls";
 import ParticipantsStrip from "./canvas/ui/ParticipantsStrip";
@@ -53,12 +57,15 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
     const {
         shapesOpen, setShapesOpen, shapesRef,
+        selectsOpen, setSelectsOpen, selectsRef,
+        lastSelectType, setLastSelectType,
         plusOpen, setPlusOpen, plusRef,
         colorOpen, setColorOpen, colorRef,
         isMinimapVisible, setIsMinimapVisible, minimapCanvasRef,
         isMobile,
         toolbarRef, toolbarHeight,
         statusMsg,
+        isToolbarVisible, setIsToolbarVisible,
     } = useCanvasUiState();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -66,6 +73,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
     const yjsToken = localStorage.getItem("token");
     const canvasRef = useRef(null);
+    const topCanvasRef = useRef(null);
     const overlayCanvasRef = useRef(null);
 
     const {
@@ -89,7 +97,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
     const sidebarElement = useBoardElement(boardStore, activeSidebarElementId);
     const effectiveSidebarOpen = isSidebarOpen && !!activeSidebarElementId;
 
-    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef, overlayCanvasRef, boardStore);
+    const { rendererRef, syncOverlays } = useCanvasRenderer(canvasRef, topCanvasRef, overlayCanvasRef, boardStore);
 
     const {
         camera, setCamera, cameraRef,
@@ -417,13 +425,98 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         }
     }, [boardStore, boardVersion, clearPendingEditId, pendingEditId]);
 
+    useEffect(() => {
+        const handleFileUpload = async (file) => {
+            const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+            try {
+                const { blob, width, height } = await resizeImage(file, 1500);
+
+                // Create a placeholder element IMMEDIATELY so the user sees a spinner
+                const centerScreenX = window.innerWidth / 2;
+                const centerScreenY = window.innerHeight / 2;
+                const worldPos = screenToWorld(centerScreenX, centerScreenY);
+
+                const placeholderElement = {
+                    id: id,
+                    type: "image",
+                    x: worldPos.x - (width / 2),
+                    y: worldPos.y - (height / 2),
+                    w: width,
+                    h: height,
+                    driveFileId: null, // null = still uploading
+                    workspaceId: workspaceId,
+                    userId: me?._id || me?.id,
+                };
+                boardActions?.createElement(placeholderElement);
+
+                // Now upload to Drive in the background
+                const formData = new FormData();
+                formData.append("file", blob, "pasted-image.webp");
+                formData.append("workspaceId", workspaceId);
+
+                const token = localStorage.getItem("token");
+                const res = await api.post("/drive/upload", formData, {
+                    headers: { 
+                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer ${token}` 
+                    }
+                });
+
+                const driveFileId = res.data?.file?.id;
+                if (!driveFileId) throw new Error("No file ID returned");
+
+                // Update the placeholder with the real Drive file ID
+                boardActions?.updateElement(id, { driveFileId: driveFileId });
+            } catch (error) {
+                console.error("Failed to upload image:", error);
+                // Remove the placeholder on failure
+                boardActions?.deleteElement(id);
+                if (error.response?.data?.message) {
+                    alert(error.response.data.message);
+                } else {
+                    alert("Failed to upload image. Please check if Google Drive is connected to this workspace.");
+                }
+            }
+        };
+
+        const handlePaste = async (e) => {
+            if (isViewer) return;
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const file = items[i].getAsFile();
+                    if (!file) continue;
+                    handleFileUpload(file);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        };
+
+        const onCustomUpload = (e) => {
+            if (isViewer) return;
+            const file = e.detail?.file;
+            if (file) handleFileUpload(file);
+        };
+
+        window.addEventListener("paste", handlePaste);
+        window.addEventListener("fusionboard:upload-image", onCustomUpload);
+        
+        return () => {
+            window.removeEventListener("paste", handlePaste);
+            window.removeEventListener("fusionboard:upload-image", onCustomUpload);
+        };
+    }, [isViewer, workspaceId, screenToWorld, boardActions, me]);
+
     return (
         <div
             className={`relative w-full h-full overflow-hidden select-none touch-none ${tool === "hand" ? "cursor-grab active:cursor-grabbing" :
                 tool === "eraser" ? "cursor-none" :
-                    tool === "select" ? "cursor-default" :
-                        tool === "text" ? "cursor-text" :
-                            "cursor-crosshair"
+                tool.startsWith("select") ? "cursor-default" :
+                    tool === "text" ? "cursor-text" :
+                        "cursor-crosshair"
                 }`}
             style={{ backgroundColor: isDark ? "#121212" : "#F0F0F0" }}
             onPointerDown={onPointerDown}
@@ -534,6 +627,17 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 rendererRef={rendererRef}
             />
 
+            {/* Top Canvas for freehand paths — sandwich architecture */}
+            <canvas
+                ref={topCanvasRef}
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 15
+                }}
+            />
+
             {/* Overlay canvas for cursors — above all board elements */}
             <canvas
                 ref={overlayCanvasRef}
@@ -556,7 +660,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                     isMobile={isMobile}
                 />
 
-                <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none`}>
+                <div className={`absolute top-4 right-4 flex flex-col items-end ${isMobile ? "gap-2" : "gap-3"} z-30 pointer-events-none scale-90 origin-top-right`}>
                     <div className="flex items-center gap-2">
                         <ParticipantsStrip
                             participants={participants}
@@ -609,6 +713,28 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                     />
                 </div>
 
+                {/* Standalone Reopen Toolbar Button */}
+                <div 
+                    className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 pointer-events-auto ${!isToolbarVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"}`}
+                >
+                    <button 
+                        className={`btn btn-circle bg-base-100/90 backdrop-blur-md shadow-2xl border-white/20 hover:bg-base-200 text-base-content scale-[0.85]`}
+                        onPointerDown={(e) => { 
+                            e.stopPropagation(); 
+                            e.preventDefault();
+                            setIsToolbarVisible(true); 
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation(); 
+                            e.preventDefault();
+                            setIsToolbarVisible(true); 
+                        }}
+                        title="Show Toolbar"
+                    >
+                        <ChevronUp className="w-6 h-6" />
+                    </button>
+                </div>
+
                 <CanvasToolbar
                     isViewer={isViewer}
                     tool={tool}
@@ -616,6 +742,13 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                     ghostBtnClass={ghostBtnClass}
                     isDark={isDark}
                     toolbarRef={toolbarRef}
+                    selectsOpen={selectsOpen}
+                    setSelectsOpen={setSelectsOpen}
+                    selectsRef={selectsRef}
+                    lastSelectType={lastSelectType}
+                    setLastSelectType={setLastSelectType}
+                    isToolbarVisible={isToolbarVisible}
+                    setIsToolbarVisible={setIsToolbarVisible}
                 >
                     {!isViewer && (
                         <>
@@ -654,6 +787,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                                 isDark={isDark}
                                 toolbarHeight={toolbarHeight}
                                 colorRef={colorRef}
+                                isToolbarVisible={isToolbarVisible}
                             />
                         )}
 
@@ -669,12 +803,13 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                             setWidth={setWidth}
                             isDark={isDark}
                             toolbarHeight={toolbarHeight}
+                            isToolbarVisible={isToolbarVisible}
                         />
                     </>
                 )}
 
                 {renderTopLeftUI && (
-                    <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3">
+                    <div className="ui-container absolute top-5 left-5 z-50 pointer-events-none flex items-center gap-3 scale-90 origin-top-left">
                         {!isViewer && (
                             <div className="flex items-center pointer-events-auto">
                                 <RecordButton
@@ -753,6 +888,14 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
                 }}
                 isDark={isDark}
                 zoom={camera.z}
+            />
+
+            <AIAssistant 
+                boardActions={boardActions} 
+                camera={camera} 
+                screenToWorld={screenToWorld}
+                isDark={isDark}
+                selectedItems={selectedItems}
             />
 
             {/* Selection Box Visual — now drawn on canvas */}

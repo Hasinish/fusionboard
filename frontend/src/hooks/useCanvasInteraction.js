@@ -97,6 +97,7 @@ export default function useCanvasInteraction({
                 case "c": setTool("code"); break;
                 case "y": setTool("video"); break;
                 case "g": setTool("graph"); break;
+                case "m": setTool("mermaid"); break;
                 case "l": setTool("line"); setLastShapeType("line"); break;
                 default: break;
             }
@@ -177,9 +178,17 @@ export default function useCanvasInteraction({
 
     const findHitElement = useCallback((worldPoint) => {
         const elements = getCommittedElements();
+        const DOM_BLOCK_TYPES = ["text", "code", "video", "graph", "sticky", "mermaid", "image"];
+        
         for (let i = elements.length - 1; i >= 0; i--) {
-            if (pointHitsElement(worldPoint.x, worldPoint.y, elements[i], cameraRef.current.z)) {
-                return elements[i];
+            const el = elements[i];
+            
+            // Apply filtering based on select mode
+            if (toolRef.current === "select-blocks" && !DOM_BLOCK_TYPES.includes(el.type)) continue;
+            if (toolRef.current === "select-shapes" && DOM_BLOCK_TYPES.includes(el.type)) continue;
+
+            if (pointHitsElement(worldPoint.x, worldPoint.y, el, cameraRef.current.z)) {
+                return el;
             }
         }
         return undefined;
@@ -206,7 +215,7 @@ export default function useCanvasInteraction({
         if (isViewerRef?.current) return;
 
         const hitEl = findHitElement(wp);
-        if (toolRef.current !== "select" || !hitEl) {
+        if (!toolRef.current.startsWith("select") || !hitEl) {
             setFollowedUserId(null);
         }
 
@@ -233,7 +242,7 @@ export default function useCanvasInteraction({
             return;
         }
 
-        if (toolRef.current === "select") {
+        if (toolRef.current.startsWith("select")) {
             if (hitEl) {
                 if (e.shiftKey) {
                     setSelectedIds((prev) => (
@@ -299,6 +308,25 @@ export default function useCanvasInteraction({
                 w: 480,
                 h: 320,
                 ...DEFAULT_ELEMENT_STYLES.video,
+            };
+            commitElementCreate(element);
+            setSelectedIds([element.id]);
+            setTool("select");
+            return;
+        }
+
+        if (toolRef.current === "mermaid") {
+            const darkOverrides = isDark ? { stroke: "#ffffff", color: "#ffffff", textColor: "#ffffff" } : {};
+            const element = {
+                id: uid(),
+                type: "mermaid",
+                x: wp.x,
+                y: wp.y,
+                w: 400,
+                h: 300,
+                text: "graph TD;\n    A-->B;\n    A-->C;\n    B-->D;\n    C-->D;",
+                ...DEFAULT_ELEMENT_STYLES.text,
+                ...darkOverrides,
             };
             commitElementCreate(element);
             setSelectedIds([element.id]);
@@ -585,8 +613,13 @@ export default function useCanvasInteraction({
                 hits = hitEl ? [hitEl.id] : [];
             } else {
                 // Actual drag marquee — use bounding-box overlap and hollow-shape rejection
+                const DOM_BLOCK_TYPES = ["text", "code", "video", "graph", "sticky", "mermaid", "image"];
                 hits = getCommittedElements()
-                    .filter((el) => boxHitsElement(x1, y1, x2, y2, el))
+                    .filter((el) => {
+                        if (toolRef.current === "select-blocks" && !DOM_BLOCK_TYPES.includes(el.type)) return false;
+                        if (toolRef.current === "select-shapes" && DOM_BLOCK_TYPES.includes(el.type)) return false;
+                        return boxHitsElement(x1, y1, x2, y2, el);
+                    })
                     .map((el) => el.id);
             }
 

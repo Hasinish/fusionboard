@@ -6,11 +6,14 @@ import { useState, useEffect, useRef } from "react";
 export function useCanvasUiState() {
     // Popup states
     const [shapesOpen, setShapesOpen] = useState(false);
+    const [selectsOpen, setSelectsOpen] = useState(false);
+    const [lastSelectType, setLastSelectType] = useState("select");
     const [plusOpen, setPlusOpen] = useState(false);
     const [colorOpen, setColorOpen] = useState(false);
 
     // Refs for click-outside detection
     const shapesRef = useRef(null);
+    const selectsRef = useRef(null);
     const plusRef = useRef(null);
     const colorRef = useRef(null);
 
@@ -18,6 +21,9 @@ export function useCanvasUiState() {
         const handleClickOutside = (e) => {
             const shapesPopup = document.getElementById('shapes-popup');
             if (shapesRef.current && !shapesRef.current.contains(e.target) && (!shapesPopup || !shapesPopup.contains(e.target))) setShapesOpen(false);
+
+            const selectsPopup = document.getElementById('selects-popup');
+            if (selectsRef.current && !selectsRef.current.contains(e.target) && (!selectsPopup || !selectsPopup.contains(e.target))) setSelectsOpen(false);
 
             const plusPopup = document.getElementById('plus-popup');
             if (plusRef.current && !plusRef.current.contains(e.target) && (!plusPopup || !plusPopup.contains(e.target))) setPlusOpen(false);
@@ -55,6 +61,7 @@ export function useCanvasUiState() {
 
     // Ephemeral visual state
     const [statusMsg, setStatusMsg] = useState("");
+    const [isToolbarVisible, setIsToolbarVisible] = useState(true);
 
     // ctrlPressed state for shortcuts and UI hints
     const [ctrlPressed, setCtrlPressed] = useState(false);
@@ -79,12 +86,15 @@ export function useCanvasUiState() {
 
     return {
         shapesOpen, setShapesOpen, shapesRef,
+        selectsOpen, setSelectsOpen, selectsRef,
+        lastSelectType, setLastSelectType,
         plusOpen, setPlusOpen, plusRef,
         colorOpen, setColorOpen, colorRef,
         isMinimapVisible, setIsMinimapVisible, minimapCanvasRef,
         isMobile,
         toolbarRef, toolbarHeight,
         statusMsg, setStatusMsg,
+        isToolbarVisible, setIsToolbarVisible,
         ctrlPressed
     };
 }

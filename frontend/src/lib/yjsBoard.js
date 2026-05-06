@@ -15,7 +15,7 @@ export {
     BOARD_META_ORIGIN 
 };
 
-const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky", "mermaid", "image"]);
 
 function cloneValue(value) {
     if (value == null) return value;
@@ -130,7 +130,7 @@ export function ensureBoardSchema(doc) {
     }
 
     // Backfill mission: Ensure every interactive element has character-sync content
-    const INTERACTIVE_TYPES = new Set(["text", "code", "video", "graph", "sticky"]);
+    const INTERACTIVE_TYPES = new Set(["text", "code", "video", "graph", "sticky", "mermaid", "image"]);
     doc.transact(() => {
         elementsById.forEach((el, id) => {
             if (el && INTERACTIVE_TYPES.has(el.type) && !elementContents.has(id)) {
