@@ -162,6 +162,26 @@ export function drawArrow(ctx, el) {
   ctx.restore()
 }
 
+export function drawLine(ctx, el) {
+  ctx.save()
+  const cx = el.x + el.w / 2, cy = el.y + el.h / 2
+  const rad = ((el.rotation || 0) * Math.PI) / 180
+  ctx.translate(cx, cy)
+  ctx.rotate(rad)
+  ctx.translate(-cx, -cy)
+  const sW = el.strokeWidth || 3
+  ctx.strokeStyle = el.stroke || el.color || '#000000'
+  ctx.lineWidth = sW
+  ctx.lineCap = 'round'
+  ctx.globalAlpha = el.opacity ?? 1
+  ctx.beginPath()
+  ctx.moveTo(el.x, el.y + el.h / 2)
+  ctx.lineTo(el.x + el.w, el.y + el.h / 2)
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  ctx.restore()
+}
+
 export function drawSticky(ctx, el) {
   ctx.save()
   ctx.globalAlpha = el.opacity ?? 1
@@ -303,6 +323,7 @@ export function drawElement(ctx, el) {
       case 'ellipse': drawEllipse(ctx, drawEl); break
       case 'triangle': drawTriangle(ctx, drawEl); break
       case 'arrow': drawArrow(ctx, drawEl); break
+      case 'line': drawLine(ctx, drawEl); break
       case 'sticky': drawSticky(ctx, drawEl); break
       case 'text': drawText(ctx, drawEl); break
       case 'code': drawCode(ctx, drawEl); break

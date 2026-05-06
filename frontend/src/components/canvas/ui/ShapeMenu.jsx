@@ -1,5 +1,5 @@
 import React from "react";
-import { StickyNote, Square, Circle, Triangle, ArrowRight, ChevronUp } from "lucide-react";
+import { StickyNote, Square, Circle, Triangle, ArrowRight, ChevronUp, Minus } from "lucide-react";
 
 export default function ShapeMenu({ 
     tool, 
@@ -20,7 +20,7 @@ export default function ShapeMenu({
             onPointerUp={(e) => e.stopPropagation()}
         >
             <button
-                className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
+                className={`btn btn-sm ${["sticky", "rect", "ellipse", "triangle", "arrow", "line"].includes(tool) ? "bg-warning text-warning-content" : ghostBtnClass} border-none rounded-xl`}
                 onClick={(e) => { 
                     e.stopPropagation(); 
                     const nextOpen = !shapesOpen;
@@ -34,6 +34,7 @@ export default function ShapeMenu({
                     {lastShapeType === "ellipse" && <Circle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
                     {lastShapeType === "triangle" && <Triangle className="w-5 h-5" color={isDark ? "#ffffff" : "black"} fill="transparent" strokeWidth={2} />}
                     {lastShapeType === "arrow" && <ArrowRight className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={2} />}
+                    {lastShapeType === "line" && <Minus className="w-5 h-5" color={isDark ? "#ffffff" : "black"} strokeWidth={3} />}
                     <ChevronUp className={`w-4 h-4 opacity-50 transition-transform ${shapesOpen ? "rotate-180" : ""}`} />
                 </div>
             </button>
@@ -46,6 +47,7 @@ export default function ShapeMenu({
                         <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("ellipse"); setLastShapeType("ellipse"); setShapesOpen(false); }} data-tip="Ellipse (O)"><Circle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
                         <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("triangle"); setLastShapeType("triangle"); setShapesOpen(false); }} data-tip="Triangle"><Triangle className="w-5 h-5" color={isDark ? "white" : "black"} fill="transparent" strokeWidth={2} /></button>
                         <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("arrow"); setLastShapeType("arrow"); setShapesOpen(false); }} data-tip="Arrow (A)"><ArrowRight className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={2} /></button>
+                        <button className={`btn btn-sm ${ghostBtnClass} tooltip tooltip-top`} onClick={() => { setTool("line"); setLastShapeType("line"); setShapesOpen(false); }} data-tip="Line (L)"><Minus className="w-5 h-5" color={isDark ? "white" : "black"} strokeWidth={3} /></button>
                     </div>
                 </div>
             )}

@@ -215,6 +215,11 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         );
     }
 
+    // ── Line: simple segment ──
+    if (el.type === "line") {
+        return getDistToSegment(px, py, el.x, el.y + el.h / 2, el.x + el.w, el.y + el.h / 2) < hitThreshold;
+    }
+
     // ── Content types (sticky, text, code, video, graph): full bounding-box selection ──
     const pad = el.type === "text" ? 5 : 0;
     return px >= el.x - pad && px <= el.x + el.w + pad && py >= el.y - pad && py <= el.y + el.h + pad;
@@ -308,6 +313,12 @@ export function boxHitsElement(x1, y1, x2, y2, el) {
                segmentIntersectsBox(p2.x, p2.y, h1.x, h1.y, x1, y1, x2, y2) ||
                segmentIntersectsBox(h1.x, h1.y, h2.x, h2.y, x1, y1, x2, y2) ||
                segmentIntersectsBox(h2.x, h2.y, p2.x, p2.y, x1, y1, x2, y2);
+    }
+
+    if (el.type === "line") {
+        const p1 = rotatePoint(el.x, el.y + el.h / 2);
+        const p2 = rotatePoint(el.x + el.w, el.y + el.h / 2);
+        return segmentIntersectsBox(p1.x, p1.y, p2.x, p2.y, x1, y1, x2, y2);
     }
 
     if (el.type === "ellipse") {

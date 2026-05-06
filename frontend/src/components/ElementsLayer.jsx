@@ -133,15 +133,7 @@ export default React.memo(function ElementsLayer({
         [visiblePreviewById]
     );
 
-    const visibleIds = useMemo(() => {
-        const visibleSet = new Set([
-            ...interactiveIds,
-            ...selectedIds,
-            ...previewInteractiveIds,
-            activeEditingId,
-        ].filter(Boolean));
-        return orderedIds.filter((id) => visibleSet.has(id));
-    }, [activeEditingId, interactiveIds, orderedIds, previewInteractiveIds, selectedIds]);
+    const visibleIds = orderedIds;
 
     useEffect(() => {
         if (pendingEditId) {

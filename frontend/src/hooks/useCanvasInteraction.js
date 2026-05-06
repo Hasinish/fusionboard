@@ -97,6 +97,7 @@ export default function useCanvasInteraction({
                 case "c": setTool("code"); break;
                 case "y": setTool("video"); break;
                 case "g": setTool("graph"); break;
+                case "l": setTool("line"); setLastShapeType("line"); break;
                 default: break;
             }
         };
@@ -209,7 +210,7 @@ export default function useCanvasInteraction({
             setFollowedUserId(null);
         }
 
-        if (["sticky", "rect", "ellipse", "triangle", "arrow"].includes(toolRef.current)) {
+        if (["sticky", "rect", "ellipse", "triangle", "arrow", "line"].includes(toolRef.current)) {
             drawingRef.current = true;
             strokeStartRef.current = wp;
             const defaults = DEFAULT_ELEMENT_STYLES[toolRef.current] || {};
@@ -416,14 +417,14 @@ export default function useCanvasInteraction({
         if (drawingRef.current && ghostElement) {
             const start = strokeStartRef.current;
 
-            if (ghostElement.type === "arrow") {
+            if (ghostElement.type === "arrow" || ghostElement.type === "line") {
                 const dx = wp.x - start.x;
                 const dy = wp.y - start.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const angle = Math.atan2(dy, dx) * (180 / Math.PI);
                 const mx = (start.x + wp.x) / 2;
                 const my = (start.y + wp.y) / 2;
-                const height = 40;
+                const height = ghostElement.type === "arrow" ? 40 : 20; // Thinner bounding box for line
                 setGhostElement((prev) => ({
                     ...prev,
                     x: mx - dist / 2,

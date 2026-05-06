@@ -757,7 +757,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 }
             }}
         >
-            {(isSelected || isEditing || ["video", "code", "graph", "text", "sticky"].includes(el.type)) ? (
+            {(isSelected || isEditing || ["video", "code", "graph", "text", "sticky", "rect", "ellipse", "triangle", "arrow", "line", "path"].includes(el.type)) ? (
                 <>
                     {el.type === "code" ? (
                         <div className="absolute inset-0 rounded-lg overflow-hidden flex flex-col shadow-xl" style={{ backgroundColor: el.fill, border: `${el.strokeWidth || 1}px solid ${el.stroke}` }}>
@@ -1063,10 +1063,11 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                             isSidebarOpen={isSidebarOpen}
                         />
                     ) : el.type === "path" ? (
-                        null
+                        <PathSVG el={el} sw={sw} sh={sh} />
                     ) : (
                         <>
                             {/* Visual Background */}
+                            <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
                             {el.type === "sticky" && (
                                 <div
                                     className="absolute inset-0 rounded-sm"
@@ -1137,12 +1138,12 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ border: "1.5px dashed #94a3b8", zIndex: 3 }} />
             )}
             {/* Only show individual resize/rotate handles when NOT multi-selected */}
-            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && handles.map(h => (
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && el.type !== "line" && handles.map(h => (
                 <div key={h.id} onPointerDown={(e) => { e.stopPropagation(); handleResizeStart(e, h.id); }}
                     className="ui-container"
                     style={{ position: "absolute", width: 9, height: 9, background: "#fff", border: "2px solid #2563eb", borderRadius: 2, cursor: h.cursor, zIndex: 4, ...h, pointerEvents: "auto" }} />
             ))}
-            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && (
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type !== "arrow" && el.type !== "line" && (
                 <div onPointerDown={(e) => { e.stopPropagation(); handleRotateStart(e); }} title="Rotate"
                     className="ui-container"
                     style={{ position: "absolute", top: -30, left: "calc(50% - 8px)", width: 16, height: 16, borderRadius: "50%", background: "#2563eb", cursor: "grab", zIndex: 5, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto" }}>
@@ -1150,8 +1151,8 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 </div>
             )}
 
-            {/* Custom Arrow Endpoint Handles */}
-            {isSelected && !isEditing && !isMultiSelected && !isViewer && el.type === "arrow" && (
+            {/* Custom Arrow/Line Endpoint Handles */}
+            {isSelected && !isEditing && !isMultiSelected && !isViewer && (el.type === "arrow" || el.type === "line") && (
                 <>
                     <div
                         onPointerDown={(e) => handleArrowResizeStart(e, "start")}

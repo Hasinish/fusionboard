@@ -36,6 +36,19 @@ export function ShapeSVG({ type, fill, stroke, strokeWidth, w, h }) {
             </svg>
         );
     }
+    if (type === "line") {
+        return (
+            <svg width={w} height={h} className="absolute inset-0 pointer-events-none" style={{ overflow: "visible" }}>
+                <path 
+                    d={`M 0 ${h / 2} L ${w} ${h / 2}`} 
+                    stroke={stroke || (type === "line" ? "#000" : "none")} 
+                    strokeWidth={sW} 
+                    strokeLinecap="round" 
+                    fill="none"
+                />
+            </svg>
+        );
+    }
     if (type === "text") return null; // Text elements have no shape background
     if (type === "path") return null; // Path elements render via PathSVG below
     return null;
