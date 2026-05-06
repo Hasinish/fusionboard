@@ -1,8 +1,18 @@
 import RecordingSession from "../models/RecordingSession.js";
 import RecordingEvent from "../models/RecordingEvent.js";
 import RecordingCheckpoint from "../models/RecordingCheckpoint.js";
+import Workspace from "../models/Workspace.js";
+import { getDriveClient } from "../services/driveService.js";
+import { Readable } from "stream";
 import fs from "fs";
 import path from "path";
+
+function bufferToStream(buffer) {
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  return stream;
+}
 
 // Helper to calculate duration
 const calculateDuration = (start, end) => {
@@ -74,20 +84,64 @@ export const uploadAudio = async (req, res) => {
     const { id } = req.params;
     if (!req.file) return res.status(400).json({ message: "No audio file uploaded" });
 
-    const session = await RecordingSession.findById(id);
+    const session = await RecordingSession.findById(id).populate("workspace");
     if (!session) return res.status(404).json({ message: "Session not found" });
 
-    // Use forward slashes for URLs
-    const audioUrl = `/recordings/${req.file.filename}`;
-    session.audioUrl = audioUrl;
+    const workspace = session.workspace;
+    if (!workspace || !workspace.googleDriveRefreshToken || !workspace.googleDriveFolderId) {
+      // Fallback: save locally if Drive is not connected
+      const audioUrl = `/recordings/${req.file.filename}`;
+      session.audioUrl = audioUrl;
+      session.audioMetadata = {
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        storage: "local",
+      };
+      await session.save();
+      return res.json({ message: "Audio uploaded locally (Drive not connected)", audioUrl });
+    }
+
+    // Upload to Google Drive
+    const drive = getDriveClient(workspace.googleDriveRefreshToken);
+    const FOLDER_ID = workspace.googleDriveFolderId;
+
+    const fileMetadata = {
+      name: `recording-audio-${id}.webm`,
+      parents: [FOLDER_ID],
+      appProperties: {
+        workspaceId: workspace._id.toString(),
+        recordingSessionId: id,
+        type: "recording-audio",
+      },
+    };
+
+    const media = {
+      mimeType: req.file.mimetype,
+      body: bufferToStream(req.file.buffer),
+    };
+
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      media: media,
+      fields: "id, name",
+    });
+
+    const driveFileId = response.data.id;
+
+    // Store the Drive file ID as the audio URL reference
+    session.audioUrl = `drive://${driveFileId}`;
     session.audioMetadata = {
       mimeType: req.file.mimetype,
       size: req.file.size,
+      storage: "drive",
+      driveFileId: driveFileId,
     };
     await session.save();
 
-    res.json({ message: "Audio uploaded successfully", audioUrl });
+    console.log(`[Recording] Audio uploaded to Drive: ${driveFileId}`);
+    res.json({ message: "Audio uploaded to Google Drive", audioUrl: session.audioUrl, driveFileId });
   } catch (error) {
+    console.error("Failed to upload audio:", error);
     res.status(500).json({ message: "Failed to upload audio", error: error.message });
   }
 };
@@ -180,17 +234,34 @@ export const deleteRecording = async (req, res) => {
 
     // 2. Delete audio file if exists
     if (session.audioUrl) {
-      console.log(`[DeleteRecording] Deleting audio file: ${session.audioUrl}`);
-      const audioPath = path.join(process.cwd(), "uploads", "recordings", path.basename(session.audioUrl));
-      if (fs.existsSync(audioPath)) {
-        try {
-          fs.unlinkSync(audioPath);
-          console.log(`[DeleteRecording] Deleted audio file at: ${audioPath}`);
-        } catch (unlinkErr) {
-          console.error(`[DeleteRecording] Failed to delete audio file: ${unlinkErr.message}`);
+      console.log(`[DeleteRecording] Deleting audio: ${session.audioUrl}`);
+      
+      if (session.audioUrl.startsWith("drive://")) {
+        // Audio is stored in Google Drive
+        const driveFileId = session.audioUrl.replace("drive://", "");
+        const workspace = session.workspace;
+        if (workspace?.googleDriveRefreshToken) {
+          try {
+            const drive = getDriveClient(workspace.googleDriveRefreshToken);
+            await drive.files.delete({ fileId: driveFileId });
+            console.log(`[DeleteRecording] Deleted Drive audio file: ${driveFileId}`);
+          } catch (driveErr) {
+            console.error(`[DeleteRecording] Failed to delete Drive audio: ${driveErr.message}`);
+          }
         }
       } else {
-        console.warn(`[DeleteRecording] Audio file not found at: ${audioPath}`);
+        // Audio is stored locally (legacy/fallback)
+        const audioPath = path.join(process.cwd(), "uploads", "recordings", path.basename(session.audioUrl));
+        if (fs.existsSync(audioPath)) {
+          try {
+            fs.unlinkSync(audioPath);
+            console.log(`[DeleteRecording] Deleted local audio file at: ${audioPath}`);
+          } catch (unlinkErr) {
+            console.error(`[DeleteRecording] Failed to delete local audio file: ${unlinkErr.message}`);
+          }
+        } else {
+          console.warn(`[DeleteRecording] Local audio file not found at: ${audioPath}`);
+        }
       }
     }
 
@@ -203,5 +274,57 @@ export const deleteRecording = async (req, res) => {
   } catch (error) {
     console.error(`[DeleteRecording] Error:`, error);
     res.status(500).json({ message: "Failed to delete recording", error: error.message });
+  }
+};
+
+export const proxyRecordingAudio = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await RecordingSession.findById(id).populate("workspace");
+    if (!session) return res.status(404).json({ message: "Session not found" });
+
+    if (!session.audioUrl) {
+      return res.status(404).json({ message: "No audio for this recording" });
+    }
+
+    // Handle legacy local files
+    if (!session.audioUrl.startsWith("drive://")) {
+      const audioPath = path.join(process.cwd(), "uploads", "recordings", path.basename(session.audioUrl));
+      if (!fs.existsSync(audioPath)) {
+        return res.status(404).json({ message: "Local audio file not found" });
+      }
+      res.setHeader("Content-Type", session.audioMetadata?.mimeType || "audio/webm");
+      return fs.createReadStream(audioPath).pipe(res);
+    }
+
+    // Drive-stored audio
+    const driveFileId = session.audioUrl.replace("drive://", "");
+    const workspace = session.workspace;
+
+    if (!workspace?.googleDriveRefreshToken) {
+      return res.status(400).json({ message: "Workspace Drive not configured" });
+    }
+
+    const drive = getDriveClient(workspace.googleDriveRefreshToken);
+
+    const downloadResponse = await drive.files.get(
+      { fileId: driveFileId, alt: "media" },
+      { responseType: "stream" }
+    );
+
+    res.setHeader("Content-Type", session.audioMetadata?.mimeType || "audio/webm");
+    res.setHeader("Cache-Control", "public, max-age=86400"); // cache for 24 hours
+
+    downloadResponse.data
+      .on("error", (err) => {
+        console.error("[ProxyAudio] Stream error:", err);
+        if (!res.headersSent) res.status(500).end();
+      })
+      .pipe(res);
+  } catch (error) {
+    console.error("[ProxyAudio] Error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to stream audio", error: error.message });
+    }
   }
 };

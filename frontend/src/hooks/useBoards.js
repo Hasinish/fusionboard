@@ -53,6 +53,7 @@ export function useBoards(selectedWorkspaceId) {
       }
       
       socket.on("connect", joinWorkspace);
+      socket.on("reconnect", joinWorkspace);
 
       socket.on("board:created", (board) => {
         setWorkspaceBoards(prev =>

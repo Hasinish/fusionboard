@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import { io } from "socket.io-client";
 import { ArrowLeft, Settings2, Trash2, Check, Loader2, History } from "lucide-react";
 import TestInfiniteCanvas from "../components/TestInfiniteCanvas";
 import VoiceChat from "../components/VoiceChat";
@@ -51,6 +51,21 @@ function WhiteboardPage() {
       })
       .catch(() => setUserRole("viewer")); // fail-safe: restrict to viewer
   }, [boardId, id, token, me?.id]);
+
+  // Register presence via Socket.IO so the dashboard shows live avatars
+  useEffect(() => {
+    if (!boardId || !token || !me) return;
+    const socket = io(API_URL.replace("/api", ""), { auth: { token } });
+    const emitJoin = () => {
+      socket.emit("joinBoard", { boardId, user: { name: me.name, avatar: me.avatar } });
+    };
+    if (socket.connected) emitJoin();
+    socket.on("connect", emitJoin);
+    return () => {
+      socket.emit("leaveBoard");
+      socket.disconnect();
+    };
+  }, [boardId, token, me?.id]);
 
   const handleTitleSave = async () => {
     if (!tempTitle.trim()) {

@@ -4,7 +4,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
-import { LeveldbPersistence } from "y-leveldb";
+import { MongodbPersistence } from "y-mongodb-provider";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import Board from "../models/Board.js";
@@ -20,7 +20,21 @@ const BOARD_CLEAR_ORIGIN = "fusionboard:clear";
 const BOARD_META_ORIGIN = "fusionboard:meta";
 const MONGO_MIRROR_DEBOUNCE_MS = 1000;
 
-const persistence = new LeveldbPersistence("./data/yjs");
+// MongoDB-backed persistence — survives server restarts and Render deployments
+let persistence;
+function getPersistence() {
+  if (!persistence) {
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) throw new Error("[Yjs] MONGO_URI is not set");
+    persistence = new MongodbPersistence(mongoUri, {
+      collectionName: "yjs-updates",
+      flushSize: 400,
+      multipleCollections: false,
+    });
+    console.log("[Yjs] MongoDB persistence initialized");
+  }
+  return persistence;
+}
 
 // Cache promises so a board doc is created + bootstrapped only once at a time.
 const docCache = new Map();
@@ -224,11 +238,12 @@ async function getOrCreateDoc(docName) {
   }
 
   const docPromise = (async () => {
+    const mdb = getPersistence();
     let ydoc;
     try {
-      ydoc = await persistence.getYDoc(docName);
+      ydoc = await mdb.getYDoc(docName);
     } catch (err) {
-      console.error(`[Yjs] LevelDB load failed for ${docName}, creating fresh doc:`, err);
+      console.error(`[Yjs] MongoDB load failed for ${docName}, creating fresh doc:`, err);
       ydoc = new Y.Doc();
     }
 
@@ -240,7 +255,7 @@ async function getOrCreateDoc(docName) {
 
     ydoc.on("update", (update) => {
       try {
-        persistence.storeUpdate(docName, update).catch((error) => {
+        mdb.storeUpdate(docName, update).catch((error) => {
           console.error(`[Yjs] Persistence error for ${docName}:`, error);
         });
       } catch (err) {
@@ -353,7 +368,13 @@ export async function deleteYjsBoardDoc(boardId) {
     }
   }
 
-  await persistence.clearDocument(docName);
+  try {
+    const mdb = getPersistence();
+    await mdb.clearDocument(docName);
+    console.log(`[Yjs] Cleared MongoDB doc for board ${boardId}`);
+  } catch (err) {
+    console.error(`[Yjs] Failed to clear MongoDB doc for board ${boardId}:`, err);
+  }
 }
 
 export function startYjsServer(httpServer) {

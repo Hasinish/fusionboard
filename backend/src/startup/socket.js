@@ -188,6 +188,22 @@ export const setupSocket = (io) => {
                 }
                 socket.join(`ws:${workspaceId}`);
                 if (ack) ack({ ok: true });
+
+                // Immediately push current active-user snapshot to this socket
+                // so the dashboard shows live presence without waiting for a join/leave event
+                try {
+                    const boards = await Board.find({ workspace: workspaceId }).select("_id").lean();
+                    const boardIds = boards.map(b => b._id);
+                    const usersMap = getActiveUsersMap(boardIds);
+                    boardIds.forEach(boardId => {
+                        socket.emit("board:users-updated", {
+                            boardId: String(boardId),
+                            activeUsers: usersMap[boardId] || [],
+                        });
+                    });
+                } catch (snapErr) {
+                    console.error("[Socket] Failed to push presence snapshot:", snapErr);
+                }
             } catch {
                 if (ack) ack({ ok: false, message: "Join failed" });
             }

@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import {
   startRecording,
@@ -11,24 +10,14 @@ import {
   getRecordingEvents,
   listBoardRecordings,
   createCheckpoint,
-  deleteRecording
+  deleteRecording,
+  proxyRecordingAudio
 } from "../controllers/recordingController.js";
 
 const router = express.Router();
 
-// Multer setup for audio
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Relative to the root or where process.cwd() is (usually backend root)
-    cb(null, "uploads/recordings/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `audio-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
-
-const upload = multer({ storage });
+// Use memory storage so we can pipe directly to Google Drive
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", authMiddleware, startRecording);
 router.post("/:id/end", authMiddleware, endRecording);
@@ -38,7 +27,9 @@ router.post("/:id/checkpoints", authMiddleware, createCheckpoint);
 
 router.get("/:id", authMiddleware, getRecording);
 router.get("/:id/events", authMiddleware, getRecordingEvents);
+router.get("/:id/audio/stream", authMiddleware, proxyRecordingAudio);
 router.get("/board/:boardId", authMiddleware, listBoardRecordings);
 router.delete("/:id", authMiddleware, deleteRecording);
 
 export default router;
+

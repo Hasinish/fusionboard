@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2, AlertCircle } from "lucide-react";
 import api, { API_URL } from "../lib/api";
@@ -64,10 +64,43 @@ export default function BoardReplayPage() {
   } = useReplayClock({ 
     duration: recording?.durationMs || 0 
   });
+  // Use proxy endpoint for audio — works for both Drive-stored and local audio
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const [audioPreloaded, setAudioPreloaded] = useState(false);
+  const [preloadedAudioUrl, setPreloadedAudioUrl] = useState(null);
 
-  const audioUrl = recording?.audioUrl ? `${API_URL.replace("/api", "")}${recording.audioUrl}` : null;
+  // Preload audio into memory so there's zero lag during playback
+  useEffect(() => {
+    if (!recording?.audioUrl || !token) {
+      setAudioPreloaded(true); // No audio to preload
+      return;
+    }
+
+    const proxyUrl = `${API_URL}/recordings/${recordingId}/audio/stream?token=${encodeURIComponent(token)}`;
+    
+    fetch(proxyUrl)
+      .then(res => {
+        if (!res.ok) throw new Error("Audio fetch failed");
+        return res.blob();
+      })
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        setPreloadedAudioUrl(objectUrl);
+        setAudioPreloaded(true);
+        console.log("[Replay] Audio preloaded into memory");
+      })
+      .catch(err => {
+        console.error("[Replay] Failed to preload audio:", err);
+        setAudioPreloaded(true); // Continue without audio rather than blocking
+      });
+
+    return () => {
+      if (preloadedAudioUrl) URL.revokeObjectURL(preloadedAudioUrl);
+    };
+  }, [recording, recordingId, token]);
+
   useReplayAudio({ 
-    audioUrl, 
+    audioUrl: preloadedAudioUrl, 
     currentTime, 
     isPlaying, 
     playbackRate 
@@ -85,13 +118,15 @@ export default function BoardReplayPage() {
     onThemeChange: handleThemeChange
   });
 
-  if (isLoading) {
+  if (isLoading || !audioPreloaded) {
     return (
       <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#181818] gap-6">
         <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
         <div className="text-center">
           <p className="text-white text-xl font-black uppercase tracking-widest">Reconstructing Board</p>
-          <p className="text-white/40 text-xs font-bold uppercase tracking-widest mt-1">Processing chronological events...</p>
+          <p className="text-white/40 text-xs font-bold uppercase tracking-widest mt-1">
+            {!isLoading && !audioPreloaded ? "Loading audio..." : "Processing chronological events..."}
+          </p>
         </div>
       </div>
     );
