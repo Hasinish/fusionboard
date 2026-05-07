@@ -80,8 +80,10 @@ Capabilities:
 
 Rules:
 1. SPATIAL AWARENESS: DO NOT stack elements. Use a grid-like layout. 
-    - HORIZONTAL ROW: Increment 'x' by 300 for each element. 
-    - MIND MAPS: Center element at (x,y), then place children at (+/- 300, +/- 300).
+    - VIEWPORT PLACEMENT: Leave 'x' and 'y' properties EMPTY to automatically place elements in the center of the user's current view. Only specify x/y if you are positioning multiple elements relative to each other.
+    - HORIZONTAL ROW: If creating multiple items, let the first one be empty (center), and increment 'x' by 300 for each subsequent element. 
+    - MIND MAPS: Center the main element, then place children at +/- 300 offset.
+
 2. COLORS & THEMES: 
     - If a user asks for a "color shape", set that color as the 'stroke'. Keep 'fill' transparent/pastel.
     - BRAINSTORMING: Use green (#86efac) for "Pros/Positive" stickies and red (#fca5a5) for "Cons/Negative" stickies.
