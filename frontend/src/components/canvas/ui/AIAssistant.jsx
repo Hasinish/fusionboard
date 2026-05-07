@@ -99,7 +99,7 @@ Rules:
     - Keep it compact. DO NOT include markdown backticks.
 
 6. LAYERING: Shapes/Pen/Text are ALWAYS on top of images/diagrams. If creating a background, create it FIRST.
-
+7. DATA TYPES: All numeric parameters (x, y, width, height, fontSize, rotation) MUST be raw numbers, not strings. NEVER wrap them in quotes.
 
 User Prompt: "${prompt}"
 ${selectedContext}`;
@@ -111,7 +111,7 @@ ${selectedContext}`;
             let body = {};
 
             if (provider === "gemini") {
-                endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 body = {
                     contents: [{ parts: [{ text: systemInstruction }] }],
                     tools: [{ functionDeclarations: baseSchema }],
