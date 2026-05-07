@@ -124,7 +124,7 @@ ${selectedContext}`;
                 
                 headers["Authorization"] = `Bearer ${apiKey}`;
                 body = {
-                    model: provider === "openai" ? "gpt-4o" : "llama-3.1-70b-versatile",
+                    model: provider === "openai" ? "gpt-4o" : "llama-3.3-70b-versatile",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: prompt }],
                     tools: baseSchema.map(s => ({ type: "function", function: s })),
                     tool_choice: "auto"
