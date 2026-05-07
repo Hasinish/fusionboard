@@ -7,17 +7,17 @@ export const getBaseSchema = () => [
         name: "create_shape",
         description: "Creates a geometric shape (rect, ellipse, triangle). Supports internal text.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                shapeType: { type: "STRING", enum: ["rect", "ellipse", "triangle"] },
-                width: { type: "NUMBER" },
-                height: { type: "NUMBER" },
-                text: { type: "STRING", description: "Text to show inside" },
-                textColor: { type: "STRING", description: "Color of the text (e.g. #ffffff)" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" },
-                color: { type: "STRING", description: "Border color" },
-                fill: { type: "STRING", description: "Fill color" }
+                shapeType: { type: "string", enum: ["rect", "ellipse", "triangle"] },
+                width: { type: "number" },
+                height: { type: "number" },
+                text: { type: "string", description: "Text to show inside" },
+                textColor: { type: "string", description: "Color of the text (e.g. #ffffff)" },
+                x: { type: "number" },
+                y: { type: "number" },
+                color: { type: "string", description: "Border color" },
+                fill: { type: "string", description: "Fill color" }
             },
             required: ["shapeType"]
         }
@@ -26,12 +26,12 @@ export const getBaseSchema = () => [
         name: "create_sticky",
         description: "Creates a classic sticky note for brainstorming.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                text: { type: "STRING" },
-                color: { type: "STRING", description: "Optional background color hex" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                text: { type: "string" },
+                color: { type: "string", description: "Optional background color hex" },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["text"]
         }
@@ -40,12 +40,12 @@ export const getBaseSchema = () => [
         name: "create_text",
         description: "Creates a standalone text box.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                text: { type: "STRING" },
-                fontSize: { type: "NUMBER" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                text: { type: "string" },
+                fontSize: { type: "number" },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["text"]
         }
@@ -54,13 +54,13 @@ export const getBaseSchema = () => [
         name: "create_arrow",
         description: "Draws an arrow between points or as a standalone element.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" },
-                w: { type: "NUMBER", description: "Length of the arrow" },
-                rotation: { type: "NUMBER", description: "Angle in degrees" },
-                color: { type: "STRING" }
+                x: { type: "number" },
+                y: { type: "number" },
+                w: { type: "number", description: "Length of the arrow" },
+                rotation: { type: "number", description: "Angle in degrees" },
+                color: { type: "string" }
             }
         }
     },
@@ -68,11 +68,11 @@ export const getBaseSchema = () => [
         name: "create_mermaid",
         description: "Creates a mermaid.js flowchart or diagram.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                code: { type: "STRING", description: "The raw mermaid.js code block" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                code: { type: "string", description: "The raw mermaid.js code block" },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["code"]
         }
@@ -81,11 +81,11 @@ export const getBaseSchema = () => [
         name: "create_video",
         description: "Embeds a YouTube or direct video link.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                url: { type: "STRING", description: "The video URL" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                url: { type: "string", description: "The video URL" },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["url"]
         }
@@ -94,12 +94,12 @@ export const getBaseSchema = () => [
         name: "create_code",
         description: "Creates an interactive code terminal.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                code: { type: "STRING", description: "The source code" },
-                language: { type: "STRING" },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                code: { type: "string", description: "The source code" },
+                language: { type: "string" },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["code", "language"]
         }
@@ -108,9 +108,9 @@ export const getBaseSchema = () => [
         name: "delete_elements",
         description: "Deletes existing elements from the board.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                elementIds: { type: "ARRAY", items: { type: "STRING" } }
+                elementIds: { type: "array", items: { type: "string" } }
             },
             required: ["elementIds"]
         }
@@ -119,27 +119,27 @@ export const getBaseSchema = () => [
         name: "update_elements",
         description: "Updates properties of existing elements (color, size, text, location, rotation, font).",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
                 updates: {
-                    type: "ARRAY",
+                    type: "array",
                     items: {
-                        type: "OBJECT",
+                        type: "object",
                         properties: {
-                            id: { type: "STRING" },
-                            x: { type: "NUMBER" },
-                            y: { type: "NUMBER" },
-                            w: { type: "NUMBER" },
-                            h: { type: "NUMBER" },
-                            rotation: { type: "NUMBER" },
-                            stroke: { type: "STRING" },
-                            fill: { type: "STRING" },
-                            text: { type: "STRING" },
-                            expressions: { type: "ARRAY", items: { type: "OBJECT" } },
-                            code: { type: "STRING" },
-                            fontSize: { type: "NUMBER" },
-                            fontFamily: { type: "STRING" },
-                            textAlign: { type: "STRING", enum: ["left", "center", "right"] }
+                            id: { type: "string" },
+                            x: { type: "number" },
+                            y: { type: "number" },
+                            w: { type: "number" },
+                            h: { type: "number" },
+                            rotation: { type: "number" },
+                            stroke: { type: "string" },
+                            fill: { type: "string" },
+                            text: { type: "string" },
+                            expressions: { type: "array", items: { type: "object" } },
+                            code: { type: "string" },
+                            fontSize: { type: "number" },
+                            fontFamily: { type: "string" },
+                            textAlign: { type: "string", enum: ["left", "center", "right"] }
                         },
                         required: ["id"]
                     }
@@ -152,13 +152,13 @@ export const getBaseSchema = () => [
         name: "create_line",
         description: "Draws a straight line.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" },
-                w: { type: "NUMBER", description: "Length" },
-                rotation: { type: "NUMBER" },
-                color: { type: "STRING" }
+                x: { type: "number" },
+                y: { type: "number" },
+                w: { type: "number", description: "Length" },
+                rotation: { type: "number" },
+                color: { type: "string" }
             }
         }
     },
@@ -166,11 +166,11 @@ export const getBaseSchema = () => [
         name: "create_graph",
         description: "Creates a mathematical coordinate plane with function plots. Can plot multiple functions at once.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                expressions: { type: "ARRAY", items: { type: "STRING" } },
-                x: { type: "NUMBER" },
-                y: { type: "NUMBER" }
+                expressions: { type: "array", items: { type: "string" } },
+                x: { type: "number" },
+                y: { type: "number" }
             },
             required: ["expressions"]
         }
