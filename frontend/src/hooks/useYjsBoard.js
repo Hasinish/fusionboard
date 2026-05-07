@@ -10,6 +10,7 @@ import {
     BOARD_CLEAR_ORIGIN,
     BOARD_COMMIT_ORIGIN,
     BOARD_META_ORIGIN,
+    BOARD_RESET_ORIGIN,
 } from "../lib/yjsConstants";
 
 export default function useYjsBoard({ boardId, token, enabled = true }) {
@@ -69,12 +70,14 @@ export default function useYjsBoard({ boardId, token, enabled = true }) {
         const boardStore = createBoardStore({ doc, elementsById, elementOrder, elementContents, meta });
         const boardActions = createBoardActions({ doc, elementsById, elementOrder, elementContents, meta });
         const undoManager = new Y.UndoManager([elementsById, elementOrder, elementContents, meta], {
+            captureTimeout: 500,
             trackedOrigins: new Set([
                 BOARD_COMMIT_ORIGIN,
-                BOARD_META_ORIGIN,
+                BOARD_RESET_ORIGIN,
                 BOARD_CLEAR_ORIGIN,
+                BOARD_META_ORIGIN,
+                null
             ]),
-            captureTimeout: 500,
         });
 
         yElementsRef.current = elementsById;

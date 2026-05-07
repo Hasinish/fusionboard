@@ -56,7 +56,7 @@ export default function MermaidRenderer({ code, isDark }) {
   }, [code, isDark]);
 
   return (
-    <div className={`w-full h-full flex flex-col overflow-hidden rounded-lg shadow-xl ${isDark ? 'bg-[#1e1e2e]/70' : 'bg-white/70'} backdrop-blur-sm border ${isDark ? 'border-[#313244]' : 'border-gray-300'}`}>
+    <div className={`w-full h-full flex flex-col overflow-hidden rounded-lg ${isDark ? 'border-[#313244]' : 'border-gray-300/30'}`} style={{ background: 'transparent' }}>
       <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center p-4 relative">
         {error && (
           <div className="text-red-500 font-mono text-xs overflow-auto w-full h-full p-2 text-left">
@@ -70,7 +70,7 @@ export default function MermaidRenderer({ code, isDark }) {
         )}
         {!error && svgContent && (
           <div 
-            className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:!w-auto [&>svg]:!h-auto"
+            className="w-full h-full flex items-center justify-center [&>svg]:!w-full [&>svg]:!h-full [&>svg]:!max-w-full [&>svg]:!max-h-full"
             dangerouslySetInnerHTML={{ __html: svgContent }} 
           />
         )}

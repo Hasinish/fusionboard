@@ -153,7 +153,12 @@ export default React.memo(function ElementsLayer({
         } else if (selectedIds.length === 0 && !isSidebarOpen) {
             onSidebarElementIdChange(null);
         }
-    }, [boardStore, boardVersion, isSidebarOpen, onSidebarElementIdChange, selectedIds]);
+
+        // Exit edit mode if the currently edited element is deselected (e.g. background click)
+        if (editingId && !selectedIds.includes(editingId)) {
+            setEditingId(null);
+        }
+    }, [boardStore, boardVersion, isSidebarOpen, onSidebarElementIdChange, selectedIds, editingId]);
 
     const clearPreviewIds = useCallback((ids) => {
         if (!ids?.length) return;

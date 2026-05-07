@@ -259,6 +259,116 @@ function SharedCodeEditor({ id, boardStore, el, onChange, isViewer, camera, sw }
     );
 }
 
+/** A sub-component that handles character-level shared text for Mermaid diagrams */
+function SharedMermaidEditor({ id, boardStore, el, onChange, onEndEdit, isViewer, camera, sw }) {
+    const sharedText = useBoardElementContent(boardStore, id);
+    const textareaRef = useRef(null);
+    const [localValue, setLocalValue] = useState(el.text || "");
+    const isRemoteUpdateRef = useRef(false);
+    
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.focus();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!sharedText) {
+            if (el.text && el.text !== localValue) setLocalValue(el.text);
+            return;
+        }
+        const nextValue = sharedText.toString();
+        // Only overwrite localValue if sharedText has actual content, 
+        // or if el.text is also empty (meaning it's a truly empty element).
+        // This prevents the "flash to empty" during Yjs initialization.
+        if (nextValue === "" && el.text && el.text !== "") {
+            return;
+        }
+        if (nextValue !== localValue) {
+            setLocalValue(nextValue);
+        }
+    }, [sharedText, el.text, id]);
+
+    useEffect(() => {
+        if (!sharedText) return;
+        const observer = (event) => {
+            if (event.transaction.origin === BOARD_COMMIT_ORIGIN) return;
+            isRemoteUpdateRef.current = true;
+            const textarea = textareaRef.current;
+            if (textarea) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                setLocalValue(sharedText.toString());
+                requestAnimationFrame(() => {
+                    textarea.setSelectionRange(start, end);
+                    isRemoteUpdateRef.current = false;
+                });
+            } else {
+                setLocalValue(sharedText.toString());
+                isRemoteUpdateRef.current = false;
+            }
+        };
+        sharedText.observe(observer);
+        return () => sharedText.unobserve(observer);
+    }, [sharedText, isViewer]);
+
+    const handleLocalChange = (e) => {
+        if (isRemoteUpdateRef.current) return;
+        const nextValue = e.target.value;
+        const prevValue = localValue;
+        setLocalValue(nextValue);
+        if (!sharedText) return;
+
+        const minLen = Math.min(prevValue.length, nextValue.length);
+        let start = 0;
+        while (start < minLen && prevValue[start] === nextValue[start]) start++;
+        let endOld = prevValue.length;
+        let endNew = nextValue.length;
+        while (endOld > start && endNew > start && prevValue[endOld - 1] === nextValue[endNew - 1]) {
+            endOld--;
+            endNew--;
+        }
+        const deleteCount = endOld - start;
+        const insertText = nextValue.slice(start, endNew);
+
+        boardStore.transact(() => {
+            if (deleteCount > 0) sharedText.delete(start, deleteCount);
+            if (insertText.length > 0) sharedText.insert(start, insertText);
+            onChange({ ...el, text: nextValue }, false);
+        }, BOARD_COMMIT_ORIGIN);
+    };
+
+    return (
+        <textarea
+            ref={textareaRef}
+            className="absolute inset-0 w-full h-full resize-none outline-none font-mono"
+            style={{
+                color: "#ffffff",
+                backgroundColor: "rgba(10, 10, 15, 0.95)",
+                fontSize: `${(el.fontSize || 14) * (sw / el.w)}px`,
+                padding: 12 * camera.z,
+                borderRadius: 8 * camera.z,
+                zIndex: 50,
+                border: "1px solid rgba(255,255,255,0.2)"
+            }}
+            autoFocus
+            value={localValue}
+            readOnly={isViewer}
+            onChange={handleLocalChange}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+                if (e.key === "Escape") { onEndEdit?.(); return; }
+                e.stopPropagation();
+            }}
+            onWheel={(e) => {
+                if (e.ctrlKey || e.metaKey) return;
+                e.stopPropagation();
+            }}
+            spellCheck="false"
+        />
+    );
+}
+
 /** A single rendered element */
 export function BoardElement({ el, boardStore, camera, tool, isSelected, isMultiSelected, onSelect, onGroupSelect, onChange, onDelete, onDuplicate, onDragGuide, onStartEdit, isEditing, onEndEdit, isViewer = false, isDarkMode = false, onOpenSidebar, sidebarElementId, onSidebarElementIdChange, isSidebarOpen }) {
     const textRef = useRef(null);
@@ -383,7 +493,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 const bounds = getPathBounds(newPoints);
                 updated = { ...updated, points: newPoints, ...bounds };
             }
-            commitChange(updated, true, "DRAG_PREVIEW");
+            commitChange(updated, false, "DRAG_PREVIEW");
         };
 
         const onUp = () => {
@@ -408,7 +518,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                     const bounds = getPathBounds(newPoints);
                     updatedFinal = { ...updatedFinal, points: newPoints, ...bounds };
                 }
-                commitChange(updatedFinal, true, undefined, beforeState);
+                onChange(updatedFinal, true, undefined, beforeState);
             }
         };
 
@@ -555,7 +665,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 const bounds = getPathBounds(newPoints);
                 updated = { ...updated, points: newPoints, ...bounds };
             }
-            commitChange(updated, true, "DRAG_PREVIEW");
+            commitChange(updated, false, "DRAG_PREVIEW");
         };
         const onUp = () => {
             window.removeEventListener("mousemove", onMove);
@@ -579,7 +689,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                     const bounds = getPathBounds(newPoints);
                     updatedFinal = { ...updatedFinal, points: newPoints, ...bounds };
                 }
-                onChange(updatedFinal, true, beforeState);
+                onChange(updatedFinal, true, undefined, beforeState);
             }
         };
         const commitChange = (u, p, o) => {
@@ -659,7 +769,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 rotation: newAngle
             };
 
-            commitChange(updated, true, "DRAG_PREVIEW");
+            commitChange(updated, false, "DRAG_PREVIEW");
         };
 
         const onUp = () => {
@@ -673,7 +783,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                 w: elRef.current._lastW !== undefined ? elRef.current._lastW : el.w,
                 rotation: elRef.current._lastRot !== undefined ? elRef.current._lastRot : el.rotation
             };
-            commitChange(finalU, true, undefined, beforeState);
+            onChange(finalU, true, undefined, beforeState);
         };
 
         const commitChange = (u, p, o, b) => {
@@ -718,7 +828,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
             const newRotation = Math.round(angle);
             let updated = { ...el, rotation: newRotation };
 
-            commitChange(updated, true, "DRAG_PREVIEW");
+            commitChange(updated, false, "DRAG_PREVIEW");
         };
         const onUp = () => {
             window.removeEventListener("mousemove", onMove);
@@ -754,7 +864,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
 
     const handleEndEdit = () => {
         if (textRef.current && textRef.current.innerText !== textRef.current._origText) {
-            onChange({ ...el, text: textRef.current.innerText }, true, { ...el, text: textRef.current._origText });
+            onChange({ ...el, text: textRef.current.innerText }, true, undefined, { ...el, text: textRef.current._origText });
         }
         onEndEdit();
     };
@@ -1131,14 +1241,29 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                     ) : (
                         <>
                             {/* Visual Background Layer */}
-                            <div className="absolute inset-0" style={{ zIndex: 0 }}>
-                                {el.type === "mermaid" ? (
-                                    <div className="absolute inset-0">
+                            {el.type === "mermaid" ? (
+                                <div className="absolute inset-0">
+                                    <div className="absolute inset-0" style={{ zIndex: 0 }}>
                                         <MermaidRenderer code={el.text} isDark={isDarkMode} />
                                     </div>
-                                ) : (
+                                    {isEditing && (
+                                        <SharedMermaidEditor
+                                            id={el.id}
+                                            boardStore={boardStore}
+                                            el={el}
+                                            onChange={onChange}
+                                            onEndEdit={onEndEdit}
+                                            isViewer={isViewer}
+                                            camera={camera}
+                                            sw={sw}
+                                        />
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="absolute inset-0" style={{ zIndex: 0 }}>
                                     <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
-                                )}
+                                </div>
+                            )}
                                 {el.type === "sticky" && (
                                     <div
                                         className="absolute inset-0 rounded-[8px]"
@@ -1160,47 +1285,45 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                         </svg>
                                     </div>
                                 )}
-                            </div>
 
                             {/* Text Foreground Layer */}
-                            <div style={{
-                                position: "absolute", inset: 0,
-                                padding: "12px",
-                                display: "flex", flexDirection: "column",
-                                justifyContent: valignMap[el.textVerticalAlign || (el.type === "text" ? "top" : "middle")] || "flex-start",
-                                zIndex: 1,
-                                pointerEvents: isEditing ? "auto" : "none",
-                                overflow: "hidden",
-                            }}
-                                onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
-                            >
-                                <div
-                                    ref={textRef}
-                                    contentEditable={isEditing}
-                                    suppressContentEditableWarning
-                                    onInput={() => { if (textRef.current) onChange({ ...el, text: textRef.current.innerText }); }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Escape") { handleEndEdit(); }
-                                        e.stopPropagation();
-                                    }}
-                                    onBlur={handleEndEdit}
-                                    style={{
-                                        fontSize: (el.type === "mermaid" && !isEditing) ? 0 : (el.fontSize || 14) * (sw / el.w),
-                                        fontFamily: el.fontFamily || "Inter",
-                                        fontWeight: el.bold ? "bold" : "normal",
-                                        fontStyle: el.italic ? "italic" : "normal",
-                                        color: (el.type === "mermaid" && !isEditing) ? "transparent" : (el.type === "mermaid" && isEditing ? "#ffffff" : (el.textColor || el.color || "#1e1e1e")),
-                                        textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
-                                        whiteSpace: "pre-wrap", wordBreak: "break-word",
-                                        outline: "none", lineHeight: 1.4,
-                                        minHeight: "1em",
-                                        backgroundColor: (el.type === "mermaid" && isEditing) ? "rgba(0,0,0,0.8)" : "transparent",
-                                        padding: (el.type === "mermaid" && isEditing) ? "10px" : "0",
-                                        borderRadius: (el.type === "mermaid" && isEditing) ? "8px" : "0",
-                                    }}
-                                    dangerouslySetInnerHTML={isEditing ? undefined : { __html: (el.text || "").replace(/\n/g, "<br>") }}
-                                />
-                            </div>
+                            {el.type !== "mermaid" && (
+                                <div style={{
+                                    position: "absolute", inset: 0,
+                                    padding: "12px",
+                                    display: "flex", flexDirection: "column",
+                                    justifyContent: valignMap[el.textVerticalAlign || (el.type === "text" ? "top" : "middle")] || "flex-start",
+                                    zIndex: 1,
+                                    pointerEvents: isEditing ? "auto" : "none",
+                                    overflow: "hidden",
+                                }}
+                                    onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
+                                >
+                                    <div
+                                        ref={textRef}
+                                        contentEditable={isEditing}
+                                        suppressContentEditableWarning
+                                        onInput={() => { if (textRef.current) onChange({ ...el, text: textRef.current.innerText }); }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Escape") { handleEndEdit(); }
+                                            e.stopPropagation();
+                                        }}
+                                        onBlur={handleEndEdit}
+                                        style={{
+                                            fontSize: (el.fontSize || 14) * (sw / el.w),
+                                            fontFamily: el.fontFamily || "Inter",
+                                            fontWeight: el.bold ? "bold" : "normal",
+                                            fontStyle: el.italic ? "italic" : "normal",
+                                            color: el.textColor || el.color || "#1e1e1e",
+                                            textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
+                                            whiteSpace: "pre-wrap", wordBreak: "break-word",
+                                            outline: "none", lineHeight: 1.4,
+                                            minHeight: "1em",
+                                        }}
+                                        dangerouslySetInnerHTML={isEditing ? undefined : { __html: (el.text || "").replace(/\n/g, "<br>") }}
+                                    />
+                                </div>
+                            )}
                         </>
                     )}
                 </>

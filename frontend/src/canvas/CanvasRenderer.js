@@ -242,10 +242,10 @@ export class CanvasRenderer {
       }
       
       // Shapes and Penstrokes should be drawn on the top canvas (above blocks at z-index 15)
-      // while "Blocks" (if any unselected ones remain on canvas) stay on base canvas (z-index 5).
       const isBlock = ['code', 'image', 'graph', 'video', 'mermaid'].includes(el.type);
-      const targetCtx = (this.topCtx && !isBlock) ? this.topCtx : ctx;
+      if (isBlock) continue;
       
+      const targetCtx = this.topCtx || ctx;
       drawElement(targetCtx, el)
     }
 

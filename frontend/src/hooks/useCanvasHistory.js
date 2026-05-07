@@ -20,6 +20,15 @@ export default function useCanvasHistory({
     useEffect(() => {
         const hkd = (e) => {
             if (isViewerRef?.current) return;
+
+            // Ignore if user is in an input field
+            if (
+                document.activeElement.tagName === "INPUT" ||
+                document.activeElement.tagName === "TEXTAREA"
+            ) {
+                return;
+            }
+
             if (e.ctrlKey || e.metaKey) {
                 if (["+", "=", "-", "_", "0"].includes(e.key)) {
                     e.preventDefault();

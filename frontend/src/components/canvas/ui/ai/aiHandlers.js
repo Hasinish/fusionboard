@@ -32,8 +32,18 @@ export const processToolCall = (call, worldPos, isDark, offset, boardActions) =>
             rotation: 0,
             locked: false
         };
-        if (args.color) element.stroke = args.color;
-        if (args.fill) element.fill = args.fill;
+        if (args.color) {
+            element.stroke = args.color;
+            // If color is provided but no fill, default to transparent fill
+            if (!args.fill) {
+                element.fill = "transparent";
+            }
+        }
+        if (args.fill) {
+            element.fill = args.fill;
+        } else if (!element.fill) {
+            element.fill = "transparent";
+        }
     } else if (call.name === "create_sticky") {
         element = {
             ...DEFAULT_ELEMENT_STYLES.sticky,
@@ -88,7 +98,7 @@ export const processToolCall = (call, worldPos, isDark, offset, boardActions) =>
             y: args.y !== undefined ? args.y : (worldPos.y - 150 + offset),
             w: 400,
             h: 300,
-            text: args.code, // mermaid component uses text prop
+            text: (args.code || "").replace(/```mermaid\n?|```/g, "").trim(), // sanitize and use text prop
             locked: false
         };
     } else if (call.name === "create_video") {

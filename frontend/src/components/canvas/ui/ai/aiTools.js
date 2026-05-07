@@ -66,11 +66,11 @@ export const getBaseSchema = () => [
     },
     {
         name: "create_mermaid",
-        description: "Creates a mermaid.js flowchart or diagram.",
+        description: "Creates a mermaid.js diagram (Flowchart, Sequence Diagram, Gantt, Pie, etc.). For sequence diagrams, use the 'sequenceDiagram' header.",
         parameters: {
             type: "object",
             properties: {
-                code: { type: "string", description: "The raw mermaid.js code block" },
+                code: { type: "string", description: "The raw mermaid.js code (e.g. 'graph TD; A -->|Label| B'). DO NOT include markdown backticks or the 'mermaid' keyword." },
                 x: { type: "number" },
                 y: { type: "number" }
             },
