@@ -84,10 +84,17 @@ export default function useCanvasCamera() {
         y: wy * cameraRef.current.z + cameraRef.current.y,
     }), []);
 
+    const setCameraInstant = useCallback((newCam) => {
+        isAnimatingRef.current = false;
+        targetCameraRef.current = newCam;
+        setCamera(newCam);
+    }, []);
+
     return {
         camera, setCamera, cameraRef,
         targetCameraRef, isAnimatingRef,
         startCameraAnimation,
+        setCameraInstant,
         followedUserId: followedUserIdState,
         setFollowedUserId,
         followedUserIdRef,

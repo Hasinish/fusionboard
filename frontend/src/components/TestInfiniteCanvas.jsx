@@ -103,6 +103,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         camera, setCamera, cameraRef,
         targetCameraRef,
         startCameraAnimation,
+        setCameraInstant,
         followedUserId, setFollowedUserId, followedUserIdRef,
         remoteCamerasRef,
         screenToWorld
@@ -369,46 +370,37 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
         rendererRef.current?.setCamera(camera);
     }, [camera, rendererRef]);
 
-    // ─── sync elements into canvas renderer ──────────────────────────────
     // ─── wheel zoom / pan ────────────────────────────────────────────────────
 
     useEffect(() => {
         const handleWheel = (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                const zoomFactor = Math.exp(-e.deltaY * 0.005);
-                const currentTarget = targetCameraRef.current;
-                let nZ = currentTarget.z * zoomFactor;
-                nZ = Math.min(10, Math.max(0.1, nZ));
-
-                const sx = e.clientX, sy = e.clientY;
-                targetCameraRef.current = {
-                    x: sx - (sx - currentTarget.x) * (nZ / currentTarget.z),
-                    y: sy - (sy - currentTarget.y) * (nZ / currentTarget.z),
-                    z: nZ
-                };
-                startCameraAnimation();
-                return;
-            }
-
             // Let scrollable elements handle their own vertical/horizontal scrolling
             const isScrollable = e.target.closest("textarea") || e.target.closest(".overflow-y-auto") || e.target.closest(".xterm") || e.target.closest(".xterm-viewport");
             if (isScrollable) return;
 
             e.preventDefault();
             setFollowedUserId(null);
-            const currentTarget = targetCameraRef.current;
-            targetCameraRef.current = {
-                x: currentTarget.x - e.deltaX,
-                y: currentTarget.y - e.deltaY,
-                z: currentTarget.z
+
+            const sx = e.clientX, sy = e.clientY;
+            const currentCamera = cameraRef.current;
+            
+            // Increment of 10%
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            let nZ = currentCamera.z * zoomFactor;
+            nZ = Math.min(10, Math.max(0.1, nZ));
+
+            const nextCamera = {
+                x: sx - (sx - currentCamera.x) * (nZ / currentCamera.z),
+                y: sy - (sy - currentCamera.y) * (nZ / currentCamera.z),
+                z: nZ
             };
-            startCameraAnimation();
+
+            setCameraInstant(nextCamera);
         };
 
         window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
         return () => window.removeEventListener("wheel", handleWheel, { capture: true });
-    }, [setFollowedUserId, targetCameraRef, startCameraAnimation]);
+    }, [setFollowedUserId, cameraRef, setCameraInstant]);
 
 
     // ─── middle-click panning (window level) ─────────────────────────────────
@@ -693,8 +685,7 @@ export default function TestInfiniteCanvas({ boardId, boardTitle = "Whiteboard S
 
                     <ZoomControls
                         camera={camera}
-                        targetCameraRef={targetCameraRef}
-                        startCameraAnimation={startCameraAnimation}
+                        setCameraInstant={setCameraInstant}
                         isDark={isDark}
                         isMobile={isMobile}
                     />

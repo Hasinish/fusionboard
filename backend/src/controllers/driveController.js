@@ -72,6 +72,7 @@ export async function uploadFile(req, res) {
       try {
         await drive.permissions.create({
           fileId: fileId,
+          sendNotificationEmail: false,
           requestBody: {
             role: 'reader',
             type: 'user',

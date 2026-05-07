@@ -118,12 +118,12 @@ export async function acceptInvitation(req, res) {
             await Promise.all(files.map(file =>
               driveClient.permissions.create({
                 fileId: file.id,
+                sendNotificationEmail: false,
                 requestBody: {
                   role: 'reader',
                   type: 'user',
                   emailAddress: userEmail,
                 },
-                // invitationNotificationEmail: false // Optional: suppress emails
               }).catch(err => {
                 console.error(`Failed to share file ${file.id} with ${userEmail}:`, err.message);
               })
