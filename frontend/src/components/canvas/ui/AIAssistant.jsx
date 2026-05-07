@@ -100,6 +100,7 @@ Rules:
 
 6. LAYERING: Shapes/Pen/Text are ALWAYS on top of images/diagrams. If creating a background, create it FIRST.
 7. DATA TYPES: All numeric parameters (x, y, width, height, fontSize, rotation) MUST be raw numbers, not strings. NEVER wrap them in quotes.
+8. TOOL USAGE: You MUST use the provided tools to fulfill the user's request. Do not respond with conversational text.
 
 User Prompt: "${prompt}"
 ${selectedContext}`;
@@ -127,7 +128,7 @@ ${selectedContext}`;
                     model: provider === "openai" ? "gpt-4o" : "llama-3.3-70b-versatile",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: prompt }],
                     tools: baseSchema.map(s => ({ type: "function", function: s })),
-                    tool_choice: "auto"
+                    tool_choice: "required"
                 };
             }
 
