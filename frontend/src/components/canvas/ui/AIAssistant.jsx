@@ -124,7 +124,7 @@ ${selectedContext}`;
                 
                 headers["Authorization"] = `Bearer ${apiKey}`;
                 body = {
-                    model: provider === "openai" ? "gpt-4o" : "llama-3.3-70b-versatile",
+                    model: provider === "openai" ? "gpt-4o" : "llama-3.1-70b-versatile",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: prompt }],
                     tools: baseSchema.map(s => ({ type: "function", function: s })),
                     tool_choice: "auto"
@@ -154,7 +154,15 @@ ${selectedContext}`;
                 const toolCalls = data.choices?.[0]?.message?.tool_calls || [];
                 calls = toolCalls.map(tc => {
                     let parsedArgs = {};
-                    try { parsedArgs = JSON.parse(tc.function.arguments); } catch(e) {}
+                    try { 
+                        parsedArgs = JSON.parse(tc.function.arguments);
+                        // Auto-fix for Groq/Llama quirks: convert string numbers to raw numbers
+                        for (const key in parsedArgs) {
+                            if (typeof parsedArgs[key] === "string" && !isNaN(parsedArgs[key]) && parsedArgs[key].trim() !== "") {
+                                parsedArgs[key] = Number(parsedArgs[key]);
+                            }
+                        }
+                    } catch(e) {}
                     return { name: tc.function.name, args: parsedArgs };
                 });
             }
