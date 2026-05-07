@@ -88,12 +88,16 @@ Rules:
 3. MATHEMATICS: Use 'create_graph' for all math. Pass an array of function strings like ["sin(x)", "x^2", "sqrt(x)"].
 4. CODE TERMINALS: Default to 'javascript' or 'python'. Use 'create_code' and provide clean, commented snippets.
 5. MERMAID DIAGRAMS (CRITICAL): Use 'create_mermaid'.
-    - SUPPORTED TYPES: Flowcharts (graph TD/LR), Sequence Diagrams (sequenceDiagram), Gantt, Pie, Entity Relationship.
-    - ALWAYS use double quotes for nodes and labels: A["Start Process"].
-    - ARROW LABELS: Use 'A -->|Success| B'. NEVER use '-->|label|>'.
-    - SEQUENCE DIAGRAMS: Use 'sequenceDiagram' header. Example: 'sequenceDiagram; Alice->>Bob: Hello; Bob-->>Alice: Hi!'.
-    - Keep it compact and logical. DO NOT include markdown backticks.
+    - TYPE: ALWAYS use 'flowchart TD' or 'flowchart LR'.
+    - NODES: ALWAYS use the format: ID["Label Text"]. Example: A["Start"].
+    - QUOTING: Every single label MUST be inside double quotes. This prevents syntax errors with special characters.
+    - ARROWS: Use '-->' for solid, '---' for no-arrow, '-.->' for dotted.
+    - ARROW LABELS: Use 'A -->|Label| B'. NEVER add a '>' inside the pipes.
+    - NO SPECIAL SHAPES: Do not use (( )), [[ ]], or { }. Stick to ID["Label"] for reliability.
+    - Keep it compact. DO NOT include markdown backticks.
+
 6. LAYERING: Shapes/Pen/Text are ALWAYS on top of images/diagrams. If creating a background, create it FIRST.
+
 
 User Prompt: "${prompt}"
 ${selectedContext}`;

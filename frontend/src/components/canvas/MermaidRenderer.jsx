@@ -13,6 +13,11 @@ export default function MermaidRenderer({ code, isDark }) {
   useEffect(() => {
     mermaid.initialize({
       theme: isDark ? "dark" : "default",
+      themeVariables: {
+        fontSize: "13px",
+        fontFamily: "Inter, system-ui, sans-serif",
+      },
+      flowchart: { useMaxWidth: false, htmlLabels: true },
     });
     
     let isMounted = true;

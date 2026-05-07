@@ -98,7 +98,12 @@ export const processToolCall = (call, worldPos, isDark, offset, boardActions) =>
             y: args.y !== undefined ? args.y : (worldPos.y - 150 + offset),
             w: 400,
             h: 300,
-            text: (args.code || "").replace(/```mermaid\n?|```/g, "").trim(), // sanitize and use text prop
+            fontSize: 14,
+            text: (args.code || "")
+                .replace(/```mermaid\n?|```/g, "")
+                .replace(/-->\|([^|]+)\|>/g, "-->|$1|") // Fix common '-->|label|>' mistake
+                .replace(/-{3,}/g, "--")                // Fix excessively long dash lines
+                .trim(),
             locked: false
         };
     } else if (call.name === "create_video") {
