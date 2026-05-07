@@ -127,6 +127,18 @@ export function drawTriangle(ctx, el) {
   ctx.globalAlpha = el.opacity ?? 1
   if (el.fill && el.fill !== 'transparent' && el.fill !== 'none') ctx.fill()
   ctx.stroke()
+  if (el.text) {
+    const fontSize = el.fontSize || 14
+    const fontStyle = el.italic ? 'italic ' : ''
+    const fontWeight = el.bold ? 'bold ' : 'normal'
+    ctx.font = `${fontStyle}${fontWeight} ${fontSize}px ${el.fontFamily || 'Inter, sans-serif'}`
+    ctx.fillStyle = el.textColor || el.color || '#1e1e1e'
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = el.textAlign || 'center'
+    // For triangle, offset text slightly downwards as the top is narrower
+    ctx.fillText(el.text, el.x + el.w / 2, el.y + el.h * 0.6, el.w - 20)
+    ctx.textAlign = 'left'
+  }
   ctx.globalAlpha = 1
   ctx.restore()
 }

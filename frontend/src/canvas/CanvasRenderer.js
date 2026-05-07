@@ -234,11 +234,19 @@ export class CanvasRenderer {
         continue
       }
       
-      // If it's in the overlay (e.g., selected rect), React is drawing the text box.
-      // So tell the canvas to draw the shape, but NOT the text.
-      const skipText = this.overlayElementIds.has(el.id)
-      const targetCtx = this.topCtx ? this.topCtx : ctx
-      drawElement(targetCtx, skipText ? { ...el, text: null } : el)
+      // If it's in the overlay (e.g., selected rect, code block, text), 
+      // React is handling the entire rendering (shape + text).
+      // We skip it on the canvas to avoid "duplicate" ghosting/double-rendering.
+      if (this.overlayElementIds.has(el.id)) {
+        continue
+      }
+      
+      // Shapes and Penstrokes should be drawn on the top canvas (above blocks at z-index 15)
+      // while "Blocks" (if any unselected ones remain on canvas) stay on base canvas (z-index 5).
+      const isBlock = ['code', 'image', 'graph', 'video', 'mermaid'].includes(el.type);
+      const targetCtx = (this.topCtx && !isBlock) ? this.topCtx : ctx;
+      
+      drawElement(targetCtx, el)
     }
 
     // Garbage collect removed lerped elements
@@ -254,9 +262,13 @@ export class CanvasRenderer {
       // Elements completely replaced by React
       if (['text', 'code', 'video', 'graph', 'sticky', 'mermaid'].includes(el.type)) continue
 
-      const skipText = this.overlayElementIds.has(el.id)
+      // If it's in the overlay, React is handling it.
+      if (this.overlayElementIds.has(el.id)) {
+        continue
+      }
+
       const targetCtx = this.topCtx ? this.topCtx : ctx
-      drawElement(targetCtx, skipText ? { ...el, text: null } : el)
+      drawElement(targetCtx, el)
     }
 
     // Draw the local live stroke being drawn right now (already in world coords)

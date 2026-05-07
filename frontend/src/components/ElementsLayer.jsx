@@ -14,6 +14,7 @@ import {
 } from "../lib/yjsBoard";
 
 const INTERACTIVE_ELEMENT_TYPES = new Set(["text", "code", "video", "graph", "sticky", "mermaid", "image"]);
+const BLOCK_TYPES = new Set(["code", "image", "graph", "video", "mermaid"]);
 
 function OverlayBoardElement({
     id,
@@ -42,7 +43,7 @@ function OverlayBoardElement({
     const element = previewElement || committedElement;
 
     if (!element) return null;
-    if (!isSelected && !isEditing && !INTERACTIVE_ELEMENT_TYPES.has(element.type)) {
+    if (!isSelected && !isEditing && !INTERACTIVE_ELEMENT_TYPES.has(element.type) && !element.text) {
         return null;
     }
 
@@ -192,9 +193,23 @@ export default React.memo(function ElementsLayer({
         });
     }, []);
 
+    const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+    // Only tell the renderer to skip text for elements that are actually being rendered by React
+    const activeOverlayIds = useMemo(() => {
+        return orderedIds.filter(id => {
+            const el = boardStore?.getElement?.(id);
+            if (!el) return false;
+            // Must match the logic in OverlayBoardElement
+            const isSelected = selectedIdSet.has(id);
+            const isEditing = activeEditingId === id;
+            return isSelected || isEditing || INTERACTIVE_ELEMENT_TYPES.has(el.type) || el.text;
+        });
+    }, [orderedIds, boardStore, selectedIdSet, activeEditingId, boardVersion]);
+
     useEffect(() => {
-        rendererRef?.current?.setOverlayElementIds(visibleIds);
-    }, [rendererRef, visibleIds]);
+        rendererRef?.current?.setOverlayElementIds(activeOverlayIds);
+    }, [rendererRef, activeOverlayIds]);
 
     useEffect(() => {
         const previewMap = new Map();
@@ -302,12 +317,21 @@ export default React.memo(function ElementsLayer({
         setEditingId(null);
     }, []);
 
-    const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+    const blockIds = useMemo(() => visibleIds.filter(id => {
+        const el = boardStore?.getElement?.(id);
+        return el && BLOCK_TYPES.has(el.type);
+    }), [visibleIds, boardStore, boardVersion]);
+
+    const topIds = useMemo(() => visibleIds.filter(id => {
+        const el = boardStore?.getElement?.(id);
+        return el && !BLOCK_TYPES.has(el.type);
+    }), [visibleIds, boardStore, boardVersion]);
 
     return (
         <>
-            <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 15, pointerEvents: "none" }}>
-                {visibleIds.map((id) => (
+            <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 10, pointerEvents: "none" }}>
+                {blockIds.map((id) => (
                     <OverlayBoardElement
                         key={id}
                         id={id}
@@ -333,7 +357,36 @@ export default React.memo(function ElementsLayer({
                         isSidebarOpen={isSidebarOpen}
                     />
                 ))}
+            </div>
 
+            <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 20, pointerEvents: "none" }}>
+                {topIds.map((id) => (
+                    <OverlayBoardElement
+                        key={id}
+                        id={id}
+                        boardStore={boardStore}
+                        previewElement={visiblePreviewById[id]}
+                        camera={camera}
+                        tool={tool}
+                        isSelected={selectedIdSet.has(id)}
+                        isMultiSelected={isMultiSelect && selectedIdSet.has(id)}
+                        onSelect={handleSelect}
+                        onGroupSelect={onGroupTransformStart}
+                        onChange={handleChange}
+                        onDuplicate={handleDuplicate}
+                        onDragGuide={setDragGuide}
+                        onStartEdit={handleStartEdit}
+                        isEditing={activeEditingId === id}
+                        onEndEdit={handleEndEdit}
+                        isViewer={isViewer}
+                        isDarkMode={isDark}
+                        onOpenSidebar={onOpenSidebar}
+                        sidebarElementId={sidebarElementId}
+                        onSidebarElementIdChange={onSidebarElementIdChange}
+                        isSidebarOpen={isSidebarOpen}
+                    />
+                ))}
+                
                 <GhostElement ghost={!isViewer ? ghostElement : null} camera={camera} />
 
                 {dragGuide && (() => {

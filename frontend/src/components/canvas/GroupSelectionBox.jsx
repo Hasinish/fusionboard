@@ -35,7 +35,7 @@ export function GroupSelectionBox({
                 zIndex: 20,
                 transformOrigin: "center center",
                 transform: `rotate(${selectionRotation || 0}deg)`,
-                cursor: tState?.type === "move" ? "grabbing" : "grab"
+                cursor: tState?.type === "move" ? "grabbing" : "grab", backgroundColor: "rgba(0,0,0,0)"
             }}
             onPointerDown={(e) => {
                 e.stopPropagation();

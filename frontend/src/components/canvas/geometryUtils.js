@@ -131,7 +131,7 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         return false;
     }
 
-    // ── Ellipse: stroke-only (distance from ellipse perimeter) ──
+    // ── Ellipse: stroke + optional fill ──
     if (el.type === "ellipse") {
         const sW = el.strokeWidth || 2;
         const rx = Math.max(0.1, el.w / 2 - sW / 2);
@@ -141,6 +141,12 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         
         const dx = px - cx;
         const dy = py - cy;
+        
+        // If filled, check if inside ellipse
+        if (el.fill && el.fill !== "transparent" && el.fill !== "none") {
+            if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) return true;
+        }
+
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist === 0) return false;
         const angle = Math.atan2(dy, dx);
@@ -148,23 +154,26 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         return Math.abs(dist - eRadius) <= hitThreshold;
     }
 
-    // ── Triangle: stroke-only (distance from edges) ──
+    // ── Triangle: stroke + optional fill ──
     if (el.type === "triangle") {
         const sW = el.strokeWidth || 2;
         const x1 = el.x + el.w / 2, y1 = el.y + sW;
         const x2 = el.x + el.w - sW, y2 = el.y + el.h - sW;
         const x3 = el.x + sW, y3 = el.y + el.h - sW;
+
+        if (el.fill && el.fill !== "transparent" && el.fill !== "none") {
+            if (pointInTriangle(px, py, x1, y1, x2, y2, x3, y3)) return true;
+        }
+
         const d1 = getDistToSegment(px, py, x1, y1, x2, y2);
         const d2 = getDistToSegment(px, py, x2, y2, x3, y3);
         const d3 = getDistToSegment(px, py, x3, y3, x1, y1);
         return d1 < hitThreshold || d2 < hitThreshold || d3 < hitThreshold;
     }
 
-    // ── Rectangle: stroke-only (distance from edges) ──
+    // ── Rectangle: stroke + optional fill ──
     if (el.type === "rect") {
         const sW = el.strokeWidth || 2;
-        // SVG renders rect at [sW/2, sW/2, w - sW, h - sW].
-        // So the mathematical center line of the stroke is exact:
         const minX = el.x + sW / 2;
         const minY = el.y + sW / 2;
         const maxX = el.x + el.w - sW / 2;
@@ -174,22 +183,22 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         if (px < minX - hitThreshold || px > maxX + hitThreshold ||
             py < minY - hitThreshold || py > maxY + hitThreshold) return false;
 
+        if (el.fill && el.fill !== "transparent" && el.fill !== "none") {
+            if (px >= minX && px <= maxX && py >= minY && py <= maxY) return true;
+        }
+
         // Rounded corners: radius = 8
         const r = 8;
         if (px < minX + r && py < minY + r) {
-            // Top-left corner
             const dist = Math.sqrt((px - (minX + r)) ** 2 + (py - (minY + r)) ** 2);
             return Math.abs(dist - r) <= hitThreshold;
         } else if (px > maxX - r && py < minY + r) {
-            // Top-right corner
             const dist = Math.sqrt((px - (maxX - r)) ** 2 + (py - (minY + r)) ** 2);
             return Math.abs(dist - r) <= hitThreshold;
         } else if (px > maxX - r && py > maxY - r) {
-            // Bottom-right corner
             const dist = Math.sqrt((px - (maxX - r)) ** 2 + (py - (maxY - r)) ** 2);
             return Math.abs(dist - r) <= hitThreshold;
         } else if (px < minX + r && py > maxY - r) {
-            // Bottom-left corner
             const dist = Math.sqrt((px - (minX + r)) ** 2 + (py - (maxY - r)) ** 2);
             return Math.abs(dist - r) <= hitThreshold;
         }
@@ -220,7 +229,7 @@ export function pointHitsElement(wx, wy, el, cameraZ = 1) {
         return getDistToSegment(px, py, el.x, el.y + el.h / 2, el.x + el.w, el.y + el.h / 2) < hitThreshold;
     }
 
-    // ── Content types (sticky, text, code, video, graph): full bounding-box selection ──
+    // ── Content types (sticky, text, code, video, graph, mermaid, image): full bounding-box selection ──
     const pad = el.type === "text" ? 5 : 0;
     return px >= el.x - pad && px <= el.x + el.w + pad && py >= el.y - pad && py <= el.y + el.h + pad;
 }
@@ -254,7 +263,7 @@ export function boxHitsElement(x1, y1, x2, y2, el) {
     }
 
     // 2. Content types are solid blocks
-    if (["sticky", "text", "code", "video", "graph"].includes(el.type)) return true;
+    if (["sticky", "text", "code", "video", "graph", "mermaid", "image"].includes(el.type)) return true;
 
     // 3. Fully enclosed?
     if (bounds.x >= x1 && bounds.x + bounds.w <= x2 && bounds.y >= y1 && bounds.y + bounds.h <= y2) {

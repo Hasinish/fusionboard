@@ -1130,43 +1130,46 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                         <ImageBlock el={el} sw={sw} sh={sh} camera={camera} />
                     ) : (
                         <>
-                            {/* Visual Background */}
-                            {el.type === "mermaid" ? (
-                                <div className="absolute inset-0" style={{ zIndex: 1 }}>
-                                    <MermaidRenderer code={el.text} isDark={isDarkMode} />
-                                </div>
-                            ) : (
-                                <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
-                            )}
-                            {el.type === "sticky" && (
-                                <div
-                                    className="absolute inset-0 rounded-sm"
-                                    style={{
-                                        backgroundColor: el.fill,
-                                        opacity: 0.9,
-                                        border: `${el.strokeWidth || 1}px solid ${el.stroke}`,
-                                        boxSizing: "border-box",
-                                        boxShadow: `
-                                    1px 1px 1px rgba(0,0,0,0.05),
-                                    ${2 * camera.z}px ${2 * camera.z}px ${5 * camera.z}px rgba(0,0,0,0.1),
-                                    ${4 * camera.z}px ${4 * camera.z}px ${10 * camera.z}px rgba(0,0,0,0.05)
-                                `,
-                                    }}
-                                >
-                                    {/* Folded Corner Effect */}
-                                    <svg width="24" height="24" className="absolute bottom-0 right-0 opacity-20" style={{ transform: "scale(0.8)", transformOrigin: "bottom right" }}>
-                                        <path d="M 0 24 L 24 24 L 24 0 Z" fill="black" opacity="0.1" />
-                                        <path d="M 0 24 L 24 0 L 0 0 Z" fill="white" opacity="0.2" />
-                                    </svg>
-                                </div>
-                            )}
+                            {/* Visual Background Layer */}
+                            <div className="absolute inset-0" style={{ zIndex: 0 }}>
+                                {el.type === "mermaid" ? (
+                                    <div className="absolute inset-0">
+                                        <MermaidRenderer code={el.text} isDark={isDarkMode} />
+                                    </div>
+                                ) : (
+                                    <ShapeSVG type={el.type} fill={el.fill} stroke={el.stroke} strokeWidth={el.strokeWidth} w={sw} h={sh} />
+                                )}
+                                {el.type === "sticky" && (
+                                    <div
+                                        className="absolute inset-0 rounded-[8px]"
+                                        style={{
+                                            backgroundColor: el.fill,
+                                            opacity: 0.9,
+                                            border: `${el.strokeWidth || 1}px solid ${el.stroke}`,
+                                            boxSizing: "border-box",
+                                            boxShadow: `
+                                        1px 1px 1px rgba(0,0,0,0.05),
+                                        ${2 * camera.z}px ${2 * camera.z}px ${5 * camera.z}px rgba(0,0,0,0.1),
+                                        ${4 * camera.z}px ${4 * camera.z}px ${10 * camera.z}px rgba(0,0,0,0.05)
+                                    `,
+                                        }}
+                                    >
+                                        <svg width="24" height="24" className="absolute bottom-0 right-0 opacity-20" style={{ transform: "scale(0.8)", transformOrigin: "bottom right" }}>
+                                            <path d="M 0 24 L 24 24 L 24 0 Z" fill="black" opacity="0.1" />
+                                            <path d="M 0 24 L 24 0 L 0 0 Z" fill="white" opacity="0.2" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Text Area with Vertical Align */}
+                            {/* Text Foreground Layer */}
                             <div style={{
-                                position: "absolute", inset: "10px",
+                                position: "absolute", inset: 0,
+                                padding: "12px",
                                 display: "flex", flexDirection: "column",
                                 justifyContent: valignMap[el.textVerticalAlign || (el.type === "text" ? "top" : "middle")] || "flex-start",
-                                zIndex: 2, pointerEvents: isEditing ? "auto" : "none",
+                                zIndex: 1,
+                                pointerEvents: isEditing ? "auto" : "none",
                                 overflow: "hidden",
                             }}
                                 onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
@@ -1186,7 +1189,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
                                         fontFamily: el.fontFamily || "Inter",
                                         fontWeight: el.bold ? "bold" : "normal",
                                         fontStyle: el.italic ? "italic" : "normal",
-                                        color: (el.type === "mermaid" && !isEditing) ? "transparent" : (el.type === "mermaid" && isEditing ? "#ffffff" : (el.textColor || "#1e1e1e")),
+                                        color: (el.type === "mermaid" && !isEditing) ? "transparent" : (el.type === "mermaid" && isEditing ? "#ffffff" : (el.textColor || el.color || "#1e1e1e")),
                                         textAlign: el.textAlign || (el.type === "text" ? "left" : "center"),
                                         whiteSpace: "pre-wrap", wordBreak: "break-word",
                                         outline: "none", lineHeight: 1.4,
@@ -1205,7 +1208,7 @@ export function BoardElement({ el, boardStore, camera, tool, isSelected, isMulti
 
             {/* Selection UI */}
             {isSelected && !isEditing && (
-                <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ border: isMultiSelected ? "1.5px solid #2563eb" : (el.type === "text" ? "1.5px dashed #2563eb" : "2px solid #2563eb"), zIndex: 3 }} />
+                <div className="absolute inset-0 rounded-[10px] pointer-events-auto" style={{ border: isMultiSelected ? "1.5px solid #2563eb" : (el.type === "text" ? "1.5px dashed #2563eb" : "2px solid #2563eb"), zIndex: 3, backgroundColor: "rgba(0,0,0,0)" }} />
             )}
             {isEditing && el.type === "text" && (
                 <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ border: "1.5px dashed #94a3b8", zIndex: 3 }} />

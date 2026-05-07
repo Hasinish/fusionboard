@@ -12,10 +12,14 @@ export const processToolCall = (call, worldPos, isDark, offset, boardActions) =>
 
     if (call.name === "create_shape") {
         const defaults = DEFAULT_ELEMENT_STYLES[args.shapeType] || {};
-        const darkOverrides = isDark ? { stroke: "#ffffff", textColor: "#ffffff" } : {};
+        const fill = args.fill || defaults.fill;
+        const hasFill = fill && fill !== "transparent" && fill !== "none";
+        
+        // Auto-calculate readable text color: white for filled shapes, or theme-aware for empty ones
+        const autoTextColor = hasFill ? "#ffffff" : (isDark ? "#ffffff" : "#1e1e1e");
+        
         element = {
             ...defaults,
-            ...darkOverrides,
             id: newId,
             type: args.shapeType,
             x: args.x !== undefined ? args.x : (worldPos.x - ((args.width || 200) / 2) + offset),
@@ -23,7 +27,8 @@ export const processToolCall = (call, worldPos, isDark, offset, boardActions) =>
             w: args.width || 200,
             h: args.height || 200,
             text: args.text || "",
-            textColor: args.textColor,
+            textColor: args.textColor || autoTextColor,
+            fontSize: args.fontSize || 18, // Slightly larger default for AI shapes
             rotation: 0,
             locked: false
         };
